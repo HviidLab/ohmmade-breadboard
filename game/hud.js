@@ -70,6 +70,8 @@
     if (rd.note) notes.push(rd.note);
     if (m.socket === "mA" && m.mode !== "mA") notes.push("Careful: the red lead is still in the mA socket. The meter is almost a wire now.");
     if (rd.beep) notes.push("Beep: the probes are connected.");
+    const at = (pt) => (pt.startsWith("U.") ? `Uno ${pt.slice(2)}` : `${pt} (${BBShared.netName(BBShared.net(pt)).replace(/ \(.*\)$/, "")})`);
+    if (m.legs[0] && m.legs[1]) notes.push(`Red in ${at(m.legs[0])}, black in ${at(m.legs[1])}.`);
     if (!rd.fuseOK) notes.push("The mA fuse is blown. Select the meter and replace the fuse.");
     $("lcd-note").textContent = notes.join(" ");
   }

@@ -3,7 +3,8 @@
   "use strict";
   const R = BB.Render, Gr = BB.Grid;
   const SNAP = 13;   // screen pixels
-  const EDGE = 44;   // screen pixels: dragging this close to the stage edge scrolls the bench
+  const EDGE = 32;   // screen pixels: pausing this close to the stage edge while dragging scrolls the bench
+  const EDGE_WAIT = 350;   // ms in the edge band before scrolling starts, so a drop near the edge stays put
   let G, svg, st = null, wireColor = 0, floater, lastPtr = null, edgeRaf = 0;
 
   function holeUnder(cx, cy) {
@@ -55,12 +56,20 @@
     if (!inStage(x, y)) return;
     const dl = x - r.left, dr = r.right - x, dt = y - r.top, db = r.bottom - y;
     if (!st.armed) { if (Math.min(dl, dr, dt, db) > EDGE) st.armed = true; return; }
-    const sp = (d) => (d < EDGE ? Math.ceil(((EDGE - d) / EDGE) * 14) : 0);
+    const sp = (d) => (d < EDGE ? Math.ceil(((EDGE - d) / EDGE) * 12) : 0);
     let dx = sp(dl) - sp(dr), dy = sp(dt) - sp(db);
+    if (!dx && !dy) { st.edgeSince = null; return; }
+    const now = performance.now();
+    if (st.edgeSince == null) st.edgeSince = now;
+    if (now - st.edgeSince < EDGE_WAIT) { edgeRaf = requestAnimationFrame(edgeTick); return; }
+    const boost = 1 + Math.min(2, (now - st.edgeSince - EDGE_WAIT) / 600);   // speeds up while you hold
+    dx = Math.round(dx * boost); dy = Math.round(dy * boost);
     // stop once the far edge of the board (or of the parts) is in view
     const c = R.contentBox(st.id), [x0, y0] = R.toScreen(c[0], c[1]), [x1, y1] = R.toScreen(c[2], c[3]), m = 40;
-    if ((dx > 0 && x0 > r.left + m) || (dx < 0 && x1 < r.right - m)) dx = 0;
-    if ((dy > 0 && y0 > r.top + m) || (dy < 0 && y1 < r.bottom - m)) dy = 0;
+    if (dx > 0) dx = Math.max(0, Math.min(dx, r.left + m - x0));
+    if (dx < 0) dx = Math.min(0, Math.max(dx, r.right - m - x1));
+    if (dy > 0) dy = Math.max(0, Math.min(dy, r.top + m - y0));
+    if (dy < 0) dy = Math.min(0, Math.max(dy, r.bottom - m - y1));
     if (dx || dy) { R.pan(dx, dy); move(lastPtr); }   // the bench moved under a still pointer
   }
 
