@@ -189,6 +189,43 @@ The unit is the <strong>watt (W)</strong>.</p>
 <p>If you connect the LED in the wrong direction, no current flows and the LED stays dark. This does not damage it at 6 V.</p>
 <p>An LED does not obey Ohm's law. It keeps an almost constant voltage across it, the <strong>forward voltage (Vf)</strong>.
 For a red LED, Vf is about <strong>2.0 V</strong>. Blue and white LEDs have a Vf of about 3 V.</p>
+<table>
+<thead>
+<tr>
+<th>LED colour</th>
+<th>Vf (typical)</th>
+<th>Current with 330 Ω on 6 V</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red</td>
+<td>2.0 V</td>
+<td>12.1 mA</td>
+</tr>
+<tr>
+<td>Yellow</td>
+<td>2.1 V</td>
+<td>11.8 mA</td>
+</tr>
+<tr>
+<td>Green</td>
+<td>2.2 V</td>
+<td>11.5 mA</td>
+</tr>
+<tr>
+<td>Blue</td>
+<td>3.0 V</td>
+<td>9.1 mA</td>
+</tr>
+<tr>
+<td>White</td>
+<td>3.1 V</td>
+<td>8.8 mA</td>
+</tr>
+</tbody>
+</table>
+<p>The breadboard game uses these values. Your LEDs can differ by 0.1–0.2 V. Measure them in E3.</p>
 <p>If you connect an LED directly to 6 V, nothing limits the current. The LED fails in a fraction of a second.
 <strong>Always put a resistor in series with an LED.</strong> Calculate the resistor like this:</p>
 <blockquote>

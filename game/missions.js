@@ -4,6 +4,11 @@
   const near = (x, w, r) => Number.isFinite(x) && Math.abs(x - w) <= Math.abs(w) * r;
   const lit = (q, lo = 0.005, hi = 0.02) => q && q.ok && q.rd.I >= lo && q.rd.I <= hi;
   const res = (S, v) => S.parts("resistor").filter((q) => q.part.value === v && q.ok);
+  // Goals follow the LED's own colour: its forward voltage sets the expected readings.
+  const vfOf = (q) => BB.Devices.ledParams(q && q.part.color).vf;
+  const ledVf = (S) => vfOf(S.parts("led").find((q) => q.ok));
+  const E3_I = (vf) => (6 - vf) / 330.5;                    // 6 V pack, 330 Ω, LED
+  const E8_I = (vf) => 0.0115 * (5.9 - vf) / 3.9;           // same, with the transistor's ≈ 0.1 V on top
 
   // Starting parts: battery pack on the top rails and the meter beside the board.
   function base(on = true, extra = []) {
@@ -74,11 +79,11 @@
       start: base(true), view: [1, 20],
       goals: [
         { text: "The LED is lit, between 5 and 20 mA", hold: 1, when: (S) => S.parts("led").some((q) => lit(q)) },
-        { text: "Measure the LED voltage (≈ 2.0 V)", when: (S) => S.parts("led").some((q) => q.ok && q.rd.I > 0.003 && S.readsVoltageOf(q, 1.8, 2.2)) },
-        { text: "Measure the resistor voltage (≈ 4.0 V)", when: (S) => S.parts("resistor").some((q) => q.ok && S.readsVoltageOf(q, 3.6, 4.4)) },
-        { text: "Measure the LED current in series (≈ 12 mA)", when: (S) => S.parts("led").some((q) => S.readsCurrentOf(q, 0.010, 0.014)) },
+        { text: "Measure the LED voltage (≈ 2.0 V for red, ≈ 3 V for blue)", when: (S) => S.parts("led").some((q) => q.ok && q.rd.I > 0.003 && S.readsVoltageOf(q, vfOf(q) - 0.2, vfOf(q) + 0.2)) },
+        { text: "Measure the resistor voltage (≈ 4.0 V with a red LED)", when: (S) => { const v = 6 - ledVf(S); return S.parts("resistor").some((q) => q.ok && S.readsVoltageOf(q, v * 0.9, v * 1.1)); } },
+        { text: "Measure the LED current in series (≈ 12 mA with a red LED)", when: (S) => S.parts("led").some((q) => S.readsCurrentOf(q, E3_I(vfOf(q)) * 0.83, E3_I(vfOf(q)) * 1.16)) },
       ],
-      hints: ["The long leg (+) goes toward the + rail.", "(6 − 2) V ÷ 330 Ω ≈ 12 mA.", "LED voltage + resistor voltage = pack voltage."] },
+      hints: ["The long leg (+) goes toward the + rail.", "(6 − 2) V ÷ 330 Ω ≈ 12 mA. A blue LED drops about 3 V: (6 − 3) V ÷ 330 Ω ≈ 9 mA.", "LED voltage + resistor voltage = pack voltage."] },
 
     { id: "E3x", title: "Smoke test", workbook: "workbook.html#e3-led-and-resistor", art: "m_E3x", allowDamage: true, badge: true,
       brief: "Why does an LED need a resistor? Find out the safe way: in the simulator. Replace the resistor with a plain jumper wire.",
@@ -171,12 +176,12 @@
         { text: "The LED turns on and off with the base current", hold: 0, when: (S, mem) => {
           const q = S.parts("npn").find((x) => x.ok), led = S.parts("led").find((x) => x.ok);
           if (!q || !led) return false;
-          if (q.rd.Ib > 2e-4 && led.rd.I > 0.008) mem.on = true;
+          if (q.rd.Ib > 2e-4 && led.rd.I > 0.7 * E8_I(vfOf(led))) mem.on = true;
           if (q.rd.Ib < 1e-6 && led.rd.I < 1e-4) mem.off = true;
           return mem.on && mem.off;
         } },
         { text: "Measure the base current (≈ 0.53 mA)", when: (S) => S.parts("npn").some((q) => S.readsCurrentOf(q, 0.00048, 0.00058, "Ib")) },
-        { text: "Measure the LED current (≈ 11.5 mA)", when: (S) => S.parts("led").some((q) => S.readsCurrentOf(q, 0.0105, 0.0125)) },
+        { text: "Measure the LED current (≈ 11.5 mA with a red LED)", when: (S) => S.parts("led").some((q) => S.readsCurrentOf(q, E8_I(vfOf(q)) * 0.91, E8_I(vfOf(q)) * 1.09)) },
       ],
       hints: ["C, B, E in three rows next to each other. E to the − rail.", "Base: 10 kΩ to a control wire. Touch the wire to + (on) or − (off).", "Ic ÷ Ib ≈ 22: the transistor is fully on."] },
 

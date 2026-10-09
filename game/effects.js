@@ -61,7 +61,7 @@
         const B = Math.min(Math.sqrt(I / 0.02), 1.8);
         r.glow.setAttribute("opacity", Math.min(B, 1) * 0.95);
         r.glow.setAttribute("r", 18 + 26 * Math.min(B, 1.8));
-        r.glow.setAttribute("fill", I > 0.03 ? "url(#glowHot)" : "url(#glow)");
+        r.glow.setAttribute("fill", I > 0.03 ? "url(#glowHot)" : r.glowFill || "url(#glow)");
         if (r.core) r.core.setAttribute("opacity", I > 0.03 ? Math.min((I - 0.03) / 0.05, 1) : 0);
       }
       if (part.type === "resistor" && r.heat && !rt.destroyed) {

@@ -15,6 +15,19 @@
     pot: "#2a6fc2", npn: "#202326", btn: "#3b4046", wires: ["#2fae5a", "#f08c2a", "#f2c94c", "#3a8ee6", "#e9ecef", "#c2410c"],
   };
   const BANDS = BBShared.BANDS;
+  // LED colours: glow (core, mid, edge), dome (light, base, dark), and a colour matrix that turns the red sprite into this colour.
+  const LEDC = {
+    red: { glow: ["#ffd2c8", "#ff4a3a", "#ff2a1a"], dome: ["#ff9a8f", "#d81e28", "#8e0f16"], edge: "#7a0d14", icon: "#d81e28" },
+    yellow: { glow: ["#fff6c8", "#ffd43a", "#ffb000"], dome: ["#fff1a0", "#f2c200", "#9a7400"], edge: "#7a5c00", icon: "#f2c200",
+      matrix: "1.25 0.2 0 0 0.02  1.05 0.2 0 0 0  0.15 0.1 0 0 0  0 0 0 1 0" },
+    green: { glow: ["#d9ffe0", "#3ddc6e", "#1fbf4f"], dome: ["#a6f5b8", "#1fa83f", "#0d5a20"], edge: "#0b4a1a", icon: "#1fa83f",
+      matrix: "0.1 0.1 0 0 0  0.95 0.25 0 0 0.02  0.25 0.1 0 0 0  0 0 0 1 0" },
+    blue: { glow: ["#dce6ff", "#5a86ff", "#2a4dff"], dome: ["#a8bfff", "#2347d8", "#0f2378"], edge: "#0d1f66", icon: "#2347d8",
+      matrix: "0.12 0.1 0 0 0  0.35 0.2 0 0 0  1.25 0.3 0 0 0.04  0 0 0 1 0" },
+    white: { glow: ["#ffffff", "#eef2ff", "#c9d4ff"], dome: ["#ffffff", "#dfe4ea", "#9aa3ad"], edge: "#7d858f", icon: "#e9edf2",
+      matrix: "0.75 0.5 0.5 0 0.18  0.75 0.5 0.5 0 0.18  0.78 0.5 0.5 0 0.2  0 0 0 0.92 0" },
+  };
+  const ledc = (part) => (LEDC[part.color] ? part.color : "red");
 
   function el(tag, attrs = {}, parent) {
     const e = document.createElementNS(NS, tag);
@@ -48,6 +61,12 @@
       <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity=".45"/></filter>
       <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
       <pattern id="matgrid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="rgba(255,255,255,.045)" stroke-width="1"/></pattern>`;
+    for (const [k, c] of Object.entries(LEDC)) {
+      defs.insertAdjacentHTML("beforeend",
+        `<radialGradient id="glow-${k}"><stop offset="0" stop-color="${c.glow[0]}" stop-opacity="1"/><stop offset=".18" stop-color="${c.glow[1]}" stop-opacity=".85"/><stop offset=".5" stop-color="${c.glow[2]}" stop-opacity=".32"/><stop offset="1" stop-color="${c.glow[2]}" stop-opacity="0"/></radialGradient>` +
+        `<radialGradient id="dome-${k}" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="${c.dome[0]}"/><stop offset=".55" stop-color="${c.dome[1]}"/><stop offset="1" stop-color="${c.dome[2]}"/></radialGradient>` +
+        (c.matrix ? `<filter id="tint-${k}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${c.matrix}"/></filter>` : ""));
+    }
     world = el("g", { id: "world" }, svg);
     if (A.has("bg_mat")) {
       el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "#0e1d18" }, world);
@@ -206,19 +225,21 @@
       }
       case "led": {
         leg(g, a, mid); leg(g, b, mid);
+        const col = ledc(part);
+        r.glowFill = `url(#glow-${col})`;
         if (A.has("probe_led_off")) {
-          r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: "url(#glow)", opacity: 0 }, fx || g);
+          r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: r.glowFill, opacity: 0 }, fx || g);
           const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
-          sprite(g, dead ? "led_burnt" : "probe_led_off", mid[0], mid[1], 26, ang);
+          sprite(g, dead ? "led_burnt" : "probe_led_off", mid[0], mid[1], 26, ang, { filter: LEDC[col].matrix ? `url(#tint-${col})` : null });
           r.core = el("circle", { cx: mid[0], cy: mid[1], r: 5, fill: "#fff6e0", opacity: 0 }, g);
           el("text", { x: a[0] - 4, y: a[1] + 17, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";
           break;
         }
-        r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: "url(#glow)", opacity: 0 }, fx || g);
+        r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: r.glowFill, opacity: 0 }, fx || g);
         const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
         const dome = el("g", { transform: `translate(${mid[0]} ${mid[1]}) rotate(${ang})` }, g);
         el("path", { d: "M-11 0 A11 11 0 1 1 8.5 7 L8.5 -7 A11 11 0 0 1 -11 0Z", fill: "rgba(0,0,0,.35)", transform: "translate(2 3)" }, dome);
-        r.body = el("path", { d: "M8.5 -7 A11 11 0 1 0 8.5 7 Z", fill: dead ? "url(#domeDead)" : "url(#dome)", stroke: dead ? "#2a1a1a" : "#7a0d14", "stroke-width": 1 }, dome);
+        r.body = el("path", { d: "M8.5 -7 A11 11 0 1 0 8.5 7 Z", fill: dead ? "url(#domeDead)" : `url(#dome-${col})`, stroke: dead ? "#2a1a1a" : LEDC[col].edge, "stroke-width": 1 }, dome);
         if (dead) el("path", { d: "M-6 -6 l4 5 l-3 4 l5 4", stroke: "#111", "stroke-width": 1.4, fill: "none" }, dome);
         r.core = el("circle", { cx: -2, cy: 0, r: 4, fill: "#fff6e0", opacity: 0 }, dome);
         el("text", { x: a[0] - 4, y: a[1] + 17, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";
@@ -548,5 +569,5 @@
     }
   }
 
-  BB.Render = { init, drawParts, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD };
+  BB.Render = { init, drawParts, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

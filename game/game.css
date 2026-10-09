@@ -98,6 +98,8 @@ kbd { font: 500 12px var(--font-data); background: var(--panel-2); border: 1px s
 .btn:hover { border-color: var(--amber); }
 .btn.primary { background: var(--amber); color: #1c1305; border-color: var(--amber); font-weight: 600; }
 select, input[type="range"] { accent-color: var(--amber); }
+.rval { width: 7.5em; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: 13px var(--font-data); }
+.note.bad { color: var(--warn); }
 select { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: 13px var(--font-data); }
 .partlist { list-style: none; padding: 0; margin: 0; display: grid; gap: 3px; max-height: 160px; overflow-y: auto; }
 .partlist button { width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 6px; padding: 3px 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }

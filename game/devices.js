@@ -11,7 +11,11 @@
   const PARAMS = {
     battery: { emf: 6.0, rint: 0.5 },
     wire: { r: 0.02 },
-    led: { vf: 2.0, iAt: 0.012, n: 2.0, rs: 5, bv: 12 },
+    led: { vf: 2.0, iAt: 0.012, n: 2.0, rs: 5, bv: 12, imax: 0.02 },
+    // Typical 5 mm starter-kit LEDs: forward voltage at 12 mA. Blue and white (InGaN) also have more series resistance.
+    ledColors: {
+      red: { vf: 2.0 }, yellow: { vf: 2.1 }, green: { vf: 2.2 }, blue: { vf: 3.0, rs: 10 }, white: { vf: 3.1, rs: 10 },
+    },
     meter: { rV: 10e6, rShunt: 1.0, fuseA: 0.2, ohmV: 3.0, ohmR: 1000 },
     cap: { leak: 10e6, revKnee: 1.0, revRs: 20, esr: { 1e-3: 0.1, 1e-4: 0.3, 1e-5: 1.0 } },
     npn: { is: 1e-14, bf: 200, br: 5, rb: 10, rc: 5, re: 0.5 },
@@ -21,8 +25,15 @@
     uno: { v5: 5.0, r5: 0.2, v33: 3.3, r33: 0.5, rPin: 40, rIn: 100e6, clampIs: 1e-12 },
   };
   // LED saturation current, calibrated so that V = vf at iAt.
-  const L = PARAMS.led;
-  L.is = L.iAt / (Math.exp((L.vf - L.iAt * L.rs) / (L.n * VT)) - 1);
+  const calibrate = (p) => Object.assign(p, { is: p.iAt / (Math.exp((p.vf - p.iAt * p.rs) / (p.n * VT)) - 1) });
+  const L = calibrate(PARAMS.led);
+  // Model parameters for an LED colour (red when unknown).
+  const ledCache = new Map();
+  function ledParams(color) {
+    const c = PARAMS.ledColors[color] ? color : "red";
+    if (!ledCache.has(c)) ledCache.set(c, calibrate(Object.assign({ color: c }, PARAMS.led, PARAMS.ledColors[c])));
+    return ledCache.get(c);
+  }
 
   // ---------- linear ----------
   class Resistor {
@@ -140,5 +151,5 @@
     current() { return this.on ? this.I || 0 : 0; }
   }
 
-  BB.Devices = { PARAMS, Resistor, Source, Junction, led, Capacitor, NPN, npn, LimitedSource };
+  BB.Devices = { PARAMS, ledParams, Resistor, Source, Junction, led, Capacitor, NPN, npn, LimitedSource };
 })(window.BB = window.BB || {});

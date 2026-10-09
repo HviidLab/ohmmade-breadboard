@@ -37,7 +37,8 @@
   // The drawer picture, following the pointer (over the drawer, or for parts that have no board ghost).
   function float(type, cx, cy) {
     if (!type) { floater.hidden = true; floater.dataset.type = ""; return; }
-    if (floater.dataset.type !== type) { floater.innerHTML = BB.HUD.icon(type); floater.dataset.type = type; }
+    const key = type === "led" ? `led:${BB.HUD.defaults.ledColor}` : type;
+    if (floater.dataset.type !== key) { floater.innerHTML = BB.HUD.icon(type, type === "led" ? R.LEDC[BB.HUD.defaults.ledColor].icon : null); floater.dataset.type = key; }
     floater.style.left = `${cx - 44}px`; floater.style.top = `${cy - 28}px`;
     floater.hidden = false;
   }
@@ -144,8 +145,9 @@
     } else st.legs = hole ? Gr.footprint(d.type, hole) : null;
     st.ok = !!st.legs && G.doc.validate(d.type, st.legs).ok;
     if (d.type === "battery") { R.highlight(st.legs ? st.legs[0] : null); return; }
-    if (st.legs) R.ghost(d.type, st.legs, st.ok, { value: d.value || 330 });
-    else if (over) R.floatGhost(d.type, freePts(Gr.footprint(d.type, "c30"), 0, wx, wy), { value: d.value || 330 });
+    const look = { value: d.value || BB.HUD.defaults.resistor, color: BB.HUD.defaults.ledColor };
+    if (st.legs) R.ghost(d.type, st.legs, st.ok, look);
+    else if (over) R.floatGhost(d.type, freePts(Gr.footprint(d.type, "c30"), 0, wx, wy), look);
     else R.clearGhost();
   }
 
@@ -246,7 +248,8 @@
       return;
     }
     const part = { type: d.type, legs: s.legs };
-    if (d.type === "resistor") part.value = 330;
+    if (d.type === "resistor") part.value = BB.HUD.defaults.resistor;
+    if (d.type === "led") part.color = BB.HUD.defaults.ledColor;
     if (d.type === "cap") part.value = d.value;
     if (d.type === "pot") part.pos = 0.5;
     if (d.type === "ldr") part.lux = 200;
@@ -270,7 +273,7 @@
       const v = G.sim.voltageAt(hole);
       const n = hole.startsWith("U.") ? `Uno socket ${hole.slice(2).replace(/^GND\d$/, "GND")}` : BBShared.netName(BBShared.net(hole));
       const occ = G.doc.occupancy().get(hole);
-      const what = occ ? `\n${BB.Parts.TYPES[G.doc.get(occ.id).type].label} leg` : "";
+      const what = occ ? `\n${BB.Parts.name(G.doc.get(occ.id))} leg` : "";
       BB.HUD.tooltip(`${hole}: ${n}\n${v === null ? "not connected" : `${v.toFixed(2)} V vs ground`}${what}`, e.clientX, e.clientY);
     } else if (partEl) {
       R.highlight(null);

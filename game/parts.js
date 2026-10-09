@@ -9,6 +9,34 @@
   const fmtA = (a) => (Math.abs(a) >= 1 ? `${Math.abs(a).toFixed(2)} A` : mA(a));
   const fmtR = (r) => (r >= 1e6 ? `${r / 1e6} MΩ` : r >= 1000 ? `${r / 1000} kΩ` : `${r} Ω`);
 
+  // Standard resistor values (E12 series), 10 Ω to 1 MΩ: what a starter kit or shop sells.
+  const E12_BASE = [10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82];
+  const E12 = [];
+  for (let d = 1; d <= 10000; d *= 10) for (const b of E12_BASE) E12.push(b * d);   // 10 Ω … 820 kΩ
+  E12.push(1e6);
+  const RMIN = 10, RMAX = 1e6;
+  // "4.7k", "4k7", "470", "2.2 kΩ", "1M" → ohms rounded to two significant digits (what colour bands can show), or null.
+  function parseOhms(text) {
+    const s = String(text).trim().replace(/\s+/g, "").replace(/(ohms?|Ω)$/i, "").replace(",", ".");
+    const m = /^(\d*\.?\d+)([kKmM]?)(\d*)$/.exec(s);
+    if (!m) return null;
+    const mult = { "": 1, k: 1e3, K: 1e3, m: 1e6, M: 1e6 }[m[2]];
+    const x = (m[3] ? parseFloat(`${m[1]}.${m[3]}`) : parseFloat(m[1])) * mult;
+    if (!(x > 0)) return null;
+    const p = Math.pow(10, Math.floor(Math.log10(x)) - 1);
+    return Math.round(x / p) * p;
+  }
+  // The smallest standard value of at least r.
+  const e12AtLeast = (r) => E12.find((v) => v >= r) ?? RMAX;
+
+  const COLOR_NAME = { red: "Red", yellow: "Yellow", green: "Green", blue: "Blue", white: "White" };
+  // What to call a part on screen: "Blue LED", "Resistor 4.7 kΩ", "Jumper wire".
+  function name(part) {
+    if (part.type === "led") return `${COLOR_NAME[part.color] || "Red"} LED`;
+    if (part.type === "resistor") return `Resistor ${fmtR(part.value)}`;
+    return TYPES[part.type].label;
+  }
+
   const TYPES = {
     resistor: {
       label: "Resistor", legs: ["a", "b"], kind: "flex",
@@ -46,14 +74,18 @@
     },
 
     led: {
-      label: "Red LED", legs: ["anode", "cathode"], kind: "bend",
+      label: "LED", legs: ["anode", "cathode"], kind: "bend",
       build(c, [a, k], part, rt) {
         if (rt.destroyed) return { read: () => ({ I: 0, V: 0, P: 0 }) };
-        const d = D.led(c, a, k);
+        const d = D.led(c, a, k, D.ledParams(part.color));
         return { read: (S) => { const I = d.current(S.v), V = d.voltage(S.v); return { I, V, P: I * V, reverse: V < -5 }; } };
       },
-      stresses: () => ({ current: { rated: 0.02, tau: 0.1, square: true, smoke: 6, fail: 12, x: (rd) => Math.max(rd.I, 0) } }),
-      failText: (part, rt) => `The LED burned out: ${fmtA(rt.stress.current.peak)} flowed, and a standard LED takes about 20 mA. With a 6 V pack, a 330 Ω resistor in series limits it to 12 mA.`,
+      stresses: (part) => ({ current: { rated: D.ledParams(part.color).imax, tau: 0.1, square: true, smoke: 6, fail: 12, x: (rd) => Math.max(rd.I, 0) } }),
+      failText(part, rt) {
+        const p = D.ledParams(part.color), emf = P.battery.emf, r = e12AtLeast((emf - p.vf) / 0.015);
+        return `The ${name(part).toLowerCase().replace(" led", " LED")} burned out: ${fmtA(rt.stress.current.peak)} flowed, and a standard LED takes about ${p.imax * 1000} mA. ` +
+          `It drops about ${p.vf.toFixed(1)} V, so from the ${emf} V pack a resistor of (${emf} − ${p.vf.toFixed(1)}) V ÷ 15 mA ≈ ${fmtR(r)} or more keeps it safe.`;
+      },
     },
 
     // Multimeter: legs = probe tips (red, COM). part.mode: off|V|mA|ohm|cont. part.socket: "VO" | "mA".
@@ -238,5 +270,5 @@
     },
   };
 
-  BB.Parts = { TYPES, fmtA, fmtR };
+  BB.Parts = { TYPES, fmtA, fmtR, name, E12, RMIN, RMAX, parseOhms, e12AtLeast, COLOR_NAME };
 })(window.BB = window.BB || {});

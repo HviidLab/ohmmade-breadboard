@@ -7,16 +7,17 @@
   const fmtA = (a) => { if (!num(a)) return "—"; const x = Math.abs(a); return x >= 1 ? `${a.toFixed(2)} A` : x >= 1e-3 ? `${(a * 1e3).toFixed(2)} mA` : x >= 1e-6 ? `${(a * 1e6).toFixed(1)} µA` : "0 mA"; };
   const fmtV = (v) => (num(v) ? `${v.toFixed(2)} V` : "—");
   const fmtP = (p) => (!num(p) ? "—" : p >= 1 ? `${p.toFixed(2)} W` : `${(p * 1000).toFixed(0)} mW`);
-  const fmtR = BB.Parts.fmtR;
-  const RVALS = [10, 100, 220, 330, 1000, 10000, 100000];
+  const fmtR = BB.Parts.fmtR, nameOf = BB.Parts.name, PN = BB.Parts;
+  // What a new resistor or LED from the drawer gets: the last value or colour you chose in the Inspector.
+  const defaults = { resistor: 330, ledColor: "red" };
   const STATE = ["ok", "stressed", "smoking", "destroyed"];
   const STATE_TXT = { ok: "OK", stressed: "over its rating", smoking: "smoking", destroyed: "destroyed" };
 
   const DRAWER = [
     { type: "battery", label: "Battery pack", sub: "4×AA · 6 V" },
-    { type: "resistor", label: "Resistor", sub: "330 Ω (change it)" },
+    { type: "resistor", label: "Resistor", sub: "330 Ω · any value" },
     { type: "wire", label: "Jumper wire", sub: "or drag from a hole" },
-    { type: "led", label: "Red LED", sub: "≈ 2.0 V, 20 mA max" },
+    { type: "led", label: "Red LED", sub: "≈ 2.0 V · 5 colours" },
     { type: "cap", label: "Capacitor", sub: "1000 µF electrolytic", value: 1e-3 },
     { type: "cap", label: "Capacitor", sub: "100 µF electrolytic", value: 1e-4 },
     { type: "pot", label: "Potentiometer", sub: "10 kΩ knob" },
@@ -27,12 +28,12 @@
     { type: "uno", label: "Uno-style board", sub: "5V · GND · pins D2–D13" },
   ];
 
-  function icon(type) {
+  function icon(type, color) {
     const s = {
       battery: '<rect x="4" y="6" width="36" height="16" rx="3" fill="#24282c"/><rect x="8" y="9" width="28" height="4" rx="2" fill="#c1661c"/><rect x="8" y="15" width="28" height="4" rx="2" fill="#1e1e1e"/>',
       resistor: '<line x1="2" y1="14" x2="42" y2="14" stroke="#c7ccd1" stroke-width="2"/><rect x="12" y="8" width="20" height="12" rx="5" fill="#dcc293"/><rect x="16" y="8" width="2.5" height="12" fill="#f08c00"/><rect x="21" y="8" width="2.5" height="12" fill="#f08c00"/><rect x="26" y="8" width="2.5" height="12" fill="#8b4513"/>',
       wire: '<path d="M4 22 Q22 0 40 22" stroke="#2fae5a" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-      led: '<line x1="16" y1="24" x2="16" y2="16" stroke="#c7ccd1" stroke-width="2"/><line x1="28" y1="24" x2="28" y2="16" stroke="#c7ccd1" stroke-width="2"/><circle cx="22" cy="12" r="9" fill="#d81e28"/>',
+      led: `<line x1="16" y1="24" x2="16" y2="16" stroke="#c7ccd1" stroke-width="2"/><line x1="28" y1="24" x2="28" y2="16" stroke="#c7ccd1" stroke-width="2"/><circle cx="22" cy="12" r="9" fill="${color || "#d81e28"}"/>`,
       cap: '<circle cx="22" cy="14" r="10" fill="#2f4fa3"/><circle cx="27" cy="14" r="3.5" fill="#c9d4ee"/>',
       pot: '<rect x="8" y="4" width="28" height="20" rx="3" fill="#2a6fc2"/><circle cx="22" cy="14" r="7" fill="#e9ecef"/><line x1="22" y1="14" x2="26" y2="9" stroke="#333" stroke-width="2"/>',
       button: '<rect x="11" y="3" width="22" height="22" rx="3" fill="#3b4046"/><circle cx="22" cy="14" r="7" fill="#9aa3a8"/>',
@@ -50,10 +51,22 @@
       const li = document.createElement("li");
       li.tabIndex = 0;
       li.dataset.k = k;
-      li.innerHTML = `${icon(d.type)}<span class="lbl">${d.label}<span class="sub">${d.sub}</span></span>`;
       li.addEventListener("pointerdown", (e) => { e.preventDefault(); onStart(d, e); });
       li.addEventListener("keydown", (e) => { if (e.key === "Enter") onStart(d, null); });
       ul.appendChild(li);
+    });
+    refreshDrawer();
+  }
+  // Drawer labels follow the defaults: "Resistor 4.7 kΩ", "Blue LED".
+  function refreshDrawer() {
+    const vf = BB.Devices.ledParams(defaults.ledColor).vf;
+    DRAWER.forEach((d, k) => {
+      const li = document.querySelector(`#drawer li[data-k="${k}"]`);
+      if (!li) return;
+      let label = d.label, sub = d.sub, color = null;
+      if (d.type === "resistor") sub = `${fmtR(defaults.resistor)} · any value`;
+      if (d.type === "led") { label = `${PN.COLOR_NAME[defaults.ledColor]} LED`; sub = `≈ ${vf.toFixed(1)} V · 5 colours`; color = BB.Render.LEDC[defaults.ledColor].icon; }
+      li.innerHTML = `${icon(d.type, color)}<span class="lbl">${label}<span class="sub">${sub}</span></span>`;
     });
   }
 
@@ -84,7 +97,7 @@
     if (!part) { if (inspFor !== null || force) { body.innerHTML = '<p class="note">Click a part to see its voltage, current and temperature.</p>'; inspFor = null; } return; }
     if (inspFor !== part.id || force) {
       inspFor = part.id;
-      body.innerHTML = `<p><strong>${T[part.type].label}</strong> <span class="state" id="insp-state"></span></p><dl class="kv" id="insp-kv"></dl><div id="insp-ctl"></div><div class="row" id="insp-act"></div>`;
+      body.innerHTML = `<p><strong>${nameOf(part)}</strong> <span class="state" id="insp-state"></span></p><dl class="kv" id="insp-kv"></dl><div id="insp-ctl"></div><div class="row" id="insp-act"></div>`;
       controls(G, part, $("insp-ctl"));
       const act = $("insp-act");
       const add = (label, fn, cls = "btn") => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = label; b.addEventListener("click", fn); act.appendChild(b); return b; };
@@ -108,7 +121,28 @@
       $(id).addEventListener("input", (e) => fn(+e.target.value));
     };
     switch (part.type) {
-      case "resistor": sel("Value", RVALS.map((r) => [r, fmtR(r)]), part.value, (v) => G.set(part.id, "value", +v, true)); break;
+      case "resistor": {
+        // type any value ("4.7k", "4k7", "470") or pick a standard one; it is rounded to what colour bands can show
+        host.insertAdjacentHTML("beforeend", `<div class="row"><label for="ctl-Value">Value</label><input id="ctl-Value" class="rval" list="e12" value="${fmtR(part.value).replace(" ", "")}" autocomplete="off" spellcheck="false" aria-describedby="ctl-Value-note"></div><p class="note" id="ctl-Value-note">Type a value such as 4.7k or pick one. 10 Ω to 1 MΩ.</p>`);
+        if (!$("e12")) document.body.insertAdjacentHTML("beforeend", `<datalist id="e12">${PN.E12.map((r) => `<option value="${fmtR(r).replace(" ", "")}">`).join("")}</datalist>`);
+        const inp = $("ctl-Value"), note = $("ctl-Value-note");
+        const apply = () => {
+          const r = PN.parseOhms(inp.value);
+          if (r === null || r < PN.RMIN || r > PN.RMAX) { note.textContent = `“${inp.value}” is not a value from 10 Ω to 1 MΩ. Try 220, 4.7k or 1M.`; note.classList.add("bad"); return; }
+          note.classList.remove("bad");
+          inp.value = fmtR(r).replace(" ", "");
+          note.textContent = PN.E12.includes(r) ? "A standard (E12) value." : "Not a standard E12 value, but it exists in other series.";
+          defaults.resistor = r; refreshDrawer();
+          G.set(part.id, "value", r, true);
+        };
+        inp.addEventListener("change", apply);
+        inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); apply(); } e.stopPropagation(); });
+        break;
+      }
+      case "led":
+        sel("Colour", Object.keys(BB.Devices.PARAMS.ledColors).map((c) => [c, `${PN.COLOR_NAME[c]} (≈ ${BB.Devices.ledParams(c).vf.toFixed(1)} V)`]), part.color || "red",
+          (v) => { defaults.ledColor = v; refreshDrawer(); G.set(part.id, "color", v, true); });
+        break;
       case "cap": sel("Value", [[1e-3, "1000 µF"], [1e-4, "100 µF"], [1e-5, "10 µF"]], part.value, (v) => G.set(part.id, "value", +v, true)); break;
       case "pot": range("Knob position", 0, 1, 0.01, part.pos ?? 0.5, (v) => G.set(part.id, "pos", v)); break;
       case "ldr": {
@@ -148,7 +182,7 @@
     const temp = (h) => `${Math.round(25 + 100 * h)} °C`;
     switch (part.type) {
       case "resistor": kv.push(["Voltage", fmtV(rd.V)], ["Current", fmtA(rd.I)], ["Power", `${fmtP(rd.P)} of 250 mW`], ["Temperature", temp(rt.stress.heat.h)]); break;
-      case "led": kv.push(["Current", `${fmtA(rd.I)} (max 20 mA)`], ["Voltage", fmtV(rd.V)], ["Brightness", `${Math.round(Math.min(Math.sqrt(Math.max(rd.I, 0) / 0.02), 1) * 100)} %`]); break;
+      case "led": kv.push(["Current", `${fmtA(rd.I)} (max ${BB.Devices.ledParams(part.color).imax * 1000} mA)`], ["Voltage", fmtV(rd.V)], ["Brightness", `${Math.round(Math.min(Math.sqrt(Math.max(rd.I, 0) / 0.02), 1) * 100)} %`]); break;
       case "wire": kv.push(["Current", fmtA(rd.I)]); break;
       case "battery": kv.push(["Terminal voltage", fmtV(rd.V)], ["Current", fmtA(rd.I)], ["Heat inside", fmtP(rd.Pint)]); break;
       case "cap": kv.push(["Voltage", fmtV(rd.V)], ["Current", fmtA(rd.I)]); if (rd.reverse) kv.push(["Warning", "connected backwards"]); break;
@@ -167,8 +201,8 @@
     const ul = $("partlist");
     ul.innerHTML = G.doc.parts.map((p) => {
       const rt = G.sim.rt.get(p.id);
-      const extra = p.type === "resistor" ? fmtR(p.value) : p.type === "cap" ? (p.value >= 1e-3 ? "1000 µF" : p.value >= 1e-4 ? "100 µF" : "10 µF") : "";
-      return `<li><button type="button" data-id="${p.id}" aria-current="${p.id === G.sel}"><span>${T[p.type].label} ${extra}</span><span class="mono">${rt && rt.destroyed ? "✗" : p.legs.filter(Boolean).join(" ")}</span></button></li>`;
+      const extra = p.type === "cap" ? (p.value >= 1e-3 ? "1000 µF" : p.value >= 1e-4 ? "100 µF" : "10 µF") : "";
+      return `<li><button type="button" data-id="${p.id}" aria-current="${p.id === G.sel}"><span>${nameOf(p)} ${extra}</span><span class="mono">${rt && rt.destroyed ? "✗" : p.legs.filter(Boolean).join(" ")}</span></button></li>`;
     }).join("") || '<li class="note">Nothing yet.</li>';
     ul.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => G.select(b.dataset.id)));
   }
@@ -208,7 +242,7 @@
   function partTip(G, id) {
     const part = G.doc.get(id), rt = G.sim.rt.get(id), rd = G.sim.read(id);
     if (!part || !rd) return "";
-    const head = `${T[part.type].label}${part.type === "resistor" ? " " + fmtR(part.value) : ""}`;
+    const head = nameOf(part);
     if (rt && rt.destroyed) return `${head}\ndestroyed: select it and replace it`;
     const lines = [head];
     if (rd.I !== undefined) lines.push(`I = ${fmtA(rd.I)}`);
@@ -261,5 +295,5 @@
     $("uno-analog").innerHTML = BB.Uno.ANALOG.map((n) => `<dt>analogRead(${n})</dt><dd>${rd.pins[n].damaged ? "damaged" : rd.analog[n]}</dd>`).join("");
   }
 
-  BB.HUD = { icon, uno, trace, buildDrawer, meter, inspector, partList, log, toast, tooltip, banner, partTip, DRAWER, fmtA, fmtV };
+  BB.HUD = { icon, defaults, refreshDrawer, uno, trace, buildDrawer, meter, inspector, partList, log, toast, tooltip, banner, partTip, DRAWER, fmtA, fmtV };
 })(window.BB = window.BB || {});

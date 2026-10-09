@@ -103,7 +103,7 @@
         part.loose = [[bx + 135, by - 55], [bx + 185, by - 55]];
         H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
       }
-      G.sim.replace(id); H.log(`${BB.Parts.TYPES[G.doc.get(id).type].label} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true); },
+      G.sim.replace(id); H.log(`${BB.Parts.name(G.doc.get(id))} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true); },
     undo() { BB.trail("undo"); if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); } },
     redo() { BB.trail("redo"); if (G.doc.redo()) G.commit(); },
     clear() { G.edit(() => { G.doc.parts = G.doc.parts.filter((p) => p.type === "battery" || p.type === "meter"); }); },
