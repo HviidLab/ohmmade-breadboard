@@ -1,4 +1,4 @@
-# Electronics bench
+# Ohmmade Breadboard
 
 A short self-study course in basic electronics, for before you buy an Arduino starter kit:
 a primer, a breadboard workbook (experiments E0–E9), interactive labs, a narrated video,
