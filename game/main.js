@@ -39,6 +39,7 @@
       G.mode = "mission";
       G.load(JSON.parse(JSON.stringify(m.start)));
       G.run = new BB.Goals.Run(m);
+      BB.trail("start mission");
       H.toast(null);
       BB.Render.guide(null);
       requestAnimationFrame(() => R.fit(m.view));
@@ -60,11 +61,12 @@
     edit(fn) { G.doc.snapshot(); fn(); G.commit(); },
 
     select(id) { G.sel = id; G.redraw(); G.refreshPanels(true); },
-    add(part) { G.doc.snapshot(); const p = G.doc.add(part); G.sel = p.id; G.commit(); return p; },
-    remove(id) { G.edit(() => G.doc.remove(id)); if (G.sel === id) G.select(null); },
+    add(part) { G.doc.snapshot(); const p = G.doc.add(part); G.sel = p.id; BB.trail(`add ${p.id} ${p.legs.join(" ")}`); G.commit(); return p; },
+    remove(id) { BB.trail(`delete ${id}`); G.edit(() => G.doc.remove(id)); if (G.sel === id) G.select(null); },
     set(id, key, value, snapshot = false) {
       const part = G.doc.get(id);
       if (!part || part[key] === value) return;
+      if (key !== "pos" && key !== "lux") BB.trail(`${id} ${key} = ${value}`);
       if (snapshot) G.doc.snapshot();
       part[key] = value;
       G.recompile();
@@ -92,23 +94,41 @@
       p.pins = Object.assign({}, p.pins, { [pin]: order[(order.indexOf(cur) + 1) % 3] });
       G.recompile(); G.commitSoft();
     },
-    replace(id) { G.sim.replace(id); H.log(`${BB.Parts.TYPES[G.doc.get(id).type].label} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true); },
-    undo() { if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); } },
-    redo() { if (G.doc.redo()) G.commit(); },
+    replace(id) {
+      BB.trail(`replace ${id}`);
+      const part = G.doc.get(id);
+      if (part && part.type === "meter") {      // to change a fuse you take the probes off, so a new fuse does not blow at once
+        const bx = part.bx ?? 0, by = part.by ?? 0;
+        part.legs = [null, null];
+        part.loose = [[bx + 135, by - 55], [bx + 185, by - 55]];
+        H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
+      }
+      G.sim.replace(id); H.log(`${BB.Parts.TYPES[G.doc.get(id).type].label} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true); },
+    undo() { BB.trail("undo"); if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); } },
+    redo() { BB.trail("redo"); if (G.doc.redo()) G.commit(); },
     clear() { G.edit(() => { G.doc.parts = G.doc.parts.filter((p) => p.type === "battery" || p.type === "meter"); }); },
   };
 
+  // The last few things the player did, for bug reports.
+  const trail = [];
+  BB.trail = (text) => {
+    trail.push(`${(G.sim ? G.sim.t : 0).toFixed(1)} s ${G.mode === "mission" && G.run ? G.run.m.id : "sandbox"}: ${text}`);
+    if (trail.length > 12) trail.shift();
+  };
+
   // Show unexpected errors instead of failing silently, so they can be reported.
-  const seenErrors = new Set();
+  // The first error is usually the cause, so it stays on top; later ones are listed below it.
+  const seenErrors = new Set(), shown = [];
   BB.reportError = (err, where) => {
     const msg = `${where}: ${err && err.message ? err.message : err}`;
     console.error(msg, err);
     if (seenErrors.has(msg)) return;
     seenErrors.add(msg);
+    if (shown.length < 4) shown.push(`${msg}\n${(err && err.stack || "").split("\n").slice(0, 4).join("\n")}`);
     const bar = $("errbar");
     if (!bar) return;
     bar.hidden = false;
-    bar.querySelector("code").textContent = `${msg}\n${(err && err.stack || "").split("\n").slice(0, 4).join("\n")}`;
+    bar.querySelector("code").textContent = `${shown.join("\n\n")}\n\nLast actions:\n${trail.join("\n")}`;
   };
   window.addEventListener("error", (e) => BB.reportError(e.error || e.message, "page"));
 
@@ -162,6 +182,8 @@
         const ev = G.sim.events[G.seen++];
         const part = G.doc.get(ev.partId);
         if (part) BB.Effects.burst(part);
+        if (part && part.type === "meter" && ev.kind === "destroyed") H.toast("The meter's fuse blew. Click the meter, then Replace fuse in the Inspector. Move the red lead back to VΩ unless you are measuring current in series.", 9000);
+        BB.trail(`event: ${ev.kind} ${ev.partId}`);
         H.log(ev.text, "bad", ev.t);
         H.toast(ev.text);
         G.redraw(); G.refreshPanels(true);

@@ -504,6 +504,7 @@
   function drawSelection(g, part, pts) {
     if (part.type === "battery" || part.type === "meter") return;
     const ps = pts.filter(Boolean);
+    if (!ps.length) return;               // the Uno-style board has no legs; its body shows it is selected
     const xs = ps.map((p) => p[0]), ys = ps.map((p) => p[1]);
     el("rect", { x: Math.min(...xs) - 16, y: Math.min(...ys) - 16, width: Math.max(...xs) - Math.min(...xs) + 32, height: Math.max(...ys) - Math.min(...ys) + 32, rx: 8, class: "sel-ring" }, g);
     if (part.legs.length === 2) pts.forEach((p, k) => p && el("circle", { cx: p[0], cy: p[1], r: 6, class: "handle", "data-handle": k, "data-id": part.id }, g));

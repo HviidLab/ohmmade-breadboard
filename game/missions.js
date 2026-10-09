@@ -64,7 +64,10 @@
         { text: "Measure its voltage (≈ 6.0 V)", when: (S) => res(S, 330).some((q) => S.readsVoltageOf(q, 5.6, 6.3)) },
         { text: "Measure its current in series (≈ 18 mA)", when: (S) => res(S, 330).some((q) => S.readsCurrentOf(q, 0.0170, 0.0190)) },
       ],
-      hints: ["Resistor from the + rail to a10, jumper from c10 to the − rail.", "For current: red lead to the mA socket, dial to mA, then replace the jumper with the two probes.", "18 mA × 330 Ω = 6 V."] },
+      hints: ["Drop a resistor at a10, then drag its right leg end up into the + rail. Drag from c10 to the − rail to draw the jumper.",
+        "For current, the meter takes the jumper's place. In this order: take both probes off the board, delete the jumper, set the red lead to the mA socket and the dial to mA, then put the red probe in c10 and the black probe on the − rail.",
+        "Careful: with the red lead in mA, the meter is almost a wire. Across the battery it blows its fuse. Then select the meter and click Replace fuse.",
+        "18 mA × 330 Ω = 6 V."] },
 
     { id: "E3", title: "LED and resistor", workbook: "workbook.html#e3-led-and-resistor", art: "m_E3",
       brief: "Light the red LED safely, then measure how the 6 V is shared between the LED and the resistor.",

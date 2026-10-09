@@ -35,27 +35,29 @@
     }
 
     // Rebuild the circuit after any change to parts, legs or failures.
+    // Every part always gets a handle, and the new circuit replaces the old one only when it is complete.
     compile() {
-      if (this.handles) for (const h of this.handles.values()) if (h.save) h.save();
+      const report = (err, where) => { if (BB.reportError) BB.reportError(err, where); };
+      if (this.handles) for (const h of this.handles.values()) if (h.save) { try { h.save(); } catch (err) { report(err, "saving part state"); } }
       const oldV = this.solver ? new Map(this.circuit.keys.map((k, i) => [k, this.solver.v[i]])) : null;
-      const c = new Circuit();
-      this.handles = new Map();
-      this.nodeOf = new Map();
+      const c = new Circuit(), handles = new Map(), nodeOf = new Map();
       for (const part of this.doc.parts) {
-        const T = BB.Parts.TYPES[part.type];
-        const nodes = part.legs.map((pt, k) => {
-          const key = netKey(pt, part.id, k);
-          const n = c.node(key);
-          if (pt) this.nodeOf.set(pt, n);
-          return n;
-        });
-        try { this.handles.set(part.id, T.build(c, nodes, part, this.runtime(part))); }
-        catch (err) {                        // one broken part must not stop the whole circuit
-          if (BB.reportError) BB.reportError(err, `building ${part.type} ${part.id}`);
-          this.handles.set(part.id, { read: () => ({}) });
+        try {
+          const T = BB.Parts.TYPES[part.type], rt = this.runtime(part);
+          const nodes = part.legs.map((pt, k) => {
+            const n = c.node(netKey(pt, part.id, k));
+            if (pt) nodeOf.set(pt, n);
+            return n;
+          });
+          handles.set(part.id, T.build(c, nodes, part, rt));
+        } catch (err) {                      // one broken part must not stop the whole circuit
+          report(err, `building ${part.type} ${part.id} (legs ${JSON.stringify(part.legs)})`);
+          handles.set(part.id, { read: () => ({}) });
         }
       }
       for (const id of [...this.rt.keys()]) if (!this.doc.parts.some((p) => p.id === id)) this.rt.delete(id);
+      this.handles = handles;
+      this.nodeOf = nodeOf;
       this.circuit = c;
       this.solver = new Solver(c);
       if (oldV) c.keys.forEach((k, i) => { if (oldV.has(k) && !this.solver.isRef[i]) this.solver.v[i] = oldV.get(k); });   // references stay at 0 V
@@ -77,11 +79,22 @@
 
     read(partId) { const h = this.handles.get(partId); return h ? h.read(this) : null; }
 
+    // Self-repair: if a part has no circuit handle (the document changed without a rebuild), rebuild now.
+    // Returns true when it had to; the game notes it for bug reports.
+    heal() {
+      const missing = this.doc.parts.filter((p) => !this.handles.has(p.id));
+      if (!missing.length) return false;
+      if (BB.trail) BB.trail(`self-repair: rebuilt the circuit (no simulation for ${missing.map((p) => p.id).join(", ")})`);
+      this.compile();
+      return true;
+    }
+
     // Voltage at a connection point vs its island reference; null when nothing is connected there.
     voltageAt(point) { const n = this.circuit.index.get(netKey(point)); return n === undefined ? null : this.solver.v[n]; }
 
     // Advance simulated time by dt seconds.
     advance(dt) {
+      this.heal();
       let left = dt, guard = 0;
       while (left > 1e-12 && guard++ < 1000000) {
         const dynamic = this.solver.dynamic.length > 0;
@@ -105,10 +118,11 @@
       let first = null;
       for (const part of this.doc.parts) {
         const rt = this.rt.get(part.id);
-        if (rt.destroyed) continue;
+        if (!rt || rt.destroyed) continue;
         const keys = Object.keys(rt.stress);
         if (!keys.length) continue;
         const rd = this.read(part.id);
+        if (!rd) continue;                   // heal() rebuilds before the next step
         const br = rt.broken || {};
         for (const k of keys) {
           const st = rt.stress[k];
