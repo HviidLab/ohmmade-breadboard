@@ -182,6 +182,8 @@
   let toastTimer = null;
   function toast(text, ms = 7000) {
     const t = $("toast");
+    clearTimeout(toastTimer);
+    if (!text) { t.hidden = true; return; }
     t.textContent = text;
     t.hidden = false;
     clearTimeout(toastTimer);
@@ -257,5 +259,5 @@
     $("uno-analog").innerHTML = BB.Uno.ANALOG.map((n) => `<dt>analogRead(${n})</dt><dd>${rd.pins[n].damaged ? "damaged" : rd.analog[n]}</dd>`).join("");
   }
 
-  BB.HUD = { uno, trace, buildDrawer, meter, inspector, partList, log, toast, tooltip, banner, partTip, DRAWER, fmtA, fmtV };
+  BB.HUD = { icon, uno, trace, buildDrawer, meter, inspector, partList, log, toast, tooltip, banner, partTip, DRAWER, fmtA, fmtV };
 })(window.BB = window.BB || {});

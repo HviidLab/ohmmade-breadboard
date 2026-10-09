@@ -39,6 +39,7 @@
       G.mode = "mission";
       G.load(JSON.parse(JSON.stringify(m.start)));
       G.run = new BB.Goals.Run(m);
+      H.toast(null);
       BB.Render.guide(null);
       requestAnimationFrame(() => R.fit(m.view));
       H.log(`Mission ${m.id}: ${m.title}. ${m.brief}`, "", 0);
@@ -120,11 +121,11 @@
     BB.Input.init(G);
     G.redraw(); G.refreshPanels(true);
     requestAnimationFrame(() => R.fit());
-    window.addEventListener("resize", () => R.fit());
+    window.addEventListener("resize", () => R.refit());
 
     $("undo").addEventListener("click", G.undo);
     $("redo").addEventListener("click", G.redo);
-    $("fit").addEventListener("click", () => R.fit());
+    $("fit").addEventListener("click", () => R.fitAll());
     $("clear").addEventListener("click", G.clear);
     $("sound").addEventListener("click", (e) => {
       const on = e.currentTarget.getAttribute("aria-pressed") !== "true";

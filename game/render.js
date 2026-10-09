@@ -71,7 +71,7 @@
   }
   function zoomAt(cx, cy, f) {
     const r = svg.getBoundingClientRect();
-    const k2 = Math.max(0.35, Math.min(2.6, view.k * f));
+    const k2 = Math.max(0.2, Math.min(2.6, view.k * f));
     const px = cx - r.left, py = cy - r.top;
     view.tx = px - ((px - view.tx) * k2) / view.k;
     view.ty = py - ((py - view.ty) * k2) / view.k;
@@ -79,11 +79,30 @@
     apply();
   }
   function pan(dx, dy) { view.tx += dx; view.ty += dy; apply(); }
+  let lastRows = [1, 24];
   function fit(rows = [1, 24]) {
+    lastRows = rows;
     const r = svg.getBoundingClientRect();
     let x0 = xr(rows[0]) - 345, x1 = xr(rows[1]) + 30, y0 = -190, y1 = 500;
     if (BB.Uno.present) { x0 = Math.min(x0, BB.Uno.pos.bx - 30); y0 = Math.min(y0, BB.Uno.pos.by - 40); y1 = Math.max(y1, BB.Uno.pos.by + BB.Uno.H + 30); }
     view.k = Math.min(r.width / (x1 - x0), r.height / (y1 - y0));
+    view.tx = -x0 * view.k + (r.width - (x1 - x0) * view.k) / 2;
+    view.ty = -y0 * view.k + (r.height - (y1 - y0) * view.k) / 2;
+    apply();
+  }
+  const refit = () => fit(lastRows);
+  // Show the whole bench: every row of the board and every part, wherever it has been moved.
+  // World box around the board and all parts, optionally leaving out one part (the one being dragged).
+  function contentBox(skipId) {
+    const gs = [L.board, ...[...L.parts.children].filter((g) => !skipId || g.dataset.part !== skipId)];
+    const boxes = gs.map((g) => g.getBBox()).filter((b) => b.width && b.height);
+    return [Math.min(...boxes.map((b) => b.x)), Math.min(...boxes.map((b) => b.y)),
+            Math.max(...boxes.map((b) => b.x + b.width)), Math.max(...boxes.map((b) => b.y + b.height))];
+  }
+  function fitAll() {
+    const r = svg.getBoundingClientRect(), pad = 24, c = contentBox();
+    const x0 = c[0] - pad, y0 = c[1] - pad, x1 = c[2] + pad, y1 = c[3] + pad;
+    view.k = Math.max(0.2, Math.min(r.width / (x1 - x0), r.height / (y1 - y0)));
     view.tx = -x0 * view.k + (r.width - (x1 - x0) * view.k) / 2;
     view.ty = -y0 * view.k + (r.height - (y1 - y0) * view.k) / 2;
     apply();
@@ -506,6 +525,13 @@
     const pa = xy(a);
     el("path", { d: curve(pa, bxy, 16), stroke: "#ffb547", "stroke-width": 4, fill: "none", "stroke-dasharray": "6 5", "stroke-linecap": "round" }, L.ui);
   }
+  // A part that is not in the holes (yet): drawn at the world points `pts`, following the pointer.
+  function floatGhost(type, pts, part) {
+    L.ui.replaceChildren();
+    if (!pts || !pts.every(Boolean)) return;
+    const g = el("g", { class: "ghost-free", "pointer-events": "none" }, L.ui);
+    drawBody(g, Object.assign({ type, value: 330, pos: 0.5, color: C.wires[0] }, part || {}, { legs: pts.map(() => null) }), pts, false);
+  }
   function clearGhost() { L.ui.replaceChildren(); }
 
   // Faint outline of a workbook layout, to copy from.
@@ -521,5 +547,5 @@
     }
   }
 
-  BB.Render = { init, drawParts, ghost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, view, refs, xy, xr, el, layers: L, C, BOARD };
+  BB.Render = { init, drawParts, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD };
 })(window.BB = window.BB || {});

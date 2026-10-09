@@ -54,7 +54,7 @@
         { text: "No beep: across the centre gap (e and f)", when: (S) => { const m = S.meter; if (!m || m.mode !== "cont" || m.beep || !m.red || !m.com) return false; const a = BBShared.parse(m.red), b = BBShared.parse(m.com); return a.row === b.row && [a.col, b.col].sort().join() === "e,f"; } },
         { text: "Beep: two holes on the same rail, 40 or more rows apart", when: (S) => { const m = S.meter; if (!m || m.mode !== "cont" || !m.beep || !m.red || !m.com) return false; const a = BBShared.parse(m.red), b = BBShared.parse(m.com); return a.kind === "rail" && a.rail === b.rail && Math.abs(a.row - b.row) >= 40; } },
       ],
-      hints: ["The dial is already on continuity (·))). Drag both probes onto holes.", "Zoom out with the wheel to reach row 45 and beyond."] },
+      hints: ["The dial is already on continuity (·))). Drag both probes onto holes.", "For the rail: put one probe on the + rail near row 1. Drag the other probe to the right edge of the bench and the board scrolls along, or click Fit to see the whole board. Drop it on the same rail at row 41 or beyond."] },
 
     { id: "E2", title: "Ohm's law", workbook: "workbook.html#e2-ohms-law", art: "m_E2",
       brief: "Put a 330 Ω resistor between the rails and check V = I × R with the meter.",

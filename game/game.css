@@ -83,7 +83,7 @@ kbd { font: 500 12px var(--font-data); background: var(--panel-2); border: 1px s
 .panel { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
 .panel h2 { margin-top: 0; }
 .lcd { background: var(--lcd-bg); color: var(--lcd-fg); border-radius: 8px; padding: 8px 10px; font-family: var(--font-data); box-shadow: inset 0 0 0 1px #1f3128; }
-.lcd-q { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--lcd-dim); }
+.lcd-q { display: flex; flex-wrap: wrap; gap: 2px 10px; justify-content: space-between; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--lcd-dim); }
 .lcd-v { font-size: 30px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .lcd-v small { font-size: 15px; color: var(--lcd-dim); margin-left: 4px; }
 #trace { width: 100%; height: 70px; display: block; margin-top: 8px; background: var(--lcd-bg); border-radius: 6px; }
@@ -113,6 +113,9 @@ select { background: var(--panel); color: var(--ink); border: 1px solid var(--li
 .ghost-ok { opacity: .75; }
 .ghost-bad { opacity: .6; }
 .ghost-bad .leg-tip { fill: #ff5a5a; }
+.ghost-free { opacity: .8; }
+.drag-float { position: fixed; z-index: 50; pointer-events: none; width: 88px; height: 56px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .5)); }
+.drag-float svg { width: 100%; height: 100%; display: block; }
 .leg-tip { fill: #6fdc8c; }
 .handle { fill: rgba(255, 181, 71, .9); stroke: #1c1305; stroke-width: 1.5; cursor: grab; }
 .selected .sel-ring { stroke: var(--amber); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }

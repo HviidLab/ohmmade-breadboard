@@ -3,9 +3,11 @@
   "use strict";
   const R = BB.Render, Gr = BB.Grid;
   const SNAP = 13;   // screen pixels
-  let G, svg, st = null, wireColor = 0;
+  const EDGE = 44;   // screen pixels: dragging this close to the stage edge scrolls the bench
+  let G, svg, st = null, wireColor = 0, floater, lastPtr = null, edgeRaf = 0;
 
   function holeUnder(cx, cy) {
+    if (!inStage(cx, cy)) return null;     // holes hidden behind the side panels are out of reach
     const [wx, wy] = R.toWorld(cx, cy), rad = SNAP / R.view.k;
     const h = R.holeAt(wx, wy, rad);
     if (h || !BB.Uno.present) return h;
@@ -23,7 +25,43 @@
     svg.addEventListener("wheel", (e) => { e.preventDefault(); R.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
     svg.addEventListener("pointerleave", () => { if (!st) { BB.HUD.tooltip(null); R.highlight(null); } });
     window.addEventListener("keydown", key);
+    floater = document.createElement("div");
+    floater.className = "drag-float"; floater.hidden = true;
+    document.body.appendChild(floater);
     BB.HUD.buildDrawer(startNew);
+  }
+
+  // ---------- keeping the dragged thing visible ----------
+  function inStage(cx, cy) { const r = svg.getBoundingClientRect(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; }
+  // The drawer picture, following the pointer (over the drawer, or for parts that have no board ghost).
+  function float(type, cx, cy) {
+    if (!type) { floater.hidden = true; floater.dataset.type = ""; return; }
+    if (floater.dataset.type !== type) { floater.innerHTML = BB.HUD.icon(type); floater.dataset.type = type; }
+    floater.style.left = `${cx - 44}px`; floater.style.top = `${cy - 28}px`;
+    floater.hidden = false;
+  }
+  // World points for legs laid out like `legs`, moved so that leg k sits at the world point (wx, wy).
+  function freePts(legs, k, wx, wy) {
+    if (!legs || !legs[k] || !legs.every(Boolean)) return null;
+    const [x0, y0] = R.xy(legs[k]);
+    return legs.map((l) => { const [x, y] = R.xy(l); return [wx + x - x0, wy + y - y0]; });
+  }
+  // Dragging near the stage edge scrolls the bench, so far rows are in reach.
+  // It starts only after the pointer has been well inside the stage, so a part dragged in from the drawer does not scroll.
+  function edgeTick() {
+    edgeRaf = 0;
+    if (!st || !lastPtr || !["new", "wire", "move", "leg", "probe", "body"].includes(st.kind)) return;
+    const r = svg.getBoundingClientRect(), x = lastPtr.clientX, y = lastPtr.clientY;
+    if (!inStage(x, y)) return;
+    const dl = x - r.left, dr = r.right - x, dt = y - r.top, db = r.bottom - y;
+    if (!st.armed) { if (Math.min(dl, dr, dt, db) > EDGE) st.armed = true; return; }
+    const sp = (d) => (d < EDGE ? Math.ceil(((EDGE - d) / EDGE) * 14) : 0);
+    let dx = sp(dl) - sp(dr), dy = sp(dt) - sp(db);
+    // stop once the far edge of the board (or of the parts) is in view
+    const c = R.contentBox(st.id), [x0, y0] = R.toScreen(c[0], c[1]), [x1, y1] = R.toScreen(c[2], c[3]), m = 40;
+    if ((dx > 0 && x0 > r.left + m) || (dx < 0 && x1 < r.right - m)) dx = 0;
+    if ((dy > 0 && y0 > r.top + m) || (dy < 0 && y1 < r.bottom - m)) dy = 0;
+    if (dx || dy) { R.pan(dx, dy); move(lastPtr); }   // the bench moved under a still pointer
   }
 
   // ---------- starting gestures ----------
@@ -87,20 +125,25 @@
 
   // ---------- moving ----------
   function preview(cx, cy) {
-    const d = st.d, hole = holeUnder(cx, cy);
-    if (d.type === "meter" || d.type === "uno") { st.ok = true; const [wx, wy] = R.toWorld(cx, cy); st.at = [wx, wy]; R.clearGhost(); return; }
+    const d = st.d, hole = holeUnder(cx, cy), over = inStage(cx, cy), [wx, wy] = R.toWorld(cx, cy);
+    float(!over || ["meter", "uno", "battery"].includes(d.type) ? d.type : null, cx, cy);
+    if (d.type === "meter" || d.type === "uno") { st.ok = true; st.at = [wx, wy]; R.clearGhost(); return; }
     if (d.type === "battery") {
-      if (!hole) { st.legs = null; R.clearGhost(); return; }
+      if (!hole) { st.legs = null; R.clearGhost(); R.highlight(null); return; }
       const row = Gr.grid(hole).row;
       st.legs = [`+T${row}`, `-T${Math.min(row + 1, Gr.ROWS)}`];
     } else st.legs = hole ? Gr.footprint(d.type, hole) : null;
     st.ok = !!st.legs && G.doc.validate(d.type, st.legs).ok;
     if (d.type === "battery") { R.highlight(st.legs ? st.legs[0] : null); return; }
-    R.ghost(d.type, st.legs, st.ok, { value: d.value || 330 });
+    if (st.legs) R.ghost(d.type, st.legs, st.ok, { value: d.value || 330 });
+    else if (over) R.floatGhost(d.type, freePts(Gr.footprint(d.type, "c30"), 0, wx, wy), { value: d.value || 330 });
+    else R.clearGhost();
   }
 
   function move(e) {
     if (!st) return hover(e);
+    lastPtr = { clientX: e.clientX, clientY: e.clientY };
+    if (!edgeRaf) edgeRaf = requestAnimationFrame(edgeTick);
     switch (st.kind) {
       case "new": st.x = e.clientX; st.y = e.clientY; preview(e.clientX, e.clientY); break;
       case "pan": R.pan(e.clientX - st.x, e.clientY - st.y); st.x = e.clientX; st.y = e.clientY; break;
@@ -116,7 +159,7 @@
         st.moved = true;
         const part = G.doc.get(st.id), hole = holeUnder(e.clientX, e.clientY);
         const from = part.legs[st.grab] && Gr.grid(part.legs[st.grab]);
-        if (!hole || !from) { st.legs = null; R.clearGhost(); return; }
+        if (!hole || !from) { st.legs = null; R.floatGhost(part.type, freePts(part.legs, st.grab, ...R.toWorld(e.clientX, e.clientY)), part); return; }
         const to = Gr.grid(hole), dr = to.row - from.row, dc = to.col - from.col;
         st.legs = part.legs.map((pt) => { if (!pt || pt.startsWith("U.")) return pt; const g = Gr.grid(pt); return Gr.point(g.row + dr, g.col + dc); });
         st.ok = G.doc.validate(part.type, st.legs, part.id).ok;
@@ -128,6 +171,7 @@
         st.legs = part.legs.slice(); st.legs[st.k] = hole;
         st.ok = !!hole && G.doc.validate(part.type, st.legs, part.id).ok;
         if (part.type === "battery") { R.highlight(hole); st.okHole = hole; return; }
+        if (!hole) { R.floatGhost(part.type, part.legs.map((l, i) => (i === st.k ? R.toWorld(e.clientX, e.clientY) : l && R.xy(l))), part); return; }
         R.ghost(part.type, st.legs, st.ok, part);
         break;
       }
@@ -154,7 +198,7 @@
     if (!st) return;
     const s = st;
     if (s.kind === "new") { st.x = e.clientX; st.y = e.clientY; preview(e.clientX, e.clientY); return finish(); }
-    st = null;
+    st = null; lastPtr = null;
     svg.classList.remove("panning");
     R.clearGhost(); R.highlight(null); BB.HUD.tooltip(null);
     switch (s.kind) {
@@ -173,8 +217,8 @@
   }
 
   function finish() {
-    const s = st; st = null;
-    R.clearGhost(); R.highlight(null);
+    const s = st; st = null; lastPtr = null;
+    float(null); R.clearGhost(); R.highlight(null);
     const d = s.d;
     if (d.type === "uno") {
       const [wx, wy] = s.at || [-440, 200];
@@ -230,8 +274,8 @@
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? G.redo() : G.undo(); return; }
     if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); G.redo(); return; }
-    if (e.key === "Escape") { st = null; R.clearGhost(); R.highlight(null); return; }
-    if (e.key === "f" || e.key === "F") { R.fit(); return; }
+    if (e.key === "Escape") { st = null; lastPtr = null; float(null); R.clearGhost(); R.highlight(null); return; }
+    if (e.key === "f" || e.key === "F") { R.fitAll(); return; }
     if (e.key === "+" || e.key === "=") { const r = svg.getBoundingClientRect(); R.zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.15); return; }
     if (e.key === "-") { const r = svg.getBoundingClientRect(); R.zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.15); return; }
     if (!G.sel) return;
