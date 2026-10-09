@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Electronics Primer</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="bench.css">
+</head>
+<body>
+<div class="wrap">
+<div class="eyebrow">Primer</div>
+<article class="doc">
+
+<h1 id="basic-electronics-a-primer">Basic electronics: a primer</h1>
+<p>This primer explains the ideas behind every experiment in <a href="workbook.html">the workbook</a>.
+Each section answers one question. Read one section, then do the experiment it names.</p>
+<p>All numbers use the same parts as the workbook:
+a <strong>6 V battery pack</strong> (4 × AA), resistors of <strong>220 Ω, 330 Ω, 1 kΩ and 10 kΩ</strong>, and a <strong>red LED</strong>.</p>
+<nav class="toc" aria-label="Contents">
+<ul>
+<li><a href="#1-what-moves-in-a-wire">1. What moves in a wire?</a></li>
+<li><a href="#2-what-pushes-the-charge">2. What pushes the charge?</a></li>
+<li><a href="#3-what-limits-the-current">3. What limits the current?</a></li>
+<li><a href="#4-where-does-the-energy-go">4. Where does the energy go?</a></li>
+<li><a href="#5-series-and-parallel">5. Series and parallel</a></li>
+<li><a href="#6-diodes-and-leds">6. Diodes and LEDs</a></li>
+<li><a href="#7-voltage-dividers-and-potentiometers">7. Voltage dividers and potentiometers</a></li>
+<li><a href="#8-switches-and-pull-down-resistors">8. Switches and pull-down resistors</a></li>
+<li><a href="#9-capacitors">9. Capacitors</a></li>
+<li><a href="#10-transistors-as-switches">10. Transistors as switches</a></li>
+<li><a href="#the-water-analogy-and-where-it-fails">The water analogy, and where it fails</a></li>
+</ul>
+</nav>
+
+<hr />
+<h2 id="1-what-moves-in-a-wire">1. What moves in a wire?</h2>
+<p>A metal wire contains many electrons that can move freely. Each electron carries a small <strong>charge</strong>.
+When charge moves along a wire, we call the movement <strong>current</strong>.</p>
+<p>Current is the amount of charge that passes one point each second.
+The unit is the <strong>ampere (A)</strong>. One ampere is about 6 × 10¹⁸ electrons per second.
+Small circuits use <strong>milliamperes (mA)</strong>: 1 mA = 0.001 A. An LED uses about 10–20 mA.</p>
+<p>Two facts surprise most people:</p>
+<ul>
+<li><strong>The wire is always full of charge.</strong> A battery does not supply the electrons. It pushes the electrons that are already in the wire.</li>
+<li><strong>The electrons move slowly</strong>, often less than 1 mm per second. But all of them start to move at almost the same time. That is why a lamp turns on immediately.</li>
+</ul>
+<p>By convention, we draw current from the <strong>+</strong> terminal, through the circuit, to the <strong>−</strong> terminal.
+Electrons actually move in the opposite direction. This history does not change any calculation, so this primer uses the convention.</p>
+<p><strong>Current needs a closed loop.</strong> If the loop is open at any point, the current stops everywhere in the loop.</p>
+<p>Diagram: <a href="diagrams/01-water-analogy.svg">water analogy</a> · Experiment: E2</p>
+<h2 id="2-what-pushes-the-charge">2. What pushes the charge?</h2>
+<p>A battery gives energy to each charge that passes through it. <strong>Voltage</strong> is the energy per unit of charge.
+The unit is the <strong>volt (V)</strong>. One volt means one joule of energy for each coulomb of charge.</p>
+<p>Voltage is always measured <strong>between two points</strong>. "The voltage at this wire" means "the voltage between this wire and a reference point".
+We usually call the battery's − terminal <strong>ground (GND)</strong> and give it the value 0 V.</p>
+<p>A 4 × AA pack has a voltage of about 6 V between its terminals. When the battery is new, the value is a little higher (6.2–6.4 V).
+An Arduino works at 5 V, so 6 V is close to the voltage you will use later.</p>
+<p>Diagram: <a href="diagrams/02-vir-relationship.svg">V, I and R</a> · Experiment: E0</p>
+<h2 id="3-what-limits-the-current">3. What limits the current?</h2>
+<p>Every part of a circuit opposes current. <strong>Resistance</strong> is the amount of this opposition.
+The unit is the <strong>ohm (Ω)</strong>. A <strong>resistor</strong> is a part made to have one known resistance.</p>
+<p><strong>Ohm's law</strong> connects the three quantities:</p>
+<blockquote>
+<p><strong>V = I × R</strong>  (volts = amperes × ohms)</p>
+</blockquote>
+<p>You can use it in three ways:</p>
+<table>
+<thead>
+<tr>
+<th>You know</th>
+<th>You calculate</th>
+<th>Example with 6 V and 330 Ω</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V and R</td>
+<td>I = V / R</td>
+<td>6 / 330 = 0.0182 A = <strong>18.2 mA</strong></td>
+</tr>
+<tr>
+<td>I and R</td>
+<td>V = I × R</td>
+<td>0.0182 × 330 = <strong>6 V</strong></td>
+</tr>
+<tr>
+<td>V and I</td>
+<td>R = V / I</td>
+<td>6 / 0.0182 = <strong>330 Ω</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A useful shortcut: <strong>volts ÷ kilohms = milliamperes</strong>. For example, 6 V ÷ 1 kΩ = 6 mA.</p>
+<p>A wire has almost zero resistance. If you connect a wire directly between the battery terminals, Ohm's law gives a very large current.
+This is a <strong>short circuit</strong>. The wire and the battery become hot, and the battery can be damaged. Do not do this.</p>
+<p>Diagram: <a href="diagrams/02-vir-relationship.svg">V, I and R</a> · Experiment: E2</p>
+<h2 id="4-where-does-the-energy-go">4. Where does the energy go?</h2>
+<p>A resistor changes electrical energy into heat. <strong>Power</strong> is the rate of energy change.
+The unit is the <strong>watt (W)</strong>.</p>
+<blockquote>
+<p><strong>P = V × I</strong>   and, with Ohm's law, <strong>P = I² × R = V² / R</strong></p>
+</blockquote>
+<p>Most small resistors have a limit of <strong>¼ W (250 mW)</strong>. Above this limit, they become too hot.</p>
+<table>
+<thead>
+<tr>
+<th>Resistor across 6 V</th>
+<th>Current</th>
+<th>Power</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>220 Ω</td>
+<td>27.3 mA</td>
+<td>164 mW (warm, but safe)</td>
+</tr>
+<tr>
+<td>330 Ω</td>
+<td>18.2 mA</td>
+<td>109 mW</td>
+</tr>
+<tr>
+<td>1 kΩ</td>
+<td>6.0 mA</td>
+<td>36 mW</td>
+</tr>
+<tr>
+<td>10 kΩ</td>
+<td>0.6 mA</td>
+<td>4 mW</td>
+</tr>
+</tbody>
+</table>
+<p>The rule: <strong>a smaller resistance across the same voltage gives more current and more heat.</strong></p>
+<p>Experiment: E2</p>
+<h2 id="5-series-and-parallel">5. Series and parallel</h2>
+<p>You can connect two parts in two basic ways.</p>
+<p><strong>Series:</strong> the parts are in one line. The current has only one path.
+- The <strong>current is the same</strong> through each part.
+- The <strong>voltages add up</strong> to the supply voltage.
+- The resistances add up: R_total = R1 + R2.</p>
+<p><strong>Parallel:</strong> the parts connect between the same two points. The current has more than one path.
+- The <strong>voltage is the same</strong> across each part.
+- The <strong>currents add up</strong> to the total current.
+- The total resistance is <strong>less than the smallest</strong> resistance: 1/R_total = 1/R1 + 1/R2.</p>
+<p>Example with 330 Ω and 1 kΩ on 6 V:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Series</th>
+<th>Parallel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total resistance</td>
+<td>1330 Ω</td>
+<td>248 Ω</td>
+</tr>
+<tr>
+<td>Total current</td>
+<td>4.51 mA</td>
+<td>24.2 mA</td>
+</tr>
+<tr>
+<td>330 Ω</td>
+<td>4.51 mA, 1.49 V</td>
+<td>18.2 mA, 6 V</td>
+</tr>
+<tr>
+<td>1 kΩ</td>
+<td>4.51 mA, 4.51 V</td>
+<td>6.0 mA, 6 V</td>
+</tr>
+</tbody>
+</table>
+<p>These two rules have names. They are <strong>Kirchhoff's laws</strong>:
+1. <strong>Current law:</strong> the current into a junction equals the current out of it. Charge does not collect in a wire.
+2. <strong>Voltage law:</strong> around a closed loop, the voltage drops add up to the supply voltage. Energy that the battery gives, the parts use.</p>
+<p>Diagram: <a href="diagrams/03-series-parallel.svg">series vs parallel</a> · Experiment: E4</p>
+<h2 id="6-diodes-and-leds">6. Diodes and LEDs</h2>
+<p>A <strong>diode</strong> lets current go in one direction only. An <strong>LED</strong> (light-emitting diode) is a diode that gives light.</p>
+<p>An LED has two legs:
+- The <strong>anode</strong> (+) is the <strong>longer leg</strong>.
+- The <strong>cathode</strong> (−) is the <strong>shorter leg</strong>, on the side with the flat edge.</p>
+<p>If you connect the LED in the wrong direction, no current flows and the LED stays dark. This does not damage it at 6 V.</p>
+<p>An LED does not obey Ohm's law. It keeps an almost constant voltage across it, the <strong>forward voltage (Vf)</strong>.
+For a red LED, Vf is about <strong>2.0 V</strong>. Blue and white LEDs have a Vf of about 3 V.</p>
+<p>If you connect an LED directly to 6 V, nothing limits the current. The LED fails in a fraction of a second.
+<strong>Always put a resistor in series with an LED.</strong> Calculate the resistor like this:</p>
+<blockquote>
+<p>R = (V_supply − Vf) / I_wanted = (6 − 2) / 0.012 ≈ <strong>330 Ω</strong></p>
+</blockquote>
+<p>The resistor gets the remaining 4 V. With 330 Ω, the current is (6 − 2) / 330 = <strong>12.1 mA</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Resistor</th>
+<th>LED current</th>
+<th>Brightness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>220 Ω</td>
+<td>18.2 mA</td>
+<td>bright (near the 20 mA limit)</td>
+</tr>
+<tr>
+<td>330 Ω</td>
+<td>12.1 mA</td>
+<td>normal</td>
+</tr>
+<tr>
+<td>1 kΩ</td>
+<td>4.0 mA</td>
+<td>dim, but clearly on</td>
+</tr>
+</tbody>
+</table>
+<p>Diagram: <a href="diagrams/06-led-circuit.svg">LED circuit</a> · Experiment: E3</p>
+<h2 id="7-voltage-dividers-and-potentiometers">7. Voltage dividers and potentiometers</h2>
+<p>Two resistors in series divide the supply voltage. The voltage at the point between them is:</p>
+<blockquote>
+<p>V_out = V_supply × R2 / (R1 + R2)</p>
+</blockquote>
+<p>R2 is the resistor between the output and GND. With two 10 kΩ resistors on 6 V, V_out = <strong>3.0 V</strong>.</p>
+<p>A <strong>potentiometer</strong> ("pot") is a voltage divider with a knob. It has three legs.
+The two outer legs connect to the ends of one resistor track. The middle leg (the <strong>wiper</strong>) touches the track at the knob position.
+If you connect the outer legs to 6 V and GND, the wiper gives any voltage from 0 V to 6 V.</p>
+<p><strong>Arduino link:</strong> <code>analogRead()</code> measures a voltage between 0 V and 5 V and gives a number from 0 to 1023.
+Many sensors are voltage dividers. One resistor in the divider changes with light, temperature or position.</p>
+<p>Diagram: <a href="diagrams/07-voltage-divider.svg">voltage divider</a> · Experiment: E5, E9</p>
+<h2 id="8-switches-and-pull-down-resistors">8. Switches and pull-down resistors</h2>
+<p>A push button closes the circuit while you push it.
+To light an LED with a button, put the button in series with the resistor and the LED.</p>
+<p>An Arduino input is different. It does not use current; it only measures voltage.
+If a button connects the input to 5 V, what does the input see when you release the button?
+It sees nothing. The input is not connected to anything. We say it is <strong>floating</strong>.
+A floating input can read HIGH or LOW at random, because it picks up electrical noise.</p>
+<p>The solution is a <strong>pull-down resistor</strong> (for example, 10 kΩ) from the input to GND:
+- Button released: the resistor holds the input at <strong>0 V</strong> (LOW).
+- Button pushed: the button connects the input to <strong>5 V</strong> (HIGH). Only 0.5 mA goes through the 10 kΩ resistor.</p>
+<p>A <strong>pull-up resistor</strong> does the opposite: it connects to 5 V, and the button connects to GND.
+The Arduino has internal pull-up resistors (<code>pinMode(pin, INPUT_PULLUP)</code>). With a pull-up, a pushed button reads LOW.</p>
+<p>Experiment: E6</p>
+<h2 id="9-capacitors">9. Capacitors</h2>
+<p>A <strong>capacitor</strong> stores charge. It has two metal plates with an insulator between them.
+Current cannot go through the insulator. But charge can collect on one plate and leave the other plate.</p>
+<p>When you connect a capacitor to a battery through a resistor:
+1. At first, the capacitor is empty. The current is large.
+2. As the charge increases, the capacitor voltage increases. The current decreases.
+3. At the end, the capacitor voltage equals the battery voltage. The current stops.</p>
+<p>The speed of this change depends on the <strong>time constant</strong>:</p>
+<blockquote>
+<p><strong>τ = R × C</strong>  (seconds = ohms × farads)</p>
+</blockquote>
+<p>After one τ, the capacitor is at <strong>63 %</strong> of the supply voltage. After 5 τ, it is almost full (99 %).
+With 10 kΩ and 1000 µF, τ = 10 000 × 0.001 = <strong>10 seconds</strong>. This is slow enough to measure with a stopwatch:</p>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>5 s</th>
+<th>10 s</th>
+<th>20 s</th>
+<th>30 s</th>
+<th>50 s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Capacitor voltage</td>
+<td>2.36 V</td>
+<td>3.79 V</td>
+<td>5.19 V</td>
+<td>5.70 V</td>
+<td>5.96 V</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Polarity:</strong> the capacitors in kits (<strong>electrolytic</strong> capacitors) have a + and a − leg. The − leg is shorter and is marked with a stripe.
+Connect them in the correct direction. Use a capacitor rated for <strong>at least 10 V</strong>.</p>
+<p><strong>Arduino link:</strong> capacitors smooth the supply voltage. They also remove "bounce" from buttons and set the timing in many circuits.</p>
+<p>Experiment: E7</p>
+<h2 id="10-transistors-as-switches">10. Transistors as switches</h2>
+<p>An Arduino pin can supply only about <strong>20 mA</strong> safely. A motor or a strip of LEDs needs much more.
+A <strong>transistor</strong> lets a small current control a large current.</p>
+<p>An <strong>NPN transistor</strong> has three legs:
+- <strong>Collector (C):</strong> the large current goes in here.
+- <strong>Emitter (E):</strong> the large current goes out here, to GND.
+- <strong>Base (B):</strong> the small control current goes in here.</p>
+<p>When a small current flows into the base, the transistor lets a much larger current flow from the collector to the emitter.
+The ratio is the <strong>gain</strong> (hFE). It is usually more than 100. When there is no base current, the transistor is off.</p>
+<p>Always put a resistor in series with the base. The base–emitter junction is a diode with about 0.7 V across it.</p>
+<p>Example with 6 V, a 10 kΩ base resistor, and the LED with 330 Ω on the collector:</p>
+<ul>
+<li>Base current: (6 − 0.7) / 10 000 = <strong>0.53 mA</strong></li>
+<li>Collector current: (6 − 2.0 − 0.2) / 330 = <strong>11.5 mA</strong></li>
+</ul>
+<p>The base current is 22 times smaller than the LED current. The transistor could give more current, so it is fully on ("saturated").
+The 0.2 V is the small voltage that remains across a fully-on transistor.</p>
+<p><strong>Check the pins of your transistor.</strong> A BC547 and a 2N2222 have their pins in <strong>different orders</strong>. Find the datasheet and read the pin diagram.</p>
+<p><strong>Arduino link:</strong> a motor also needs a <strong>flyback diode</strong>. The workbook does not use a motor, but the starter kit does.</p>
+<p>Diagram: <a href="diagrams/08-transistor-switch.svg">transistor switch</a> · Experiment: E8, E9</p>
+<hr />
+<h2 id="the-water-analogy-and-where-it-fails">The water analogy, and where it fails</h2>
+<p>Many people find it useful to compare a circuit with water in pipes. Use the analogy to guess, and use Ohm's law to check.</p>
+<table>
+<thead>
+<tr>
+<th>Electricity</th>
+<th>Water</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Charge</td>
+<td>Water</td>
+</tr>
+<tr>
+<td>Current (A)</td>
+<td>Flow rate (litres per second)</td>
+</tr>
+<tr>
+<td>Voltage (V)</td>
+<td>Pressure difference between two points</td>
+</tr>
+<tr>
+<td>Resistance (Ω)</td>
+<td>A narrow section of pipe</td>
+</tr>
+<tr>
+<td>Battery</td>
+<td>Pump</td>
+</tr>
+<tr>
+<td>Diode</td>
+<td>One-way (check) valve</td>
+</tr>
+<tr>
+<td>Capacitor</td>
+<td>A tank with a rubber wall across the middle</td>
+</tr>
+<tr>
+<td>Transistor</td>
+<td>A large valve that a small pipe opens</td>
+</tr>
+</tbody>
+</table>
+<p>Where the analogy fails:
+- <strong>An open circuit does not leak.</strong> If you cut a pipe, water comes out. If you cut a wire, the current stops.
+- <strong>The energy does not travel with the electrons.</strong> The electric field carries it, almost at the speed of light. The electrons only drift slowly.
+- <strong>An LED is not a narrow pipe.</strong> It keeps an almost constant voltage, which no simple pipe does.</p>
+<p>Diagram: <a href="diagrams/01-water-analogy.svg">water analogy</a></p>
+</article>
+</div>
+<script src="bench.js"></script>
+<script>Bench.nav();</script>
+</body>
+</html>

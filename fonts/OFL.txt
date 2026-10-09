@@ -1,0 +1,5 @@
+Chakra Petch, IBM Plex Mono and IBM Plex Sans are licensed under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org/open-font-license-official-text/
+Chakra Petch: Copyright 2018 The Chakra Petch Project Authors (https://github.com/m4rc1e/Chakra-Petch.git)
+IBM Plex: Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
+Files fetched from Google Fonts (latin, latin-ext and greek subsets).

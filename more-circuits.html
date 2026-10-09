@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Divider, Capacitor, Transistor</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="bench.css">
+<style>
+  .lbl { font: 500 16px var(--font-data); }
+  .tick { font: 12px var(--font-data); fill: var(--muted); }
+  .grid { stroke: var(--rule); stroke-width: 1; }
+  .axis { stroke: var(--muted); stroke-width: 1; }
+  .jump { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .95rem; margin-bottom: 1rem; }
+  section { scroll-margin-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Lab 4 · Workbook E5, E7, E8, E9</div>
+  <h1>Divider, capacitor, transistor</h1>
+  <p class="lede">Three circuits that you will meet in every Arduino starter kit. Each one uses the same 6 V pack and the same parts as the workbook.</p>
+  <nav class="jump" aria-label="Sections"><a href="#divider">Voltage divider</a><a href="#capacitor">Capacitor charging</a><a href="#transistor">Transistor switch</a></nav>
+
+  <!-- ===== Divider ===== -->
+  <section id="divider">
+    <h2>Voltage divider and potentiometer</h2>
+    <div class="bench">
+      <div class="panel"><svg id="dv-svg" class="drawing" viewBox="0 0 520 380" role="img" aria-label="Two resistors in series between 6 V and ground, with the output voltage at the point between them, and a voltage scale."></svg></div>
+      <div class="panel stack">
+        <div class="seg" id="dv-mode" role="group" aria-label="Divider type">
+          <button type="button" data-v="fixed" aria-pressed="true">Two resistors</button>
+          <button type="button" data-v="pot" aria-pressed="false">Potentiometer</button>
+        </div>
+        <div class="row" id="dv-fixed">
+          <label for="dv-r1" class="label">R1 (top)</label><select id="dv-r1"></select>
+          <label for="dv-r2" class="label">R2 (bottom)</label><select id="dv-r2"></select>
+        </div>
+        <div class="control" id="dv-potc" hidden>
+          <label for="dv-pos">Knob position <output id="dv-pos-out" for="dv-pos"></output></label>
+          <input id="dv-pos" type="range" min="0" max="100" step="1" value="50">
+        </div>
+        <div class="meters">
+          <div class="meter"><div class="q"><b>V out</b><span class="chip v"></span></div><div class="v" id="dv-vout"></div></div>
+          <div class="meter"><div class="q"><b>Current</b><span class="chip i"></span></div><div class="v" id="dv-i"></div></div>
+        </div>
+        <p class="mono" id="dv-sum"></p>
+        <p class="note" id="dv-ard"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Capacitor ===== -->
+  <section id="capacitor">
+    <h2>Capacitor charging</h2>
+    <div class="bench">
+      <div class="panel">
+        <svg id="rc-svg" class="drawing" viewBox="0 0 520 300" role="img" aria-label="Graph of capacitor voltage against time while it charges through a resistor. Marks show each time constant."></svg>
+        <p class="note">Dashed line: the calculated curve. Solid line: the charge so far. Marks at 1τ to 5τ.</p>
+      </div>
+      <div class="panel stack">
+        <div class="row">
+          <label for="rc-r" class="label">R</label><select id="rc-r"></select>
+          <label for="rc-c" class="label">C</label><select id="rc-c"></select>
+        </div>
+        <div class="row">
+          <button class="btn" type="button" id="rc-go">Connect the battery</button>
+          <button class="btn ghost" type="button" id="rc-reset">Discharge</button>
+          <label class="row" for="rc-fast"><input id="rc-fast" type="checkbox"> 10× speed</label>
+        </div>
+        <div class="meters">
+          <div class="meter"><div class="q"><b>Stopwatch</b><span></span></div><div class="v" id="rc-t"></div></div>
+          <div class="meter"><div class="q"><b>V capacitor</b><span class="chip v"></span></div><div class="v" id="rc-v"></div></div>
+          <div class="meter"><div class="q"><b>Current</b><span class="chip i"></span></div><div class="v" id="rc-i"></div></div>
+          <div class="meter"><div class="q"><b>τ = R × C</b><span class="chip r"></span></div><div class="v" id="rc-tau"></div></div>
+        </div>
+        <p class="note">At real speed, the 10 kΩ and 1000 µF values match E7. Use them to practise reading the meter against a stopwatch.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Transistor ===== -->
+  <section id="transistor">
+    <h2>Transistor switch</h2>
+    <div class="bench">
+      <div class="panel"><svg id="tr-svg" class="drawing" viewBox="0 0 520 380" role="img" aria-label="NPN transistor switch: a control input through a base resistor drives the base; the LED and 330 ohm resistor are in the collector path."></svg></div>
+      <div class="panel stack">
+        <div class="row">
+          <span class="label">Control</span>
+          <div class="seg" id="tr-ctl" role="group" aria-label="Control input">
+            <button type="button" data-v="1" aria-pressed="true">HIGH (6 V)</button>
+            <button type="button" data-v="0" aria-pressed="false">LOW (0 V)</button>
+          </div>
+        </div>
+        <div class="row"><label for="tr-rb" class="label">Base resistor</label><select id="tr-rb"></select></div>
+        <div class="control">
+          <label for="tr-h">Transistor gain (hFE) <output id="tr-h-out" for="tr-h"></output></label>
+          <input id="tr-h" type="range" min="50" max="400" step="10" value="200">
+        </div>
+        <div class="meters">
+          <div class="meter"><div class="q"><b>Base current</b><span class="chip i"></span></div><div class="v" id="tr-ib"></div></div>
+          <div class="meter"><div class="q"><b>LED current</b><span class="chip i"></span></div><div class="v" id="tr-ic"></div></div>
+        </div>
+        <div class="callout" id="tr-state" aria-live="polite"></div>
+        <p class="note">The gain of real transistors varies a lot, even in one bag: a BC547 can be anywhere from about 110 to 800. A good switch design gives more base current than it needs, so the gain does not matter.</p>
+      </div>
+    </div>
+  </section>
+
+  <h2>Predict, then check</h2>
+  <div class="panel" id="checks"></div>
+  <p class="note">Diagrams: <a href="diagrams/07-voltage-divider.svg">voltage divider</a> · <a href="diagrams/08-transistor-switch.svg">transistor switch</a></p>
+</div>
+
+<script src="bench.js"></script>
+<script>
+Bench.nav();
+const { el, amps, volts, ohms, str, RVALS, setMeter } = Bench;
+const $ = (id) => document.getElementById(id);
+const VS = 6;
+
+function segInit(id, onPick) {
+  $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    for (const x of $(id).querySelectorAll("button")) x.setAttribute("aria-pressed", x === b);
+    onPick(b.dataset.v);
+  });
+}
+const segSet = (id, v) => { for (const x of $(id).querySelectorAll("button")) x.setAttribute("aria-pressed", x.dataset.v === v); };
+
+/* ---------------- divider ---------------- */
+const dv = { mode: "fixed", r1: 10000, r2: 10000, pos: 50 };
+for (const id of ["dv-r1", "dv-r2"]) {
+  for (const r of RVALS) $(id).append(new Option(str(ohms(r)), r));
+  $(id).value = 10000;
+  $(id).addEventListener("change", (e) => { dv[id === "dv-r1" ? "r1" : "r2"] = +e.target.value; dvDraw(); });
+}
+segInit("dv-mode", (v) => { dv.mode = v; dvDraw(); });
+$("dv-pos").addEventListener("input", (e) => { dv.pos = +e.target.value; dvDraw(); });
+
+function dvDraw() {
+  const pot = dv.mode === "pot";
+  $("dv-fixed").hidden = pot;
+  $("dv-potc").hidden = !pot;
+  const r1 = pot ? Math.max(10000 * (1 - dv.pos / 100), 0) : dv.r1;
+  const r2 = pot ? 10000 * dv.pos / 100 : dv.r2;
+  const ratio = r2 / (r1 + r2);
+  const vout = VS * ratio, I = VS / (r1 + r2);
+  $("dv-pos-out").textContent = `${dv.pos} %`;
+  setMeter($("dv-vout"), volts(vout));
+  setMeter($("dv-i"), amps(I));
+  $("dv-sum").textContent = `Vout = 6 V × ${str(ohms(r2))} ÷ (${str(ohms(r1))} + ${str(ohms(r2))}) = ${str(volts(vout))}`;
+  $("dv-ard").textContent = `On an Arduino with a 5 V supply, the same ratio gives ${(5 * ratio).toFixed(2)} V, and analogRead() returns about ${Math.round(1023 * ratio)}.`;
+  const s = $("dv-svg"); s.replaceChildren();
+  const cx = 150;
+  el("text", { x: cx, y: 26, "text-anchor": "middle", class: "lbl", fill: "var(--pos)" }, s).textContent = "+6 V";
+  el("line", { x1: cx, y1: 34, x2: cx, y2: 350, stroke: "var(--wire)", "stroke-width": 3 }, s);
+  if (pot) {
+    el("rect", { x: cx - 22, y: 60, width: 44, height: 260, rx: 6, fill: "var(--ohm-soft)", stroke: "var(--ohm)", "stroke-width": 2 }, s);
+    const wy = 320 - 260 * dv.pos / 100;
+    el("path", { d: `M ${cx + 80} ${wy} L ${cx + 26} ${wy}`, stroke: "var(--volt)", "stroke-width": 3, "marker-end": "url(#dva)" }, s);
+    const d = el("defs", {}, s), m = el("marker", { id: "dva", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto" }, d);
+    el("path", { d: "M0,0 L10,5 L0,10 z", fill: "var(--volt)" }, m);
+    el("text", { x: cx - 32, y: 196, "text-anchor": "end", class: "lbl", fill: "var(--ohm)" }, s).textContent = "10 kΩ";
+    el("text", { x: cx + 88, y: wy + 5, class: "lbl", fill: "var(--volt)" }, s).textContent = `wiper: ${str(volts(vout))}`;
+  } else {
+    for (const [y, r, n] of [[70, r1, "R1"], [210, r2, "R2"]]) {
+      el("rect", { x: cx - 50, y, width: 100, height: 90, rx: 6, fill: "var(--ohm-soft)", stroke: "var(--ohm)", "stroke-width": 2 }, s);
+      el("text", { x: cx, y: y + 40, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = n;
+      el("text", { x: cx, y: y + 62, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = str(ohms(r));
+    }
+    el("circle", { cx, cy: 185, r: 7, fill: "var(--wire)" }, s);
+    el("line", { x1: cx, y1: 185, x2: cx + 110, y2: 185, stroke: "var(--volt)", "stroke-width": 3 }, s);
+    el("text", { x: cx + 118, y: 190, class: "lbl", fill: "var(--volt)" }, s).textContent = `Vout ${str(volts(vout))}`;
+  }
+  el("text", { x: cx, y: 372, "text-anchor": "middle", class: "lbl", fill: "var(--gnd)" }, s).textContent = "GND 0 V";
+  // voltage scale
+  const sx = 440, top = 60, bot = 320;
+  el("rect", { x: sx - 10, y: top, width: 20, height: bot - top, rx: 4, fill: "var(--volt-soft)", stroke: "var(--volt)" }, s);
+  const vy = bot - (bot - top) * ratio;
+  el("rect", { x: sx - 10, y: vy, width: 20, height: bot - vy, rx: 4, fill: "var(--volt)" }, s);
+  for (const v of [0, 3, 6]) el("text", { x: sx + 18, y: bot - (bot - top) * v / 6 + 4, class: "tick" }, s).textContent = `${v} V`;
+  el("text", { x: sx, y: top - 12, "text-anchor": "middle", class: "tick" }, s).textContent = "Vout";
+}
+
+/* ---------------- capacitor ---------------- */
+const rc = { r: 10000, c: 1e-3, t: 0, running: false, last: 0 };
+for (const r of [1000, 10000, 100000]) $("rc-r").append(new Option(str(ohms(r)), r));
+for (const [c, t] of [[1e-4, "100 µF"], [1e-3, "1000 µF"]]) $("rc-c").append(new Option(t, c));
+$("rc-r").value = 10000; $("rc-c").value = 1e-3;
+$("rc-r").addEventListener("change", (e) => { rc.r = +e.target.value; rcReset(); });
+$("rc-c").addEventListener("change", (e) => { rc.c = +e.target.value; rcReset(); });
+$("rc-go").addEventListener("click", () => {
+  if (rc.running) { rc.running = false; $("rc-go").textContent = "Continue"; return; }
+  rc.running = true; rc.last = performance.now(); $("rc-go").textContent = "Pause";
+  requestAnimationFrame(rcTick);
+});
+$("rc-reset").addEventListener("click", rcReset);
+function rcReset() { rc.t = 0; rc.running = false; $("rc-go").textContent = "Connect the battery"; rcDraw(); }
+function rcTick(now) {
+  if (!rc.running) return;
+  const k = $("rc-fast").checked ? 10 : 1;
+  rc.t += ((now - rc.last) / 1000) * k; rc.last = now;
+  const tau = rc.r * rc.c;
+  if (rc.t >= 5 * tau) { rc.t = 5 * tau; rc.running = false; $("rc-go").textContent = "Full (5τ)"; }
+  rcDraw();
+  if (rc.running) requestAnimationFrame(rcTick);
+}
+function rcDraw() {
+  const tau = rc.r * rc.c, vc = VS * (1 - Math.exp(-rc.t / tau)), I = (VS - vc) / rc.r;
+  $("rc-t").innerHTML = `${rc.t.toFixed(1)}<small>s</small>`;
+  setMeter($("rc-v"), volts(vc));
+  setMeter($("rc-i"), amps(I));
+  $("rc-tau").innerHTML = `${Bench.sig(tau)}<small>s</small>`;
+  const s = $("rc-svg"); s.replaceChildren();
+  const X0 = 50, X1 = 500, Y0 = 250, Y1 = 30, T = 5 * tau;
+  const X = (t) => X0 + (t / T) * (X1 - X0), Yv = (v) => Y0 - (v / VS) * (Y0 - Y1);
+  for (const v of [0, 2, 4, 6]) {
+    el("line", { x1: X0, x2: X1, y1: Yv(v), y2: Yv(v), class: "grid" }, s);
+    el("text", { x: X0 - 8, y: Yv(v) + 4, "text-anchor": "end", class: "tick" }, s).textContent = `${v} V`;
+  }
+  ["", "63 %", "86 %", "95 %", "98 %", "99 %"].forEach((p, n) => {
+    if (!n) return;
+    el("line", { x1: X(n * tau), x2: X(n * tau), y1: Y0, y2: Y1, class: "grid", "stroke-dasharray": "3 4" }, s);
+    el("text", { x: X(n * tau), y: Y0 + 18, "text-anchor": "middle", class: "tick" }, s).textContent = `${n}τ`;
+    el("text", { x: X(n * tau) - 4, y: Yv(VS * (1 - Math.exp(-n))) + 16, "text-anchor": "end", class: "tick" }, s).textContent = p;
+  });
+  el("text", { x: X1, y: Y0 + 38, "text-anchor": "end", class: "tick" }, s).textContent = `time (τ = ${Bench.sig(tau)} s)`;
+  el("line", { x1: X0, x2: X1, y1: Y0, y2: Y0, class: "axis" }, s);
+  el("line", { x1: X0, x2: X0, y1: Y0, y2: Y1, class: "axis" }, s);
+  const curve = (t1, attrs) => {
+    const pts = [];
+    for (let k = 0; k <= 120; k++) { const t = (t1 * k) / 120; pts.push(`${X(t).toFixed(1)},${Yv(VS * (1 - Math.exp(-t / tau))).toFixed(1)}`); }
+    el("polyline", { points: pts.join(" "), fill: "none", ...attrs }, s);
+  };
+  curve(T, { stroke: "var(--volt)", "stroke-width": 1.5, "stroke-dasharray": "5 5", opacity: 0.6 });
+  if (rc.t > 0) curve(rc.t, { stroke: "var(--volt)", "stroke-width": 3.5 });
+  el("circle", { cx: X(rc.t), cy: Yv(vc), r: 6, fill: "var(--volt)", stroke: "var(--surface)", "stroke-width": 2 }, s);
+}
+
+/* ---------------- transistor ---------------- */
+const tr = { on: true, rb: 10000, h: 200 };
+for (const r of [1000, 4700, 10000, 47000, 100000]) $("tr-rb").append(new Option(str(ohms(r)), r));
+$("tr-rb").value = 10000;
+$("tr-rb").addEventListener("change", (e) => { tr.rb = +e.target.value; trDraw(); });
+$("tr-h").addEventListener("input", (e) => { tr.h = +e.target.value; trDraw(); });
+segInit("tr-ctl", (v) => { tr.on = v === "1"; trDraw(); });
+const ICMAX = (VS - 2.0 - 0.2) / 330;
+function trSolve() {
+  const ib = tr.on ? Math.max(0, (VS - 0.7) / tr.rb) : 0;
+  const ic = Math.min(tr.h * ib, ICMAX);
+  return { ib, ic, sat: tr.h * ib >= ICMAX };
+}
+function trDraw() {
+  const { ib, ic, sat } = trSolve();
+  $("tr-h-out").textContent = tr.h;
+  setMeter($("tr-ib"), amps(ib));
+  setMeter($("tr-ic"), amps(ic));
+  const st = $("tr-state");
+  if (!tr.on) { st.className = "callout info"; st.textContent = "No base current, so the transistor is off. The LED is off."; }
+  else if (sat) { st.className = "callout ok"; st.textContent = `Fully on (saturated). The LED current is limited by the 330 Ω resistor, not by the transistor: ${str(amps(ic))}, ${Math.round(ic / ib)} × the base current.`; }
+  else { st.className = "callout warn"; st.textContent = `Only partly on. The transistor allows gain × base current = ${tr.h} × ${str(amps(ib))} = ${str(amps(ic))}, less than the ${str(amps(ICMAX))} the LED circuit could take. Use a smaller base resistor.`; }
+  const s = $("tr-svg"); s.replaceChildren();
+  const cx = 360;
+  el("text", { x: cx, y: 24, "text-anchor": "middle", class: "lbl", fill: "var(--pos)" }, s).textContent = "+6 V";
+  const w = 2 + 8 * Math.min(ic / ICMAX, 1);
+  el("line", { x1: cx, y1: 32, x2: cx, y2: 350, stroke: ic > 0 ? "var(--amp-line)" : "var(--wire)", "stroke-width": ic > 0 ? w : 3 }, s);
+  el("rect", { x: cx - 45, y: 50, width: 90, height: 40, rx: 6, fill: "var(--ohm-soft)", stroke: "var(--ohm)", "stroke-width": 2 }, s);
+  el("text", { x: cx, y: 76, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = "330 Ω";
+  el("circle", { cx, cy: 140, r: 44, fill: "var(--led)", opacity: Math.min(ic / 0.02, 1) * 0.5 }, s);
+  el("rect", { x: cx - 45, y: 115, width: 90, height: 50, rx: 6, fill: "var(--pos-soft)", stroke: "var(--led)", "stroke-width": 2 }, s);
+  el("text", { x: cx, y: 146, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = "LED";
+  el("circle", { cx, cy: 250, r: 52, fill: "var(--surface)", stroke: "var(--wire)", "stroke-width": 2 }, s);
+  el("text", { x: cx, y: 255, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = "NPN";
+  el("text", { x: cx + 10, y: 214, class: "tick" }, s).textContent = "C";
+  el("text", { x: cx + 10, y: 296, class: "tick" }, s).textContent = "E";
+  el("text", { x: cx - 66, y: 244, class: "tick" }, s).textContent = "B";
+  el("text", { x: cx, y: 372, "text-anchor": "middle", class: "lbl", fill: "var(--gnd)" }, s).textContent = "GND";
+  // base path
+  el("rect", { x: 10, y: 225, width: 110, height: 50, rx: 6, fill: tr.on ? "var(--volt-soft)" : "var(--surface)", stroke: "var(--volt)", "stroke-width": 2 }, s);
+  el("text", { x: 65, y: 256, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = tr.on ? "HIGH" : "LOW";
+  el("line", { x1: 120, y1: 250, x2: cx - 52, y2: 250, stroke: ib > 0 ? "var(--amp-line)" : "var(--wire)", "stroke-width": ib > 0 ? 2.5 : 2 }, s);
+  el("rect", { x: 160, y: 232, width: 90, height: 36, rx: 6, fill: "var(--ohm-soft)", stroke: "var(--ohm)", "stroke-width": 2 }, s);
+  el("text", { x: 205, y: 256, "text-anchor": "middle", class: "lbl", fill: "var(--ink)" }, s).textContent = str(ohms(tr.rb));
+  el("text", { x: 205, y: 300, "text-anchor": "middle", class: "lbl", fill: "var(--amp)" }, s).textContent = `small: ${str(amps(ib))}`;
+  el("text", { x: cx + 58, y: 100, class: "lbl", fill: "var(--amp)" }, s).textContent = str(amps(ic));
+}
+
+/* ---------------- checks ---------------- */
+function loadDiv(mode, r1, r2, pos) {
+  Object.assign(dv, { mode, r1, r2, pos }); segSet("dv-mode", mode);
+  $("dv-r1").value = r1; $("dv-r2").value = r2; $("dv-pos").value = pos; dvDraw();
+  $("divider").scrollIntoView({ behavior: Bench.reducedMotion() ? "auto" : "smooth" });
+}
+function loadRC(r, c) { rc.r = r; rc.c = c; $("rc-r").value = r; $("rc-c").value = c; rcReset(); }
+function loadTr(rb, h) { Object.assign(tr, { on: true, rb, h }); segSet("tr-ctl", "1"); $("tr-rb").value = rb; $("tr-h").value = h; trDraw(); }
+Bench.checkTable($("checks"), [
+  { label: "E5 · 10 kΩ over 10 kΩ: V out", answer: 3, unit: "V", load: () => loadDiv("fixed", 10000, 10000, 50) },
+  { label: "1 kΩ (top) over 10 kΩ: V out", answer: 6 * 10000 / 11000, unit: "V", hint: "R2 is the bottom resistor: 6 × 10 ÷ 11.", load: () => loadDiv("fixed", 1000, 10000, 50) },
+  { label: "10 kΩ (top) over 1 kΩ: V out", answer: 6 * 1000 / 11000, unit: "V", load: () => loadDiv("fixed", 10000, 1000, 50) },
+  { label: "E5 · dimmer, knob at maximum resistance: LED current", answer: 4 / 10220, unit: "mA", hint: "(6 − 2) V ÷ (10 000 + 220) Ω." },
+  { label: "E7 · 10 kΩ and 1000 µF: τ", answer: 10, unit: "s", load: () => loadRC(10000, 1e-3) },
+  { label: "E7 · capacitor voltage after 10 s", answer: 6 * (1 - Math.exp(-1)), unit: "V", hint: "After one τ, the capacitor is at 63 % of 6 V.", load: () => loadRC(10000, 1e-3) },
+  { label: "E7 · capacitor voltage after 20 s", answer: 6 * (1 - Math.exp(-2)), unit: "V", hint: "After two τ: 86 %.", load: () => loadRC(10000, 1e-3) },
+  { label: "E8 · base current with 10 kΩ", answer: 5.3 / 10000, unit: "mA", hint: "(6 − 0.7) V ÷ 10 kΩ.", load: () => loadTr(10000, 200) },
+  { label: "E8 · LED current, fully on", answer: ICMAX, unit: "mA", hint: "(6 − 2.0 − 0.2) V ÷ 330 Ω.", load: () => loadTr(10000, 200) },
+  { label: "E9 · LED current with 100 kΩ base resistor, gain 200", answer: 200 * 5.3 / 100000, unit: "mA", hint: "Base current 53 µA × 200: not quite fully on.", load: () => loadTr(100000, 200) },
+]);
+
+dvDraw(); rcDraw(); trDraw();
+</script>
+</body>
+</html>

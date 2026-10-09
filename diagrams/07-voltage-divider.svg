@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1148" height="898" viewBox="36 -14 1148 898" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<rect x="36" y="-14" width="1148" height="898" fill="#ffffff"/>
+<text font-size="32" fill="#1e1e1e" text-anchor="start"><tspan x="448.0" y="38.8">The voltage divider</tspan></text>
+<text font-size="18" fill="#5c6670" text-anchor="start"><tspan x="411.0" y="72.2">Two resistors in series split the voltage.</tspan></text>
+<text font-size="24" fill="#b91c1c" text-anchor="start"><tspan x="236.0" y="131.6">+6 V</tspan></text>
+<polyline points="260.0,145.0 260.0,180.0" fill="none" stroke="#ef4444" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="200.0" y="180.0" width="120.0" height="120.0" rx="12.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="260.0" y="234.5">R1</tspan><tspan x="260.0" y="259.5">10 kΩ</tspan></text>
+<polyline points="260.0,300.0 260.0,420.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="260.0" cy="360.0" rx="8.0" ry="8.0" fill="#1e1e1e" stroke="#1e1e1e" stroke-width="1"/>
+<polyline points="260.0,360.0 400.0,360.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="400.0" y="330.0" width="200.0" height="60.0" rx="12.0" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="500.0" y="367.0">Vout = 3.0 V</tspan></text>
+<rect x="200.0" y="420.0" width="120.0" height="120.0" rx="12.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="260.0" y="474.5">R2</tspan><tspan x="260.0" y="499.5">10 kΩ</tspan></text>
+<polyline points="260.0,540.0 260.0,590.0" fill="none" stroke="#4a9eed" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text font-size="22" fill="#1d4ed8" text-anchor="start"><tspan x="210.0" y="615.8">GND (0 V)</tspan></text>
+<text font-size="22" fill="#6d28d9" text-anchor="start"><tspan x="60.0" y="699.8">Vout = 6 V × R2 ÷ (R1 + R2)</tspan><tspan x="60.0" y="727.3">     = 6 × 10 ÷ 20 = 3.0 V</tspan></text>
+<text font-size="20" fill="#1e1e1e" text-anchor="start"><tspan x="60.0" y="788.0">Make R2 bigger → Vout goes up.</tspan><tspan x="60.0" y="813.0">Make R1 bigger → Vout goes down.</tspan></text>
+<rect x="640.0" y="100.0" width="520.0" height="760.0" rx="12.0" fill="#f8f9fa" stroke="#ced4da" stroke-width="1"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="start"><tspan x="660.0" y="131.8">Potentiometer = adjustable divider</tspan></text>
+<text font-size="24" fill="#b91c1c" text-anchor="start"><tspan x="796.0" y="181.6">+6 V</tspan></text>
+<polyline points="820.0,195.0 820.0,230.0" fill="none" stroke="#ef4444" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="790.0" y="230.0" width="60.0" height="320.0" rx="12.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#0e7490" text-anchor="start"><tspan x="670.0" y="393.0">10 kΩ</tspan><tspan x="670.0" y="418.0">track</tspan></text>
+<polyline points="980.0,330.0 854.0,330.0" fill="none" stroke="#8b5cf6" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<text font-size="18" fill="#6d28d9" text-anchor="start"><tspan x="890.0" y="266.2">wiper</tspan><tspan x="890.0" y="288.7">(middle leg)</tspan></text>
+<rect x="990.0" y="300.0" width="150.0" height="60.0" rx="12.0" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="1065.0" y="337.0">0 to 6 V</tspan></text>
+<polyline points="820.0,550.0 820.0,600.0" fill="none" stroke="#4a9eed" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text font-size="22" fill="#1d4ed8" text-anchor="start"><tspan x="770.0" y="625.8">GND (0 V)</tspan></text>
+<text font-size="18" fill="#1e1e1e" text-anchor="start"><tspan x="680.0" y="686.2">Turn the knob → the wiper moves</tspan><tspan x="680.0" y="708.7">→ the ratio changes → Vout changes.</tspan></text>
+<rect x="680.0" y="750.0" width="440.0" height="80.0" rx="12.0" fill="#e6fcf5" stroke="#12b886" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="900.0" y="785.0">Arduino: analogRead(A0)</tspan><tspan x="900.0" y="807.5">0–5 V → 0–1023</tspan></text>
+</svg>

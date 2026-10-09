@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1208" height="918" viewBox="-4 -14 1208 918" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<rect x="-4" y="-14" width="1208" height="918" fill="#ffffff"/>
+<text font-size="32" fill="#1e1e1e" text-anchor="start"><tspan x="416.0" y="38.8">An LED needs a resistor</tspan></text>
+<text font-size="18" fill="#5c6670" text-anchor="start"><tspan x="447.0" y="72.2">Experiment E3: 6 V, 330 Ω, red LED</tspan></text>
+<rect x="20.0" y="100.0" width="560.0" height="780.0" rx="12.0" fill="#f8f9fa" stroke="#ced4da" stroke-width="1"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" y="131.8">Circuit diagram</tspan></text>
+<rect x="70.0" y="330.0" width="80.0" height="130.0" rx="12.0" fill="#f1f3f5" stroke="#1e1e1e" stroke-width="2"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="middle"><tspan x="110.0" y="402.7">6 V</tspan></text>
+<text font-size="26" fill="#b91c1c" text-anchor="start"><tspan x="158.0" y="349.4">+</tspan></text>
+<text font-size="26" fill="#1d4ed8" text-anchor="start"><tspan x="158.0" y="451.4">−</tspan></text>
+<rect x="170.0" y="218.0" width="110.0" height="44.0" rx="11.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="225.0" y="246.3">330 Ω</tspan></text>
+<rect x="340.0" y="210.0" width="120.0" height="60.0" rx="12.0" fill="#ffc9c9" stroke="#e03131" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="400.0" y="235.1">LED</tspan><tspan x="400.0" y="257.6">+  →  −</tspan></text>
+<polyline points="110.0,330.0 110.0,240.0 170.0,240.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="280.0,240.0 340.0,240.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="460.0,240.0 510.0,240.0 510.0,560.0 110.0,560.0 110.0,460.0" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<text font-size="22" fill="#6d28d9" text-anchor="start"><tspan x="198.0" y="191.8">4.0 V</tspan></text>
+<text font-size="22" fill="#6d28d9" text-anchor="start"><tspan x="372.0" y="191.8">2.0 V</tspan></text>
+<polyline points="535.0,330.0 535.0,450.0" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<text font-size="24" fill="#b45309" text-anchor="start"><tspan x="268.0" y="401.6">12.1 mA</tspan></text>
+<text font-size="20" fill="#6d28d9" text-anchor="start"><tspan x="50.0" y="638.0">The LED keeps about 2.0 V.</tspan><tspan x="50.0" y="663.0">The resistor takes the rest: 6 − 2 = 4 V.</tspan></text>
+<text font-size="20" fill="#b45309" text-anchor="start"><tspan x="50.0" y="718.0">Current = 4 V ÷ 330 Ω = 12.1 mA</tspan></text>
+<text font-size="20" fill="#0e7490" text-anchor="start"><tspan x="50.0" y="768.0">Choose R for the current you want:</tspan><tspan x="50.0" y="793.0">R = (6 − 2) V ÷ 0.012 A ≈ 330 Ω</tspan></text>
+<rect x="620.0" y="100.0" width="560.0" height="780.0" rx="12.0" fill="#ffffff" stroke="#ced4da" stroke-width="1"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="start"><tspan x="640.0" y="131.8">On the breadboard</tspan></text>
+<rect x="690.0" y="180.0" width="362.0" height="362.0" rx="12.0" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1"/>
+<rect x="750.0" y="208.0" width="272.0" height="24.0" rx="6.0" fill="#f1f3f5" stroke="#ef4444" stroke-width="1"/>
+<text font-size="24" fill="#b91c1c" text-anchor="start"><tspan x="706.0" y="226.6">+</tspan></text>
+<rect x="750.0" y="246.0" width="272.0" height="24.0" rx="6.0" fill="#f1f3f5" stroke="#4a9eed" stroke-width="1"/>
+<text font-size="24" fill="#1d4ed8" text-anchor="start"><tspan x="706.0" y="264.6">−</tspan></text>
+<rect x="775.0" y="315.0" width="30.0" height="182.0" rx="7.5" fill="#e9ecef" stroke="#dee2e6" stroke-width="1"/>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="786.0" y="522.4">9</tspan></text>
+<rect x="839.0" y="315.0" width="30.0" height="182.0" rx="7.5" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="846.0" y="522.4">10</tspan></text>
+<rect x="903.0" y="315.0" width="30.0" height="182.0" rx="7.5" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="910.0" y="522.4">11</tspan></text>
+<rect x="967.0" y="315.0" width="30.0" height="182.0" rx="7.5" fill="#e9ecef" stroke="#dee2e6" stroke-width="1"/>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="974.0" y="522.4">12</tspan></text>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="716.0" y="334.4">a</tspan></text>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="716.0" y="372.4">b</tspan></text>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="716.0" y="410.4">c</tspan></text>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="716.0" y="448.4">d</tspan></text>
+<text font-size="16" fill="#5c6670" text-anchor="start"><tspan x="716.0" y="486.4">e</tspan></text>
+<rect x="784.0" y="214.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="784.0" y="252.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="784.0" y="324.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="784.0" y="362.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="784.0" y="400.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="784.0" y="438.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="784.0" y="476.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="214.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="252.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="324.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="362.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="400.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="438.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="848.0" y="476.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="214.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="252.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="324.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="362.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="400.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="438.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="912.0" y="476.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="214.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="252.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="324.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="362.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="400.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="438.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<rect x="976.0" y="476.0" width="12.0" height="12.0" rx="0.0" fill="#495057" stroke="#495057" stroke-width="1"/>
+<polyline points="854.0,220.0 854.0,330.0" fill="none" stroke="#0e9fb5" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="842.0" y="264.0" width="24.0" height="46.0" rx="6.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<ellipse cx="820.0" cy="288.0" rx="16.0" ry="16.0" fill="#ffffff" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="820.0" y="294.3">1</tspan></text>
+<polyline points="854.0,406.0 918.0,406.0" fill="none" stroke="#e03131" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="886.0" cy="406.0" rx="20.0" ry="20.0" fill="#ffc9c9" stroke="#e03131" stroke-width="2"/>
+<ellipse cx="886.0" cy="546.0" rx="16.0" ry="16.0" fill="#ffffff" stroke="#e03131" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="886.0" y="552.3">2</tspan></text>
+<polyline points="918.0,330.0 940.0,300.0 940.0,280.0 918.0,258.0" fill="none" stroke="#2f9e44" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="964.0" cy="294.0" rx="16.0" ry="16.0" fill="#ffffff" stroke="#2f9e44" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="964.0" y="300.3">3</tspan></text>
+<ellipse cx="670.0" cy="612.0" rx="16.0" ry="16.0" fill="#ffffff" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="670.0" y="618.3">1</tspan></text>
+<text font-size="18" fill="#1e1e1e" text-anchor="start"><tspan x="700.0" y="616.2">330 Ω resistor: + rail → a10</tspan></text>
+<ellipse cx="670.0" cy="652.0" rx="16.0" ry="16.0" fill="#ffffff" stroke="#e03131" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="670.0" y="658.3">2</tspan></text>
+<text font-size="18" fill="#1e1e1e" text-anchor="start"><tspan x="700.0" y="656.2">LED: long leg in c10, short leg in c11</tspan></text>
+<ellipse cx="670.0" cy="692.0" rx="16.0" ry="16.0" fill="#ffffff" stroke="#2f9e44" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="670.0" y="698.3">3</tspan></text>
+<text font-size="18" fill="#1e1e1e" text-anchor="start"><tspan x="700.0" y="696.2">Jumper: a11 → − rail</tspan></text>
+<text font-size="18" fill="#b45309" text-anchor="start"><tspan x="650.0" y="756.2">Current path: + rail → resistor → row 10</tspan><tspan x="650.0" y="778.7">→ LED → row 11 → jumper → − rail</tspan></text>
+</svg>

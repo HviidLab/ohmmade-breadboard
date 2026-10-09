@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1148" height="898" viewBox="36 -14 1148 898" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<rect x="36" y="-14" width="1148" height="898" fill="#ffffff"/>
+<text font-size="32" fill="#1e1e1e" text-anchor="start"><tspan x="352.0" y="38.8">Voltage, current and resistance</tspan></text>
+<text font-size="18" fill="#5c6670" text-anchor="start"><tspan x="344.0" y="72.2">Voltage pushes. Resistance limits. Current is the result.</tspan></text>
+<rect x="60.0" y="150.0" width="260.0" height="110.0" rx="12.0" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="middle"><tspan x="190.0" y="198.9">VOLTAGE (V)</tspan><tspan x="190.0" y="226.4">the push</tspan></text>
+<rect x="60.0" y="380.0" width="260.0" height="110.0" rx="12.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="middle"><tspan x="190.0" y="428.9">RESISTANCE (Ω)</tspan><tspan x="190.0" y="456.4">the limit</tspan></text>
+<rect x="520.0" y="260.0" width="260.0" height="120.0" rx="12.0" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="22" fill="#1e1e1e" text-anchor="middle"><tspan x="650.0" y="313.9">CURRENT (A)</tspan><tspan x="650.0" y="341.4">the result</tspan></text>
+<polyline points="320.0,205.0 520.0,295.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<rect x="347.8" y="238.0" width="144.4" height="24.0" fill="#ffffff" opacity="0.92"/><text font-size="16" fill="#1e1e1e" text-anchor="middle"><tspan x="420.0" y="255.6">more V → more I</tspan></text>
+<polyline points="320.0,435.0 520.0,345.0" fill="none" stroke="#0e9fb5" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<rect x="347.8" y="378.0" width="144.4" height="24.0" fill="#ffffff" opacity="0.92"/><text font-size="16" fill="#1e1e1e" text-anchor="middle"><tspan x="420.0" y="395.6">more R → less I</tspan></text>
+<polyline points="960.0,160.0 810.0,420.0 1110.0,420.0 960.0,160.0" fill="none" stroke="#1e1e1e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="885.0,290.0 1035.0,290.0" fill="none" stroke="#1e1e1e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="960.0,290.0 960.0,420.0" fill="none" stroke="#1e1e1e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<text font-size="44" fill="#6d28d9" text-anchor="start"><tspan x="944.0" y="259.6">V</tspan></text>
+<text font-size="44" fill="#b45309" text-anchor="start"><tspan x="890.0" y="374.6">I</tspan></text>
+<text font-size="44" fill="#0e7490" text-anchor="start"><tspan x="998.0" y="374.6">R</tspan></text>
+<text font-size="18" fill="#1e1e1e" text-anchor="start"><tspan x="794.0" y="461.2">Cover the one you want:</tspan><tspan x="794.0" y="483.7">V = I × R  ·  I = V / R  ·  R = V / I</tspan></text>
+<text font-size="22" fill="#1e1e1e" text-anchor="start"><tspan x="60.0" y="609.8">Examples with the workbook parts</tspan></text>
+<rect x="60.0" y="640.0" width="140.0" height="46.0" rx="11.5" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="130.0" y="670.0">6 V</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="214.0" y="671.4">÷</tspan></text>
+<rect x="250.0" y="640.0" width="140.0" height="46.0" rx="11.5" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="320.0" y="670.0">330 Ω</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="404.0" y="671.4">=</tspan></text>
+<rect x="440.0" y="640.0" width="160.0" height="46.0" rx="11.5" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="520.0" y="670.0">18.2 mA</tspan></text>
+<rect x="60.0" y="698.0" width="140.0" height="46.0" rx="11.5" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="130.0" y="728.0">6 V</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="214.0" y="729.4">÷</tspan></text>
+<rect x="250.0" y="698.0" width="140.0" height="46.0" rx="11.5" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="320.0" y="728.0">1 kΩ</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="404.0" y="729.4">=</tspan></text>
+<rect x="440.0" y="698.0" width="160.0" height="46.0" rx="11.5" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="520.0" y="728.0">6.0 mA</tspan></text>
+<rect x="60.0" y="756.0" width="140.0" height="46.0" rx="11.5" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="130.0" y="786.0">6 V</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="214.0" y="787.4">÷</tspan></text>
+<rect x="250.0" y="756.0" width="140.0" height="46.0" rx="11.5" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="320.0" y="786.0">10 kΩ</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="404.0" y="787.4">=</tspan></text>
+<rect x="440.0" y="756.0" width="160.0" height="46.0" rx="11.5" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="520.0" y="786.0">0.6 mA</tspan></text>
+<rect x="60.0" y="814.0" width="140.0" height="46.0" rx="11.5" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="130.0" y="844.0">3 V</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="214.0" y="845.4">÷</tspan></text>
+<rect x="250.0" y="814.0" width="140.0" height="46.0" rx="11.5" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="320.0" y="844.0">1 kΩ</tspan></text>
+<text font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="404.0" y="845.4">=</tspan></text>
+<rect x="440.0" y="814.0" width="160.0" height="46.0" rx="11.5" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="520.0" y="844.0">3.0 mA</tspan></text>
+<rect x="700.0" y="640.0" width="420.0" height="110.0" rx="12.0" fill="#fff9db" stroke="#e8a400" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="910.0" y="689.5">Shortcut:</tspan><tspan x="910.0" y="714.5">volts ÷ kilohms = milliamperes</tspan></text>
+<rect x="700.0" y="770.0" width="420.0" height="90.0" rx="12.0" fill="#fff5f5" stroke="#ef4444" stroke-width="2"/>
+<text font-size="18" fill="#b91c1c" text-anchor="middle"><tspan x="910.0" y="810.0">A wire has R ≈ 0, so I is huge:</tspan><tspan x="910.0" y="832.5">a short circuit. Never do this.</tspan></text>
+</svg>

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1188" height="912" viewBox="6 -14 1188 912" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+<rect x="6" y="-14" width="1188" height="912" fill="#ffffff"/>
+<text font-size="32" fill="#1e1e1e" text-anchor="start"><tspan x="464.0" y="38.8">The water analogy</tspan></text>
+<text font-size="18" fill="#5c6670" text-anchor="start"><tspan x="393.0" y="72.2">A guide for intuition. Use Ohm's law to check.</tspan></text>
+<rect x="30.0" y="100.0" width="540.0" height="470.0" rx="12.0" fill="#e7f5ff" stroke="#74c0fc" stroke-width="1" opacity="0.6"/>
+<text font-size="20" fill="#1864ab" text-anchor="start"><tspan x="50.0" y="128.0">WATER</tspan></text>
+<rect x="630.0" y="100.0" width="540.0" height="470.0" rx="12.0" fill="#f8f0fc" stroke="#c084fc" stroke-width="1" opacity="0.6"/>
+<text font-size="20" fill="#6d28d9" text-anchor="start"><tspan x="650.0" y="128.0">CIRCUIT</tspan></text>
+<rect x="50.0" y="270.0" width="140.0" height="130.0" rx="12.0" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="120.0" y="317.0">Pump</tspan><tspan x="120.0" y="342.0">(pressure</tspan><tspan x="120.0" y="367.0">difference)</tspan></text>
+<rect x="410.0" y="290.0" width="140.0" height="90.0" rx="12.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="480.0" y="330.1">Narrow</tspan><tspan x="480.0" y="352.6">pipe</tspan></text>
+<polyline points="120.0,270.0 120.0,200.0 480.0,200.0 480.0,290.0" fill="none" stroke="#1e1e1e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="480.0,380.0 480.0,470.0 120.0,470.0 120.0,400.0" fill="none" stroke="#1e1e1e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="230.0,175.0 370.0,175.0" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<text font-size="18" fill="#b45309" text-anchor="start"><tspan x="210.0" y="151.2">flow rate (litres/s)</tspan></text>
+<polyline points="370.0,495.0 230.0,495.0" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<rect x="650.0" y="270.0" width="140.0" height="130.0" rx="12.0" fill="#d0bfff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="20" fill="#1e1e1e" text-anchor="middle"><tspan x="720.0" y="329.5">Battery</tspan><tspan x="720.0" y="354.5">(voltage)</tspan></text>
+<rect x="1010.0" y="290.0" width="140.0" height="90.0" rx="12.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="1080.0" y="330.1">Resistor</tspan><tspan x="1080.0" y="352.6">(resistance)</tspan></text>
+<polyline points="720.0,270.0 720.0,200.0 1080.0,200.0 1080.0,290.0" fill="none" stroke="#1e1e1e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="1080.0,380.0 1080.0,470.0 720.0,470.0 720.0,400.0" fill="none" stroke="#1e1e1e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="830.0,175.0 970.0,175.0" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<text font-size="18" fill="#b45309" text-anchor="start"><tspan x="850.0" y="151.2">current (A)</tspan></text>
+<polyline points="970.0,495.0 830.0,495.0" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<text font-size="40" fill="#5c6670" text-anchor="start"><tspan x="590.0" y="366.0">=</tspan></text>
+<rect x="160.0" y="600.0" width="340.0" height="44.0" rx="11.0" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="330.0" y="628.3">Pressure difference</tspan></text>
+<polyline points="510.0,622.0 690.0,622.0" fill="none" stroke="#5c6670" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<rect x="700.0" y="600.0" width="340.0" height="44.0" rx="11.0" fill="#e5dbff" stroke="#8b5cf6" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="870.0" y="628.3">Voltage (V)</tspan></text>
+<rect x="160.0" y="656.0" width="340.0" height="44.0" rx="11.0" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="330.0" y="684.3">Flow rate</tspan></text>
+<polyline points="510.0,678.0 690.0,678.0" fill="none" stroke="#5c6670" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<rect x="700.0" y="656.0" width="340.0" height="44.0" rx="11.0" fill="#ffe8cc" stroke="#f59e0b" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="870.0" y="684.3">Current (A)</tspan></text>
+<rect x="160.0" y="712.0" width="340.0" height="44.0" rx="11.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="330.0" y="740.3">Narrow pipe</tspan></text>
+<polyline points="510.0,734.0 690.0,734.0" fill="none" stroke="#5c6670" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#h)"/>
+<rect x="700.0" y="712.0" width="340.0" height="44.0" rx="11.0" fill="#c3fae8" stroke="#0e9fb5" stroke-width="2"/>
+<text font-size="18" fill="#1e1e1e" text-anchor="middle"><tspan x="870.0" y="740.3">Resistance (Ω)</tspan></text>
+<rect x="160.0" y="778.0" width="880.0" height="96.0" rx="12.0" fill="#fff5f5" stroke="#ef4444" stroke-width="2"/>
+<text font-size="17" fill="#b91c1c" text-anchor="middle"><tspan x="600.0" y="821.3">Where it fails: a cut pipe leaks, but a cut wire just stops the current.</tspan><tspan x="600.0" y="842.6">The energy travels in the electric field, not with the slow electrons.</tspan></text>
+</svg>
