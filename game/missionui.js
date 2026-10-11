@@ -50,7 +50,7 @@
 
   function render(force) {
     const panel = $("mission-panel");
-    if (G.mode !== "mission" || !G.run) { panel.hidden = true; BB.Render.guide(null); return; }
+    if (G.mode !== "mission" || !G.run) { panel.hidden = true; if (G.mode !== "level") BB.Render.guide(null); return; }
     const run = G.run, m = run.m;
     const key = JSON.stringify([run.state.map((s) => s.done), run.complete, hintsShown, guideOn]);
     if (!force && key === lastRender) return;

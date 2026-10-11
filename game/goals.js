@@ -73,7 +73,7 @@
       if (S.all.some((q) => q.ok && (q.rt.level || 0) >= 1 && q.type !== "meter")) this.stressT += dt;
       for (const q of S.all) if (!q.ok) this.destroyed.add(q.id);
       if (S.uno.damaged()) this.destroyed.add("uno-pin");
-      this.m.goals.forEach((g, k) => {
+      if (this.goalsOn !== false) this.m.goals.forEach((g, k) => {     // levels switch goals off while the coach is still teaching
         const st = this.state[k];
         if (st.done) return;
         let ok = false;

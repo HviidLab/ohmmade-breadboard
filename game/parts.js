@@ -2,6 +2,7 @@
 // build(circuit, nodes, part, rt) returns a handle with read(sim) → readout object.
 // stresses(part) → {key: {rated, tau, square, smoke, fail, x: (readout) => quantity}}.
 // failText(part, rt, readout) → teaching message with numbers.
+// legI(readout) → current into the part at each leg, in leg order (they sum to zero); used to draw the current flowing.
 (function (BB) {
   "use strict";
   const D = BB.Devices, P = D.PARAMS;
@@ -46,6 +47,7 @@
         return { read: (S) => { const I = r.current(S.v); return { I, V: I * part.value, P: I * I * part.value }; } };
       },
       stresses: () => ({ heat: { rated: 0.25, tau: 5, square: false, smoke: 2.5, fail: 4, x: (rd) => rd.P } }),
+      legI: (rd) => [rd.I || 0, -(rd.I || 0)],
       failText: (part, rt) => `The ${fmtR(part.value)} resistor burned out. It had to handle ${(rt.stress.heat.peak).toFixed(2)} W; a ¼ W resistor is rated for 0.25 W. Use a larger resistance, so less current flows.`,
     },
 
@@ -57,6 +59,7 @@
         return { read: (S) => ({ I: r.current(S.v) }) };
       },
       stresses: () => ({ heat: { rated: 1.5, tau: 5, square: true, smoke: 1.78, fail: 25, x: (rd) => rd.I } }),
+      legI: (rd) => [rd.I || 0, -(rd.I || 0)],
       failText: (part, rt) => `A jumper wire melted: ${fmtA(rt.stress.heat.peak)} flowed through it. That is a short circuit: a wire straight from + to − with nothing to limit the current.`,
     },
 
@@ -70,6 +73,7 @@
         return { src: s, read: (S) => { const I = s.current(S.v); return { I, V: S.v[pos] - S.v[neg], Pint: I * I * P.battery.rint, short: I > 2 }; } };
       },
       stresses: () => ({ heat: { rated: 1, tau: 20, square: false, smoke: 10, fail: 40, x: (rd) => rd.Pint } }),
+      legI: (rd) => [-(rd.I || 0), rd.I || 0],
       failText: () => "The batteries overheated and leaked after a long short circuit. Replace them, and always put a resistance in the path.",
     },
 
@@ -81,6 +85,7 @@
         return { read: (S) => { const I = d.current(S.v), V = d.voltage(S.v); return { I, V, P: I * V, reverse: V < -5 }; } };
       },
       stresses: (part) => ({ current: { rated: D.ledParams(part.color).imax, tau: 0.1, square: true, smoke: 6, fail: 12, x: (rd) => Math.max(rd.I, 0) } }),
+      legI: (rd) => [rd.I || 0, -(rd.I || 0)],
       failText(part, rt) {
         const p = D.ledParams(part.color), emf = P.battery.emf, r = e12AtLeast((emf - p.vf) / 0.015);
         return `The ${name(part).toLowerCase().replace(" led", " LED")} burned out: ${fmtA(rt.stress.current.peak)} flowed, and a standard LED takes about ${p.imax * 1000} mA. ` +
@@ -102,7 +107,7 @@
           read(S) {
             const V = S.v[red] - S.v[com];
             const Ishunt = dev && socket === "mA" ? dev.current(S.v) : 0;
-            const out = { V, Ishunt, mode, socket, fuseOK: !rt.destroyed };
+            const out = { V, Ishunt, mode, socket, fuseOK: !rt.destroyed, Ip: socket === "mA" ? Ishunt : mode === "V" ? V / m.rV : src ? -src.current(S.v) : 0 };
             if (mode === "off") out.display = "OFF";
             else if (mode === "V") out.value = V;
             else if (mode === "mA") {
@@ -123,6 +128,7 @@
           },
         };
       },
+      legI: (rd) => [rd.Ip || 0, -(rd.Ip || 0)],
       stresses: () => ({ fuse: { rated: P.meter.fuseA, tau: 0.2, square: true, fail: 2.5, x: (rd) => rd.Ishunt } }),
       failText: (part, rt) => `The meter's fuse blew: ${fmtA(rt.stress.fuse.peak)} went through it. With the red lead in the mA socket, the meter is almost a wire. Put it in the path of the current, never across a battery or a part.`,
     },
@@ -145,11 +151,12 @@
           save: () => { rt.vc = cap.vc; },
           read: (S) => {
             const V = S.v[pos] - S.v[neg], Irev = rr.current(S.v);
-            return { V, Vc: cap.vc, I: esr.current(S.v), Irev, Prev: Math.max(Irev, 0) * Math.max(-V, 0), reverse: V < -0.5 };
+            return { V, Vc: cap.vc, I: esr.current(S.v), Ileak: V / k.leak, Irev, Prev: Math.max(Irev, 0) * Math.max(-V, 0), reverse: V < -0.5 };
           },
         };
       },
       stresses: () => ({ reverse: { rated: 0.1, tau: 4, square: false, smoke: 4, fail: 8, x: (rd) => rd.Prev } }),
+      legI: (rd) => { const i = (rd.I || 0) + (rd.Ileak || 0) - (rd.Irev || 0); return [i, -i]; },
       failText: () => "The capacitor vented: it was connected the wrong way round. An electrolytic capacitor has a + and a − leg; the stripe marks the − leg.",
     },
 
@@ -167,6 +174,7 @@
         seg1: { rated: 0.1, tau: 2, square: false, smoke: 2.5, fail: 4, x: (rd) => rd.P1 / Math.max(rd.a, 0.02) },
         seg2: { rated: 0.1, tau: 2, square: false, smoke: 2.5, fail: 4, x: (rd) => rd.P2 / Math.max(1 - rd.a, 0.02) },
       }),
+      legI: (rd) => [rd.I1 || 0, (rd.I2 || 0) - (rd.I1 || 0), -(rd.I2 || 0)],
       failText: () => "The potentiometer track burned: near the end of its travel, a tiny piece of track carried the whole current. Put a fixed resistor in series with it.",
     },
 
@@ -176,11 +184,16 @@
       build(c, n, part) {
         const k = P.button, along = part.pairs === "along";
         const [a0, a1, b0, b1] = along ? [n[0], n[2], n[1], n[3]] : [n[0], n[1], n[2], n[3]];
-        c.add(new D.Resistor(a0, a1, k.rPair));
-        c.add(new D.Resistor(b0, b1, k.rPair));
-        c.add(new D.Resistor(a0, b0, part.pressed ? k.rPressed : Infinity));
-        return { read: () => ({ pressed: !!part.pressed }) };
+        const ra = c.add(new D.Resistor(a0, a1, k.rPair));
+        const rb = c.add(new D.Resistor(b0, b1, k.rPair));
+        const rp = c.add(new D.Resistor(a0, b0, part.pressed ? k.rPressed : Infinity));
+        return { read: (S) => {
+          const ia = ra.current(S.v), ib = rb.current(S.v), ip = rp.current(S.v);
+          const into = [ia + ip, -ia, ib - ip, -ib];            // a0, a1, b0, b1
+          return { pressed: !!part.pressed, legI: along ? [into[0], into[2], into[1], into[3]] : into };
+        } };
       },
+      legI: (rd) => rd.legI || [0, 0, 0, 0],
     },
 
     // Light-dependent resistor GL5528. part.lux = light level.
@@ -192,6 +205,7 @@
         const r = c.add(new D.Resistor(a, b, R));
         return { read: (S) => ({ R, I: r.current(S.v), lux }) };
       },
+      legI: (rd) => [rd.I || 0, -(rd.I || 0)],
     },
 
     // NPN transistor (BC547-like): legs C, B, E as in the workbook (rows 50, 51, 52).
@@ -205,6 +219,7 @@
         const q = D.npn(c, b, cc, e);
         return { read: (S) => { const Ib = q.ib(S.v), Ic = q.ic(S.v), Vce = S.v[cc] - S.v[e]; return { Ib, Ic, Vbe: S.v[b] - S.v[e], Vce, P: Vce * Ic + (S.v[b] - S.v[e]) * Ib }; } };
       },
+      legI: (rd) => [rd.Ic || 0, rd.Ib || 0, -((rd.Ic || 0) + (rd.Ib || 0))],
       stresses: () => ({
         base: { rated: 0.05, tau: 0.05, square: true, fail: 4, x: (rd) => rd.Ib },
         power: { rated: 0.5, tau: 2, square: false, smoke: 1.0, fail: 1.2, x: (rd) => rd.P },

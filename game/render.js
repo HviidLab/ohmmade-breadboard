@@ -73,7 +73,8 @@
       el("image", { href: A.url("bg_mat"), x: -900, y: -650, width: 3400, height: 1912, preserveAspectRatio: "none" }, world);
       el("rect", { x: -900, y: -650, width: 3400, height: 1912, fill: "#06110d", opacity: 0.38 }, world);
     } else el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "url(#matgrid)" }, world);
-    for (const k of ["board", "guide", "hi", "parts", "fx", "ui"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "fx" || k === "ui" || k === "hi" || k === "guide" ? "none" : null }, world);
+    // layers, bottom to top; only the board and the parts take the pointer
+    for (const k of ["board", "xray", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
     drawBoard();
     apply();
   }
@@ -98,9 +99,9 @@
     apply();
   }
   function pan(dx, dy) { view.tx += dx; view.ty += dy; apply(); }
-  let lastRows = [1, 24];
+  let lastRows = [1, 24], lastBox = null;
   function fit(rows = [1, 24]) {
-    lastRows = rows;
+    lastRows = rows; lastBox = null;
     const r = svg.getBoundingClientRect();
     let x0 = xr(rows[0]) - 345, x1 = xr(rows[1]) + 30, y0 = -190, y1 = 500;
     if (BB.Uno.present) { x0 = Math.min(x0, BB.Uno.pos.bx - 30); y0 = Math.min(y0, BB.Uno.pos.by - 40); y1 = Math.max(y1, BB.Uno.pos.by + BB.Uno.H + 30); }
@@ -109,7 +110,26 @@
     view.ty = -y0 * view.k + (r.height - (y1 - y0) * view.k) / 2;
     apply();
   }
-  const refit = () => fit(lastRows);
+  const refit = () => (lastBox ? fitBox(...lastBox) : fit(lastRows));
+  // Levels: fit a world box into the part of the stage that the overlays leave free.
+  const insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  function setInsets(i) { Object.assign(insets, { top: 0, right: 0, bottom: 0, left: 0 }, i || {}); }
+  function fitBox(x0, y0, x1, y1) {
+    lastBox = [x0, y0, x1, y1];
+    const r = svg.getBoundingClientRect();
+    const W = Math.max(r.width - insets.left - insets.right, 100), H = Math.max(r.height - insets.top - insets.bottom, 100);
+    view.k = Math.max(0.2, Math.min(2.2, W / (x1 - x0), H / (y1 - y0)));
+    view.tx = insets.left - x0 * view.k + (W - (x1 - x0) * view.k) / 2;
+    view.ty = insets.top - y0 * view.k + (H - (y1 - y0) * view.k) / 2;
+    apply();
+  }
+  // World box around a level's open board area and its battery pack.
+  function regionBox(region, doc) {
+    const [r0, r1] = region.rows || [1, ROWS], bat = doc.parts.find((p) => p.type === "battery");
+    const x0 = Math.min(xr(r0) - 50, bat ? (bat.bx ?? 40) - 10 : Infinity), x1 = Math.max(xr(r1) + 40, bat ? (bat.bx ?? 40) + 240 : -Infinity);
+    const y0 = bat ? (bat.by ?? -150) - 12 : Y["+T"] - 40, y1 = (region.cols === "a-j" ? Y.j : Y.e) + 34;
+    return [x0, y0, x1, y1];
+  }
   // Show the whole bench: every row of the board and every part, wherever it has been moved.
   // World box around the board and all parts, optionally leaving out one part (the one being dragged).
   function contentBox(skipId) {
@@ -119,6 +139,7 @@
             Math.max(...boxes.map((b) => b.x + b.width)), Math.max(...boxes.map((b) => b.y + b.height))];
   }
   function fitAll() {
+    if (lastBox) return fitBox(...lastBox);      // in a level, "show everything" means the open part of the board
     const r = svg.getBoundingClientRect(), pad = 24, c = contentBox();
     const x0 = c[0] - pad, y0 = c[1] - pad, x1 = c[2] + pad, y1 = c[3] + pad;
     view.k = Math.max(0.2, Math.min(r.width / (x1 - x0), r.height / (y1 - y0)));
@@ -217,7 +238,8 @@
       }
       case "wire": {
         const col = part.color || C.wires[0];
-        r.path = el("path", { d: curve(a, b, 16), stroke: dead ? "#4a3a2a" : col, "stroke-width": 4.2, fill: "none", "stroke-linecap": "round", "stroke-dasharray": dead ? "3 4" : null }, g);
+        r.track = curve(a, b, 16);
+        r.path = el("path", { d: r.track, stroke: dead ? "#4a3a2a" : col, "stroke-width": 4.2, fill: "none", "stroke-linecap": "round", "stroke-dasharray": dead ? "3 4" : null }, g);
         el("path", { d: curve(a, b, 16), stroke: "#fff", "stroke-width": 1.2, fill: "none", opacity: 0.25, transform: "translate(-.6 -.8)" }, g);
         for (const p of [a, b]) el("rect", { x: p[0] - 2.5, y: p[1] - 2.5, width: 5, height: 5, fill: "#b8bec4" }, g);
         r.glow = el("path", { d: curve(a, b, 16), stroke: "#ff8a3a", "stroke-width": 10, fill: "none", opacity: 0, filter: "url(#soft)" }, g);
@@ -345,20 +367,17 @@
     r.sw = el("rect", { x: bx + 185, y: by + (part.on !== false ? 23 : 37), width: 14, height: 14, rx: 3, fill: part.on !== false ? "#6fdc8c" : "#7b8288" }, sw);
     el("text", { x: bx + 8, y: by + 42, fill: "#9aa3a8", "font-family": "IBM Plex Mono, monospace", "font-size": 10, transform: `rotate(-90 ${bx + 12} ${by + 40})` }, body).textContent = "4×AA";
     // leads
-    const ends = [[bx + 60, by + H], [bx + 110, by + H]];
-    const cols = ["#d64545", "#1a1a1a"];
-    pts.forEach((p, k) => {
-      const end = p || part.loose?.[k] || [ends[k][0], ends[k][1] + 40];
-      el("path", { d: `M${ends[k][0]} ${ends[k][1]} C ${ends[k][0]} ${ends[k][1] + 60}, ${end[0]} ${end[1] - 60}, ${end[0]} ${end[1]}`, stroke: cols[k], "stroke-width": 3.4, fill: "none", "stroke-linecap": "round" }, g);
-      el("rect", { x: end[0] - 3, y: end[1] - 3, width: 6, height: 6, fill: "#b8bec4" }, g);
-      el("circle", { cx: end[0], cy: end[1], r: 9, fill: "transparent", class: "lead-end", "data-handle": k, "data-id": part.id, style: "cursor:grab" }, g);
-    });
+    leads(g, [[bx + 60, by + H], [bx + 110, by + H]], pts, part, ["#d64545", "#1a1a1a"], 60, r);
   }
 
-  function leads(g, ends, pts, part, cols, drop) {
+  // Battery leads from the holder to their holes. r.leads keeps each lead's path (holder → hole) for the current flow.
+  function leads(g, ends, pts, part, cols, drop, r) {
+    r.leads = [];
     pts.forEach((p, k) => {
       const end = p || part.loose?.[k] || [ends[k][0], ends[k][1] + 40];
-      el("path", { d: `M${ends[k][0]} ${ends[k][1]} C ${ends[k][0]} ${ends[k][1] + drop}, ${end[0]} ${end[1] - 60}, ${end[0]} ${end[1]}`, stroke: cols[k], "stroke-width": 3.4, fill: "none", "stroke-linecap": "round" }, g);
+      const d = `M${ends[k][0]} ${ends[k][1]} C ${ends[k][0]} ${ends[k][1] + drop}, ${end[0]} ${end[1] - 60}, ${end[0]} ${end[1]}`;
+      r.leads[k] = d;
+      el("path", { d, stroke: cols[k], "stroke-width": 3.4, fill: "none", "stroke-linecap": "round" }, g);
       el("rect", { x: end[0] - 3, y: end[1] - 3, width: 6, height: 6, fill: "#b8bec4" }, g);
       el("circle", { cx: end[0], cy: end[1], r: 9, fill: "transparent", class: "lead-end", "data-handle": k, "data-id": part.id, style: "cursor:grab" }, g);
     });
@@ -375,7 +394,7 @@
     r.sw = el("circle", { cx: bx + sx * W + (on ? 10 : -10), cy: by + sy * H, r: 7, fill: on ? "#6fdc8c" : "#9aa3a8" }, sw);
     el("text", { x: bx + sx * W, y: by + sy * H + 22, "text-anchor": "middle", fill: "#e9ecef", "font-family": "IBM Plex Mono, monospace", "font-size": 9 }, body).textContent = on ? "ON" : "OFF";
     if (dead) el("text", { x: bx + W / 2, y: by + H / 2, "text-anchor": "middle", fill: "#ffb08a", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body).textContent = "LEAKING";
-    leads(g, [[bx + W * 0.3, by + H - 10], [bx + W * 0.45, by + H - 10]], pts, part, ["#d64545", "#1a1a1a"], 60);
+    leads(g, [[bx + W * 0.3, by + H - 10], [bx + W * 0.45, by + H - 10]], pts, part, ["#d64545", "#1a1a1a"], 60, r);
   }
 
   function drawMeterSprite(g, part, pts, r) {
@@ -412,14 +431,18 @@
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
     el("circle", { cx: from[0][0], cy: from[0][1], r: 5, fill: "#d64545" }, body);
     el("circle", { cx: from[1][0], cy: from[1][1], r: 5, fill: "#1a1a1a" }, body);
-    probes(g, part, pts, from);
+    probes(g, part, pts, from, r);
   }
 
-  function probes(g, part, pts, from) {
+  // Probe cables; r.leads keeps each cable's path (meter → probe tip) for the current flow.
+  function probes(g, part, pts, from, r) {
     const cols = ["#d64545", "#1a1a1a"];
+    r.leads = [];
     pts.forEach((p, k) => {
       const tip = p || part.loose?.[k] || [from[k][0], from[k][1] - 300];
-      el("path", { d: `M${from[k][0]} ${from[k][1]} C ${from[k][0]} ${from[k][1] + 70}, ${tip[0] + (k ? 30 : -30)} ${tip[1] + 120}, ${tip[0]} ${tip[1] + 22}`, stroke: cols[k], "stroke-width": 3, fill: "none", "stroke-linecap": "round", opacity: 0.95 }, g);
+      const d = `M${from[k][0]} ${from[k][1]} C ${from[k][0]} ${from[k][1] + 70}, ${tip[0] + (k ? 30 : -30)} ${tip[1] + 120}, ${tip[0]} ${tip[1] + 22} L ${tip[0]} ${tip[1]}`;
+      r.leads[k] = d;
+      el("path", { d, stroke: cols[k], "stroke-width": 3, fill: "none", "stroke-linecap": "round", opacity: 0.95 }, g);
       const pr = el("g", { class: "probe", "data-probe": k, "data-id": part.id, style: "cursor:grab" }, g);
       el("path", { d: `M${tip[0]} ${tip[1]} l-4 8 v16 h8 v-16z`, fill: cols[k], stroke: "#000", "stroke-width": 0.8 }, pr);
       el("circle", { cx: tip[0], cy: tip[1], r: 3, fill: "#e9ecef" }, pr);
@@ -459,14 +482,7 @@
     }
     // leads and probe tips
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
-    const cols = ["#d64545", "#1a1a1a"];
-    pts.forEach((p, k) => {
-      const tip = p || part.loose?.[k] || [bx + 60 + k * 70, by - 40];
-      el("path", { d: `M${from[k][0]} ${from[k][1]} C ${from[k][0]} ${from[k][1] + 70}, ${tip[0] + (k ? 30 : -30)} ${tip[1] + 120}, ${tip[0]} ${tip[1] + 22}`, stroke: cols[k], "stroke-width": 3, fill: "none", "stroke-linecap": "round", opacity: 0.95 }, g);
-      const pr = el("g", { class: "probe", "data-probe": k, "data-id": part.id, style: "cursor:grab" }, g);
-      el("path", { d: `M${tip[0]} ${tip[1]} l-4 8 v16 h8 v-16z`, fill: cols[k], stroke: "#000", "stroke-width": 0.8 }, pr);
-      el("circle", { cx: tip[0], cy: tip[1], r: 3, fill: "#e9ecef" }, pr);
-    });
+    probes(g, part, pts.map((p, k) => p || part.loose?.[k] || [bx + 60 + k * 70, by - 40]), from, r);
   }
 
   function drawUno(g, part, r) {
@@ -520,6 +536,7 @@
         if (part.id === selectedId) drawSelection(g, part, pts);
       } catch (err) { BB.reportError && BB.reportError(err, `drawing ${part.type} ${part.id}`); }
     }
+    if (BB.Flow) BB.Flow.rebuild(doc, sim);
   }
 
   function drawSelection(g, part, pts) {
@@ -529,6 +546,44 @@
     const xs = ps.map((p) => p[0]), ys = ps.map((p) => p[1]);
     el("rect", { x: Math.min(...xs) - 16, y: Math.min(...ys) - 16, width: Math.max(...xs) - Math.min(...xs) + 32, height: Math.max(...ys) - Math.min(...ys) + 32, rx: 8, class: "sel-ring" }, g);
     if (part.legs.length === 2) pts.forEach((p, k) => p && el("circle", { cx: p[0], cy: p[1], r: 6, class: "handle", "data-handle": k, "data-id": part.id }, g));
+  }
+
+  // ---------- levels: the open part of the board, and the coach's marks ----------
+  // Dim the rows, half and rails that this level keeps closed. One path, so overlapping pieces are not darker.
+  function region(spec) {
+    L.region.replaceChildren();
+    if (!spec) return;
+    const d = [], X1 = BOARD.x, X2 = BOARD.x + BOARD.w, Y1 = BOARD.y, Y2 = BOARD.y + BOARD.h;
+    const rect = (x0, y0, x1, y1) => { if (x1 > x0 && y1 > y0) d.push(`M${x0} ${y0}H${x1}V${y1}H${x0}Z`); };
+    const [r0, r1] = spec.rows || [1, ROWS];
+    const xa = r0 > 1 ? xr(r0) - P / 2 : X1, xb = r1 < ROWS ? xr(r1) + P / 2 : X2;
+    rect(X1, Y1, xa, Y2); rect(xb, Y1, X2, Y2);
+    if (spec.cols !== "a-j") rect(xa, (Y.e + Y.f) / 2, xb, Y2);
+    else if (spec.rails !== "all") rect(xa, (Y.j + Y["+B"]) / 2, xb, Y2);
+    if (!spec.rails || spec.rails === "none") rect(xa, Y1, xb, (Y["-T"] + Y.a) / 2);
+    el("path", { d: d.join(""), class: "region-off" }, L.region);
+  }
+
+  // Coach marks: pulsing outlines round holes, strips or rails, parts, or a control. Targets as in coach.js.
+  function marks(targets) {
+    L.coach.replaceChildren();
+    for (const t of [].concat(targets || [])) {
+      for (const h of t.holes || []) { const [x, y] = xy(h); el("circle", { cx: x, cy: y, r: 11, class: "mark" }, L.coach); }
+      for (const n of [].concat(t.net || [], t.nets || [])) netMark(n.replace(/^bb:/, ""));
+      for (const id of [].concat(t.part || [], t.parts || [])) boxMark(svg.querySelector(`[data-body="${id}"]`) || svg.querySelector(`[data-part="${id}"]`));
+      if (t.ctl) boxMark(svg.querySelector(`[data-ctl="${t.ctl}"][data-id="${t.id}"]`), 6);
+    }
+  }
+  function netMark(n) {
+    if (n[0] === "+" || n[0] === "-") { el("rect", { x: BOARD.x + 22, y: Y[n] - 11, width: BOARD.w - 34, height: 22, rx: 7, class: "mark" }, L.coach); return; }
+    const row = +n.slice(1), [y1, y2] = n[0] === "L" ? [Y.a, Y.e] : [Y.f, Y.j];
+    el("rect", { x: xr(row) - 11, y: y1 - 11, width: 22, height: y2 - y1 + 22, rx: 7, class: "mark" }, L.coach);
+  }
+  function boxMark(node, pad = 9) {
+    if (!node) return;
+    const b = node.getBBox();
+    if (!b.width && !b.height) return;
+    el("rect", { x: b.x - pad, y: b.y - pad, width: b.width + 2 * pad, height: b.height + 2 * pad, rx: 10, class: "mark" }, L.coach);
   }
 
   // ---------- ghost ----------
@@ -569,5 +624,5 @@
     }
   }
 
-  BB.Render = { init, drawParts, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { init, drawParts, region, marks, fitBox, regionBox, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

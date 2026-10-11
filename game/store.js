@@ -1,0 +1,26 @@
+// Saved progress (localStorage "bbgame.v2"). No DOM.
+// {levels: {"1-1": {done, stars, bonus}}, notebook: [concept ids], settings: {sound}, sandbox, classic: {E0: {...}}, telemetry}
+// The first time, the old "bbgame.v1" save (sandbox and classic missions) is carried over.
+(function (BB) {
+  "use strict";
+  const KEY = "bbgame.v2", OLD = "bbgame.v1";
+  let mem = null;                      // used when storage is blocked
+
+  const fresh = () => ({ v: 2, levels: {}, notebook: [], settings: {}, sandbox: null, classic: {}, telemetry: {} });
+  function fromV1(old) {
+    const s = fresh();
+    if (old) { s.sandbox = old.sandbox || null; s.classic = old.missions || {}; }
+    return s;
+  }
+  function get() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) return Object.assign(fresh(), JSON.parse(raw));
+      return fromV1(JSON.parse(localStorage.getItem(OLD) || "null"));
+    } catch (e) { return mem || (mem = fresh()); }
+  }
+  function put(s) { mem = s; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* storage blocked: keep it in memory */ } }
+  function update(fn) { const s = get(); fn(s); put(s); return s; }
+
+  BB.Store = { get, put, update, KEY };
+})(window.BB = window.BB || {});

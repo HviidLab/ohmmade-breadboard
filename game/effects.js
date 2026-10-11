@@ -121,8 +121,19 @@
       beepNode = { o, g };
     } else if (!on && beepNode) { beepNode.o.stop(); beepNode = null; }
   }
+  // A short rising chime: n notes (1 for a bonus star, 3 for a finished level).
+  function chime(n = 1) {
+    const a = ctx(); if (!a) return;
+    const notes = [880, 1108.7, 1318.5].slice(0, Math.max(1, n));
+    notes.forEach((f, k) => {
+      const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + k * 0.11;
+      o.type = "triangle"; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.55);
+    });
+  }
   function setMuted(m) { muted = m; if (m) beep(false); }
   function unlock() { ctx(); }
 
-  BB.Effects = { init, frame, burst, setMuted, unlock, fmtLcd, midOf };
+  BB.Effects = { init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});

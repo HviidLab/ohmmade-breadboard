@@ -8,9 +8,10 @@
   let G, svg, st = null, wireColor = 0, floater, lastPtr = null, edgeRaf = 0;
 
   function holeUnder(cx, cy) {
-    if (!inStage(cx, cy)) return null;     // holes hidden behind the side panels are out of reach
+    if (!inStage(cx, cy)) return null;     // holes hidden behind the side panels or the level's overlays are out of reach
     const [wx, wy] = R.toWorld(cx, cy), rad = SNAP / R.view.k;
     const h = R.holeAt(wx, wy, rad);
+    if (h && G.rules && !G.rules.inRegion(h)) return null;      // closed part of the board in this level
     if (h || !BB.Uno.present) return h;
     const sk = BB.Uno.socketAt(wx, wy, rad);
     return sk && BB.Uno.usable(sk) ? sk : null;
@@ -33,12 +34,20 @@
   }
 
   // ---------- keeping the dragged thing visible ----------
-  function inStage(cx, cy) { const r = svg.getBoundingClientRect(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; }
+  function inStage(cx, cy) {
+    const r = svg.getBoundingClientRect();
+    if (!(cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom)) return false;
+    if (G.mode !== "level") return true;
+    const top = document.elementFromPoint(cx, cy);         // the level's cards and bars sit on top of the bench
+    return !top || !!top.closest("#canvas") || !!top.closest(".drag-float");
+  }
+  const overHotbar = (cx, cy) => { const t = document.elementFromPoint(cx, cy); return !!t && !!t.closest("#hotbar"); };
   // The drawer picture, following the pointer (over the drawer, or for parts that have no board ghost).
   function float(type, cx, cy) {
     if (!type) { floater.hidden = true; floater.dataset.type = ""; return; }
-    const key = type === "led" ? `led:${BB.HUD.defaults.ledColor}` : type;
-    if (floater.dataset.type !== key) { floater.innerHTML = BB.HUD.icon(type, type === "led" ? R.LEDC[BB.HUD.defaults.ledColor].icon : null); floater.dataset.type = key; }
+    const col = (st && st.d && st.d.color) || BB.HUD.defaults.ledColor;
+    const key = type === "led" ? `led:${col}` : type;
+    if (floater.dataset.type !== key) { floater.innerHTML = BB.HUD.icon(type, type === "led" ? R.LEDC[col].icon : null); floater.dataset.type = key; }
     floater.style.left = `${cx - 44}px`; floater.style.top = `${cy - 28}px`;
     floater.hidden = false;
   }
@@ -79,6 +88,7 @@
     BB.Effects.unlock();
     if (d.type === "meter" && G.doc.parts.some((p) => p.type === "meter")) { BB.HUD.toast("There is already a multimeter on the bench."); return; }
     if (d.type === "uno" && G.doc.parts.some((p) => p.type === "uno")) { BB.HUD.toast("There is already an Uno-style board on the bench."); return; }
+    if (G.rules && !G.check(d.type === "wire" ? { kind: "wire" } : Object.assign({ kind: "place" }, d))) return;
     st = { kind: "new", d, legs: null, ok: false, x: e ? e.clientX : 0, y: e ? e.clientY : 0 };
     if (!e) { // keyboard: drop near the middle of the visible board
       const r = svg.getBoundingClientRect();
@@ -97,6 +107,7 @@
     if ((n = at("[data-ctl]"))) {
       const id = n.dataset.id, ctl = n.dataset.ctl, part = G.doc.get(id);
       G.select(id);
+      if (!G.check({ kind: "ctl", id, ctl })) { capture(e); return; }
       if (ctl === "switch") G.set(id, "on", part.on === false, true);
       else if (ctl.startsWith("mode:")) G.set(id, "mode", ctl.slice(5), true);
       else if (ctl.startsWith("socket:")) G.set(id, "socket", ctl.slice(7), true);
@@ -105,8 +116,8 @@
       else if (ctl.startsWith("pin:")) G.cyclePin(id, ctl.slice(4));
       capture(e); return;
     }
-    if ((n = at("[data-probe]"))) { const id = n.dataset.id; G.select(id); G.doc.snapshot(); st = { kind: "probe", id, k: +n.dataset.probe }; capture(e); return; }
-    if ((n = at("[data-handle]"))) { const id = n.dataset.id; G.select(id); st = { kind: "leg", id, k: +n.dataset.handle, legs: null, ok: false }; capture(e); return; }
+    if ((n = at("[data-probe]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "probe", id })) return; G.doc.snapshot(); st = { kind: "probe", id, k: +n.dataset.probe }; capture(e); return; }
+    if ((n = at("[data-handle]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "legs", id })) return; st = { kind: "leg", id, k: +n.dataset.handle, legs: null, ok: false }; capture(e); return; }
     // Uno header sockets: drawing a wire wins over dragging the board
     const sk = at("[data-body]") && holeUnder(e.clientX, e.clientY);
     if (sk && sk.startsWith("U.") && !G.doc.occupancy().has(sk)) { st = { kind: "wire", from: sk, to: null }; G.select(null); capture(e); return; }
@@ -119,19 +130,32 @@
     if ((n = at("[data-part]"))) {
       const id = n.dataset.part, part = G.doc.get(id);
       G.select(id);
+      const canMove = G.can({ kind: "move", id }).ok, canRemove = G.mode === "level" && G.can({ kind: "remove", id }).ok;
+      if (!canMove && !canRemove) { st = { kind: "fixed", id, x: e.clientX, y: e.clientY }; capture(e); return; }
       // grab the leg nearest to the pointer
       let grab = 0, bd = Infinity;
       part.legs.forEach((pt, k) => { if (!pt || pt.startsWith("U.")) return; const [x, y] = R.xy(pt); const d = Math.hypot(x - wx, y - wy); if (d < bd) { bd = d; grab = k; } });
-      st = { kind: "move", id, grab, x: e.clientX, y: e.clientY, moved: false, legs: null, ok: false };
+      st = { kind: "move", id, grab, x: e.clientX, y: e.clientY, moved: false, legs: null, ok: false, removeOnly: !canMove };   // removeOnly: it may only go back to the tray
       capture(e); return;
     }
     const hole = holeUnder(e.clientX, e.clientY);
-    if (hole && !G.doc.occupancy().has(hole)) { st = { kind: "wire", from: hole, to: null }; G.select(null); capture(e); return; }
+    if (hole && !G.doc.occupancy().has(hole)) {
+      G.select(null);
+      if (G.rules && !G.can({ kind: "wire" }).ok) { st = { kind: "nowire", x: e.clientX, y: e.clientY, say: G.can({ kind: "wire" }).say }; capture(e); return; }
+      st = { kind: "wire", from: hole, to: null }; capture(e); return;
+    }
     G.select(null);
     startPan(e);
   }
   function startPan(e) { st = { kind: "pan", x: e.clientX, y: e.clientY }; svg.classList.add("panning"); capture(e); }
   function capture(e) { try { svg.setPointerCapture(e.pointerId); } catch (err) { /* drawer drags are not captured */ } }
+
+  // Where a part dropped from the drawer or tray puts its legs. In levels, a resistor dropped on a top rail
+  // stands from the rail into the board below it (rail → hole a), the way a beginner's circuit starts.
+  function dropLegs(type, hole) {
+    if (G.mode === "level" && type === "resistor" && /^[+-]T\d+$/.test(hole)) return [hole, `a${BBShared.parse(hole).row}`];
+    return Gr.footprint(type, hole);
+  }
 
   // ---------- moving ----------
   function preview(cx, cy) {
@@ -142,10 +166,10 @@
       if (!hole) { st.legs = null; R.clearGhost(); R.highlight(null); return; }
       const row = Gr.grid(hole).row;
       st.legs = [`+T${row}`, `-T${Math.min(row + 1, Gr.ROWS)}`];
-    } else st.legs = hole ? Gr.footprint(d.type, hole) : null;
+    } else st.legs = hole ? dropLegs(d.type, hole) : null;
     st.ok = !!st.legs && G.doc.validate(d.type, st.legs).ok;
     if (d.type === "battery") { R.highlight(st.legs ? st.legs[0] : null); return; }
-    const look = { value: d.value || BB.HUD.defaults.resistor, color: BB.HUD.defaults.ledColor };
+    const look = { value: d.value || BB.HUD.defaults.resistor, color: d.color || BB.HUD.defaults.ledColor };
     if (st.legs) R.ghost(d.type, st.legs, st.ok, look);
     else if (over) R.floatGhost(d.type, freePts(Gr.footprint(d.type, "c30"), 0, wx, wy), look);
     else R.clearGhost();
@@ -158,6 +182,9 @@
     switch (st.kind) {
       case "new": st.x = e.clientX; st.y = e.clientY; preview(e.clientX, e.clientY); break;
       case "pan": R.pan(e.clientX - st.x, e.clientY - st.y); st.x = e.clientX; st.y = e.clientY; break;
+      case "fixed": case "nowire":
+        if (!st.told && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 8) { st.told = true; G.refuse(st.say || G.can({ kind: "move", id: st.id }).say); }
+        break;
       case "wire": {
         const hole = holeUnder(e.clientX, e.clientY), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         st.to = hole && hole !== st.from ? hole : null;
@@ -168,7 +195,7 @@
       case "move": {
         if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) < 4) return;
         st.moved = true;
-        const part = G.doc.get(st.id), hole = holeUnder(e.clientX, e.clientY);
+        const part = G.doc.get(st.id), hole = st.removeOnly ? null : holeUnder(e.clientX, e.clientY);
         const from = part.legs[st.grab] && Gr.grid(part.legs[st.grab]);
         if (!hole || !from) { st.legs = null; st.ok = false; R.floatGhost(part.type, freePts(part.legs, st.grab, ...R.toWorld(e.clientX, e.clientY)), part); return; }
         const to = Gr.grid(hole), dr = to.row - from.row, dc = to.col - from.col;
@@ -217,10 +244,12 @@
         if (s.to && G.doc.validate("wire", [s.from, s.to]).ok) G.add({ type: "wire", legs: [s.from, s.to], color: R.C.wires[wireColor++ % R.C.wires.length] });
         break;
       case "move":
-        if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); }
-        else if (s.moved) BB.HUD.toast(G.doc.validate(G.doc.get(s.id).type, s.legs || [null], s.id).why || "It does not fit there.", 3000);
+        if (s.moved && G.mode === "level" && overHotbar(e.clientX, e.clientY)) { G.remove(s.id); break; }
+        if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
+        else if (s.moved && s.removeOnly) G.refuse("Drop it on the parts tray to take it out.");
+        else if (s.moved) G.refuse(G.doc.validate(G.doc.get(s.id).type, s.legs || [null], s.id).why || "It does not fit there.");
         break;
-      case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); } break;
+      case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
       case "press": G.set(s.id, "pressed", false); break;
       case "knob": G.commitSoft(); break;
       case "probe": { const m = G.doc.get(s.id); if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`); G.commitSoft(); break; }
@@ -244,12 +273,12 @@
     }
     if (!s.legs || !s.ok) {
       const r = svg.getBoundingClientRect();
-      if (s.x >= r.left && s.x <= r.right && s.y >= r.top && s.y <= r.bottom) BB.HUD.toast((s.legs && G.doc.validate(d.type, s.legs).why) || "Drop it onto the breadboard holes.", 3000);
+      if (s.x >= r.left && s.x <= r.right && s.y >= r.top && s.y <= r.bottom && !(G.mode === "level" && overHotbar(s.x, s.y))) G.refuse((s.legs && G.doc.validate(d.type, s.legs).why) || "Drop it onto the breadboard holes.");
       return;
     }
     const part = { type: d.type, legs: s.legs };
-    if (d.type === "resistor") part.value = BB.HUD.defaults.resistor;
-    if (d.type === "led") part.color = BB.HUD.defaults.ledColor;
+    if (d.type === "resistor") part.value = d.value ?? BB.HUD.defaults.resistor;
+    if (d.type === "led") part.color = d.color ?? BB.HUD.defaults.ledColor;
     if (d.type === "cap") part.value = d.value;
     if (d.type === "pot") part.pos = 0.5;
     if (d.type === "ldr") part.lux = 200;
@@ -268,6 +297,11 @@
     lastHover = now;
     const partEl = e.target.closest && e.target.closest("[data-part]");
     const hole = holeUnder(e.clientX, e.clientY);
+    if (G.mode === "level") {          // no voltages yet: the part's name, and the strip under the pointer once strips are taught
+      R.highlight(hole && G.level.ui && G.level.ui.xray ? hole : null);
+      BB.HUD.tooltip(!hole && partEl ? BB.Parts.name(G.doc.get(partEl.dataset.part) || { type: "wire" }) : null, e.clientX, e.clientY);
+      return;
+    }
     if (hole) {
       R.highlight(hole);
       const v = G.sim.voltageAt(hole);
@@ -298,5 +332,5 @@
     if (arrows[e.key]) { e.preventDefault(); G.nudge(G.sel, ...arrows[e.key]); }
   }
 
-  BB.Input = { init };
+  BB.Input = { init, startNew };
 })(window.BB = window.BB || {});

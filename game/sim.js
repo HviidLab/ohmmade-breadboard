@@ -92,6 +92,12 @@
     // Voltage at a connection point vs its island reference; null when nothing is connected there.
     voltageAt(point) { const n = this.circuit.index.get(netKey(point)); return n === undefined ? null : this.solver.v[n]; }
 
+    // Solve the present state now, without moving time (for checks right after an edit). Not for circuits with capacitors.
+    settle() {
+      this.heal();
+      if (this.dirty && !this.solver.dynamic.length) { this.solver.solve(0); this.dirty = false; }
+    }
+
     // Advance simulated time by dt seconds.
     advance(dt) {
       this.heal();
