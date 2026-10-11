@@ -170,7 +170,7 @@
         st.moved = true;
         const part = G.doc.get(st.id), hole = holeUnder(e.clientX, e.clientY);
         const from = part.legs[st.grab] && Gr.grid(part.legs[st.grab]);
-        if (!hole || !from) { st.legs = null; R.floatGhost(part.type, freePts(part.legs, st.grab, ...R.toWorld(e.clientX, e.clientY)), part); return; }
+        if (!hole || !from) { st.legs = null; st.ok = false; R.floatGhost(part.type, freePts(part.legs, st.grab, ...R.toWorld(e.clientX, e.clientY)), part); return; }
         const to = Gr.grid(hole), dr = to.row - from.row, dc = to.col - from.col;
         st.legs = part.legs.map((pt) => { if (!pt || pt.startsWith("U.")) return pt; const g = Gr.grid(pt); return Gr.point(g.row + dr, g.col + dc); });
         st.ok = G.doc.validate(part.type, st.legs, part.id).ok;
@@ -217,10 +217,10 @@
         if (s.to && G.doc.validate("wire", [s.from, s.to]).ok) G.add({ type: "wire", legs: [s.from, s.to], color: R.C.wires[wireColor++ % R.C.wires.length] });
         break;
       case "move":
-        if (s.moved && s.ok) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); }
+        if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); }
         else if (s.moved) BB.HUD.toast(G.doc.validate(G.doc.get(s.id).type, s.legs || [null], s.id).why || "It does not fit there.", 3000);
         break;
-      case "leg": if (s.ok) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); } break;
+      case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); } break;
       case "press": G.set(s.id, "pressed", false); break;
       case "knob": G.commitSoft(); break;
       case "probe": { const m = G.doc.get(s.id); if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`); G.commitSoft(); break; }
