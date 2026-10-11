@@ -82,8 +82,11 @@
   // Room the overlays take, so the bench is fitted into the free middle.
   function insets() {
     const st = $("stage").getBoundingClientRect();
-    const bot = Math.min($("mentor").getBoundingClientRect().top, $("hotbar").getBoundingClientRect().top, $("mentor-avatar").getBoundingClientRect().top + 30);
-    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12, right: 12 });   // room for the mentor bar to grow with a hint     // the battery sits centred, clear of the objective card
+    // Spark stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
+    // The bottom keeps extra room for the bubble to grow when a hint is added.
+    const bot = Math.min($("mentor").getBoundingClientRect().top, $("hotbar").getBoundingClientRect().top);
+    const spark = $("mentor-avatar").getBoundingClientRect();
+    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: spark.right - st.left + 4, right: 12 });
   }
 
   // ---------- Spark speaks: the line types out, with a gibberish syllable every couple of letters ----------

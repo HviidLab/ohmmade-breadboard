@@ -233,11 +233,15 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .topctl button:hover { border-color: var(--amber); }
 .topctl button[aria-pressed="true"] { background: #c4ccd3; color: #14191d; border-color: #c4ccd3; }
 
-.mentor { position: absolute; left: 14px; bottom: 14px; width: min(660px, calc(100% - 600px)); min-width: 400px; display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 4px 12px; align-items: end;
-  padding: 14px 18px 14px 8px; border-radius: 16px; background: rgba(14, 20, 18, .92); border: 1px solid rgba(255, 181, 71, .28); box-shadow: 0 12px 34px rgba(0, 0, 0, .5); backdrop-filter: blur(6px); }
+/* Spark stands on the bench at the lower left; his lines are in a speech bubble beside him */
+.mentor { --spark-w: clamp(170px, 16.5vw, 240px);
+  position: absolute; left: calc(var(--spark-w) + 22px); bottom: 18px; width: min(620px, calc(100% - var(--spark-w) - 640px)); min-width: 380px;
+  padding: 16px 20px 16px; border-radius: 22px; background: #f6f0e2; color: #1f241f; border: 2px solid #e2c27a; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); }
+.mentor::before { content: ""; position: absolute; left: -17px; bottom: 92px; border: 11px solid transparent; border-right: 17px solid #e2c27a; border-left: 0; }
+.mentor::after { content: ""; position: absolute; left: -13px; bottom: 94px; border: 9px solid transparent; border-right: 14px solid #f6f0e2; border-left: 0; }
 /* Spark: bigger than the bar, so it sits up out of it; bobs, blinks, glows, talks and reacts */
-.mentor-avatar { align-self: end; margin-top: -76px; width: 128px; height: 145px; }
-.mentor-avatar svg { width: 128px; height: 145px; display: block; overflow: visible; }
+.mentor-avatar { position: absolute; left: 12px; bottom: 10px; width: clamp(170px, 16.5vw, 240px); aspect-ratio: 120 / 136; pointer-events: none; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .55)); }
+.mentor-avatar svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .mentor-avatar .sp-body { transform-box: fill-box; transform-origin: 50% 100%; animation: sp-bob 3.2s ease-in-out infinite; }
 .mentor-avatar .sp-glow { transform-box: fill-box; transform-origin: center; animation: sp-glow 2.6s ease-in-out infinite; }
 .mentor-avatar .sp-glow-bad { opacity: 0; transition: opacity .3s; }
@@ -262,21 +266,23 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .mentor-avatar.worried:not(.talk) .sp-frown { opacity: 1; }
 .mentor-avatar.worried .sp-eyes { animation: none; transform: scale(1.18); }
 .mentor-avatar.worried .sp-glow-bad { opacity: 1; }
-.mentor-name { margin: 0; font: 600 11px var(--font-data); letter-spacing: .14em; text-transform: uppercase; color: var(--amber); }
-.mentor-text { margin: 2px 0 0; font: 500 17px/1.45 var(--font-body); color: #f3efe6; }
+.mentor-name { margin: 0; font: 600 12px var(--font-data); letter-spacing: .14em; text-transform: uppercase; color: #a0640c; }
+.mentor-text { margin: 2px 0 0; font: 500 18px/1.45 var(--font-body); color: #1f241f; }
 .mentor-text.pop { animation: line-in .28s ease-out; }
 @keyframes line-in { from { opacity: 0; transform: translateY(4px); } }
-.hint-line { display: block; margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(255, 207, 138, .1); color: var(--lamp); font-size: 15px; }
+.hint-line { display: block; margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: #fbe3b4; color: #4a3108; font-size: 16px; }
 .hint-line::before { content: "Hint · "; font-weight: 600; }
-.aside { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: rgba(255, 255, 255, .06); font-size: 14px; }
-.aside.bad { background: rgba(255, 107, 107, .14); color: #ffd0c4; }
-.aside.good { background: rgba(111, 220, 140, .12); color: #c9f5d5; }
+.aside { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #e8e1d1; color: #3a3a32; font-size: 15px; }
+.aside.bad { background: #f8d4c8; color: #6b1d0c; }
+.aside.good { background: #d3f0d9; color: #14522a; }
 .mentor-act { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .mentor-act:empty { display: none; }
 .mentor-act .btn { padding: 8px 16px; border-radius: 10px; font-weight: 600; }
-.mentor-act .btn.ghost { background: transparent; color: var(--muted); }
-.choice { background: #20272b; border: 1px solid #3a454c; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
-.choice:hover, .choice:focus-visible { border-color: var(--amber); background: #2a2f22; }
+.mentor-act .btn.ghost { background: transparent; color: #5b5a50; border-color: #cfc5ae; }
+.mentor-act .btn.ghost:hover { border-color: #a0640c; color: #1f241f; }
+.choice { background: #fffaf0; color: #1f241f; border: 2px solid #d8c9a6; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+.choice:hover, .choice:focus-visible { border-color: #c77a14; background: #fff3d9; }
+.mentor :focus-visible { outline-color: #c77a14; }
 
 .hotbar { position: absolute; right: 14px; bottom: 14px; padding: 12px 14px 10px; border-radius: 18px; max-width: min(600px, 46vw); min-width: 300px; transition: transform .15s, border-color .15s, background .15s;
   background: rgba(14, 20, 18, .9); border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 12px 34px rgba(0, 0, 0, .45); backdrop-filter: blur(6px); }
