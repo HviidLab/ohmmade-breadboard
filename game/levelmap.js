@@ -96,12 +96,14 @@
       <button type="button" class="btn" id="pz-map">Level map</button>
       <button type="button" class="btn" id="pz-notebook">Notebook</button>
       <button type="button" class="btn" id="pz-sound" aria-pressed="${sound}">Sound: ${sound ? "on" : "off"}</button>
+      <button type="button" class="btn" id="pz-voice" aria-pressed="${BB.CoachUI.voiceOn}">Spark's voice: ${BB.CoachUI.voiceOn ? "on" : "off"}</button>
       <button type="button" class="btn" id="pz-title">Title screen</button></div></div>`, "#pz-resume");
     on(host, "#pz-resume", close);
     on(host, "#pz-restart", () => play(G.level));
     on(host, "#pz-map", showMap);
     on(host, "#pz-notebook", () => notebook("pause"));
     on(host, "#pz-sound", () => { G.setSound(BB.Effects.muted); pause(); });
+    on(host, "#pz-voice", () => { BB.CoachUI.setVoice(!BB.CoachUI.voiceOn); pause(); });
     on(host, "#pz-title", () => { hideAll(); BB.Title.show(); });
   }
 

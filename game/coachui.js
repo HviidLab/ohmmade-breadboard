@@ -43,12 +43,15 @@
   function init(game) {
     G = game;
     $("mentor-avatar").innerHTML = SPARK;
+    $("mentor-text").addEventListener("click", () => stopSpeaking());     // click the line to see all of it at once
+    voiceOn = BB.Store.get().settings.voice !== false;
     $("lv-undo").addEventListener("click", () => G.undo());
     $("lv-pause").addEventListener("click", () => BB.LevelMap.pause());
     $("lv-xray").addEventListener("click", () => xray(!BB.Flow.xrayOn));
     window.addEventListener("keydown", (e) => {
       if (G.mode !== "level" || e.target.matches("input, select, textarea")) return;
       if (e.key === "Escape" && !G.paused) { e.preventDefault(); BB.LevelMap.pause(); }
+      else if (e.key === "Enter" && !G.paused && typing) { e.preventDefault(); stopSpeaking(); }
       else if (e.key === "Enter" && !G.paused && $("mentor-next")) { e.preventDefault(); $("mentor-next").click(); }
       else if ((e.key === "x" || e.key === "X") && !G.paused && !$("lv-xray").hidden) xray(!BB.Flow.xrayOn);
     });
@@ -59,6 +62,7 @@
 
   // ---------- entering and leaving a level ----------
   function enter(level) {
+    stopSpeaking(); shownParts = [];
     lv = level; marks = null; partFor = null; lastHotbar = ""; lastObjective = "";
     $("lv").hidden = false;
     $("lv-xray").hidden = !(lv.ui && lv.ui.xray);
@@ -69,6 +73,7 @@
     refresh();
   }
   function leave() {
+    stopSpeaking(); shownParts = [];
     lv = null; marks = null;
     $("lv").hidden = true;
     R.marks(null); R.guide(null); spot(null);
@@ -81,13 +86,64 @@
     R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12, right: 12 });   // room for the mentor bar to grow with a hint     // the battery sits centred, clear of the objective card
   }
 
+  // ---------- Spark speaks: the line types out, with a gibberish syllable every couple of letters ----------
+  // The mouth opens on each syllable (wider on vowels). Commas and full stops pause. Buttons never wait for it.
+  let typing = null, voiceOn = true;
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function mouth(open) { const m = document.querySelector("#mentor-avatar .sp-mouth"); if (m) m.style.transform = `scaleY(${open})`; }
+  function talking(on) { $("mentor-avatar").classList.toggle("talk", on); if (!on) mouth(0.2); }
+  function stopSpeaking() {
+    if (!typing) return;
+    clearTimeout(typing.timer);
+    typing.queue.forEach((q) => { q.el.textContent = q.text; });
+    typing = null;
+    talking(false);
+  }
+  function speak(queue) {
+    stopSpeaking();
+    queue = queue.filter((q) => q.text);
+    if (!queue.length) return;
+    if (reduceMotion()) { queue.forEach((q) => { q.el.textContent = q.text; }); return; }
+    let qi = 0, ci = 0, syl = 0;
+    typing = { queue, timer: null };
+    talking(true);
+    const tick = () => {
+      const q = queue[qi];
+      if (!q) { typing = null; talking(false); return; }
+      ci++;
+      q.el.textContent = q.text.slice(0, ci);
+      const ch = q.text[ci - 1];
+      let delay = 26;
+      if (/[a-z0-9]/i.test(ch)) {
+        if (syl++ % 2 === 0) {
+          const vowel = /[aeiouy]/i.test(ch), end = /[.!?]/.exec(q.text.slice(ci));
+          if (voiceOn) BB.Effects.voice(ch, { question: !!end && end[0] === "?" && end.index < 10, excited: !!end && end[0] === "!" });
+          mouth(vowel ? 1 : 0.6);
+          setTimeout(() => { if (typing) mouth(0.2); }, 60);
+        }
+      } else if (/[,;:]/.test(ch)) delay = 130;
+      else if (/[.!?…]/.test(ch)) delay = 240;
+      if (ci >= q.text.length) { qi++; ci = 0; delay = Math.max(delay, 280); }
+      typing.timer = setTimeout(tick, delay);
+    };
+    tick();
+  }
+  function setVoice(on) { voiceOn = !!on; BB.Store.update((s) => { s.settings.voice = voiceOn; }); }
+
   // ---------- the coach's hooks ----------
+  // A new line from Spark. Parts already on screen (the same line with a hint added) stay; new parts are spoken.
+  let shownParts = [];
   function say(text, offer = {}) {
-    const [line, ...more] = String(text).split("\n");
+    const parts = String(text).split("\n");
     const p = $("mentor-text");
-    p.innerHTML = esc(line) + more.map((m) => `<span class="hint-line">${esc(m)}</span>`).join("");
-    p.classList.remove("pop"); void p.offsetWidth; p.classList.add("pop");
-    mood("talk", Math.min(Math.max(line.length * 40, 700), 3000));
+    const same = (k) => shownParts[k] === parts[k] && (k > 0 || p.childElementCount > 0);
+    p.innerHTML = parts.map((t, k) => (k === 0 ? '<span class="ml"></span>' : '<span class="hint-line"></span>')).join("");
+    const spans = [...p.children];
+    if (!same(0)) { p.classList.remove("pop"); void p.offsetWidth; p.classList.add("pop"); }
+    const toSpeak = [];
+    parts.forEach((t, k) => { if (same(k)) spans[k].textContent = t; else toSpeak.push({ el: spans[k], text: t }); });
+    shownParts = parts;
+    speak(toSpeak);
     const act = $("mentor-act");
     act.replaceChildren();
     const btn = (label, cls, fn, id) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = label; if (id) b.id = id; b.addEventListener("click", fn); act.appendChild(b); return b; };
@@ -233,5 +289,5 @@
     document.body.appendChild(box);
   }
 
-  BB.CoachUI = { mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});

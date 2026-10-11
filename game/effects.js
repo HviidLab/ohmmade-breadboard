@@ -132,8 +132,24 @@
       o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.55);
     });
   }
+  // Spark's voice: one short pitched syllable. The pitch comes from the letter (so a word always sounds the same),
+  // the tone colour from its vowel; questions rise, exclamations are higher and louder.
+  const SCALE = [0, 2, 4, 7, 9, 12, 14], FORMANT = { a: 1000, e: 1650, i: 2200, o: 750, u: 600, y: 1900 };
+  let voiced = 0;
+  function voice(ch, mods = {}) {
+    voiced++;
+    const a = ctx(); if (!a) return;
+    const c = ch.toLowerCase(), semi = SCALE[c.charCodeAt(0) % SCALE.length] + (mods.question ? 5 : 0) + (mods.excited ? 2 : 0);
+    const f0 = 520 * Math.pow(2, semi / 12) * (0.98 + Math.random() * 0.04), t = a.currentTime, dur = 0.07;
+    const o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(f0 * 1.08, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.03);
+    f.type = "bandpass"; f.frequency.value = FORMANT[c] || 1300; f.Q.value = 1.8;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(mods.excited ? 0.2 : 0.15, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
   function setMuted(m) { muted = m; if (m) beep(false); }
   function unlock() { ctx(); }
 
-  BB.Effects = { init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});
