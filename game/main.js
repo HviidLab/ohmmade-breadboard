@@ -7,6 +7,13 @@
   const OK = { ok: true };
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const CTL_KEYS = ["on", "pos", "pressed", "lux", "mode", "socket", "pins"];
+  // Sounds of legs going into holes and coming out (see effects.js); a move is out, then in.
+  const legsIn = (p) => (p ? p.legs.filter(Boolean).length : 0);
+  const sound = {
+    in: (p, n = legsIn(p)) => { if (p && n) BB.Effects.insert(p.type, n); },
+    out: (p, n = legsIn(p)) => { if (p && n) BB.Effects.extract(p.type, n); },
+    move: (p, n = legsIn(p)) => { sound.out(p, n); setTimeout(() => sound.in(p, n), 110); },
+  };
 
   function starter() {
     return { parts: [
@@ -45,6 +52,7 @@
       G.sim.settle();
       const short = G.doc.parts.some((p) => p.type === "battery" && (G.sim.read(p.id) || {}).short);
       if (short && G.doc.undo()) {
+        setTimeout(() => BB.Effects.extract("wire", 2), 160);        // in… and taken straight back out
         if (G.sel && !G.doc.get(G.sel)) G.sel = null;
         G.recompile();
         BB.CoachUI.aside(BB.Coach.SHORT, 7000, "bad");
@@ -145,13 +153,16 @@
         const off = part.legs.find((l) => l && !G.rules.inRegion(l));
         if (off) { G.refuse("That part of the board is not open yet."); return null; }
       }
-      G.doc.snapshot(); const p = G.doc.add(part); G.sel = p.id; BB.trail(`add ${p.id} ${p.legs.join(" ")}`); G.commit();
+      G.doc.snapshot(); const p = G.doc.add(part); G.sel = p.id; BB.trail(`add ${p.id} ${p.legs.join(" ")}`);
+      sound.in(p);
+      G.commit();
       G.emit("place", { id: p.id, type: p.type });
       return p;
     },
     remove(id) {
       if (!G.check({ kind: "remove", id })) return;
       const type = (G.doc.get(id) || {}).type;
+      sound.out(G.doc.get(id));
       BB.trail(`delete ${id}`); G.edit(() => G.doc.remove(id)); if (G.sel === id) G.select(null);
       G.emit("remove", { id, type });
     },
@@ -173,7 +184,7 @@
       if (p.type === "button") return G.set(id, "pairs", p.pairs === "along" ? "across" : "along", true);
       if (p.type === "battery" || p.type === "meter") return;
       const legs = p.legs.slice().reverse();
-      if (G.doc.validate(p.type, legs, id).ok) { G.edit(() => { p.legs = legs; }); G.emit("flip", { id }); }
+      if (G.doc.validate(p.type, legs, id).ok) { sound.move(p); G.edit(() => { p.legs = legs; }); G.emit("flip", { id }); }
     },
     nudge(id, dr, dc) {
       const p = G.doc.get(id);
@@ -181,7 +192,7 @@
       if (!G.check({ kind: "move", id })) return;
       const legs = p.legs.map((pt) => { if (!pt || pt.startsWith("U.")) return pt; const g = BB.Grid.grid(pt); return BB.Grid.point(g.row + dr, g.col + dc); });
       if (G.rules && legs.some((l) => l && !G.rules.inRegion(l))) return;
-      if (G.doc.validate(p.type, legs, id).ok) { G.edit(() => { p.legs = legs; }); G.emit("move", { id }); }
+      if (G.doc.validate(p.type, legs, id).ok) { sound.move(p); G.edit(() => { p.legs = legs; }); G.emit("move", { id }); }
     },
     cyclePin(id, pin) {
       const p = G.doc.get(id);
@@ -202,9 +213,11 @@
         part.loose = [[bx + 135, by - 55], [bx + 185, by - 55]];
         H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
       }
+      if (part && part.type !== "meter") sound.move(part);
       G.sim.replace(id); H.log(`${BB.Parts.name(G.doc.get(id))} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true);
       G.emit("replace", { id });
     },
+    sound,
     undo() { BB.trail("undo"); if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); G.emit("undo", {}); } },
     redo() { BB.trail("redo"); if (G.doc.redo()) { G.commit(); G.emit("undo", {}); } },
     clear() { G.edit(() => { G.doc.parts = G.doc.parts.filter((p) => p.type === "battery" || p.type === "meter"); }); },

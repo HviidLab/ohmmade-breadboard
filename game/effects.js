@@ -104,6 +104,67 @@
     if (audio.state === "suspended") audio.resume().catch(() => {});
     return audio;
   }
+  // ---------- putting parts into the breadboard, and pulling them out ----------
+  // Each leg makes a small click as it goes into a hole's spring clip; then the body knocks with its own material.
+  // tick: centre of the click (Hz); knock: body tone (Hz, 0 = none); kq: how ringing the knock is; g: loudness.
+  const MAT = {
+    resistor: { tick: 3400, knock: 430, kq: 7, g: 1 },        // ceramic body: bright, dry
+    led: { tick: 3900, knock: 980, kq: 9, g: 0.9 },           // plastic dome: light, higher
+    wire: { tick: 2700, knock: 0, g: 0.6 },                   // just a soft tick
+    cap: { tick: 3000, knock: 250, kq: 5, g: 1.1 },           // metal can: deeper, rounder
+    pot: { tick: 3200, knock: 330, kq: 6, g: 1.05 },
+    npn: { tick: 3700, knock: 720, kq: 8, g: 0.9 },
+    button: { tick: 3000, knock: 520, kq: 6, g: 1 },
+    ldr: { tick: 3500, knock: 840, kq: 9, g: 0.85 },
+    battery: { tick: 2400, knock: 300, kq: 5, g: 1.05 },      // a lead into a rail: heavier
+    meter: { tick: 5200, knock: 2600, kq: 30, g: 0.7 },       // probe tip: a metallic tink
+    uno: { tick: 3000, knock: 400, kq: 6, g: 1 },
+  };
+  let noiseBuf = null, played = { in: 0, out: 0 };
+  function noise(a) {
+    if (!noiseBuf) {
+      noiseBuf = a.createBuffer(1, Math.floor(a.sampleRate * 0.25), a.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = a.createBufferSource();
+    src.buffer = noiseBuf;
+    return src;
+  }
+  const vary = (x, r = 0.06) => x * (1 + (Math.random() * 2 - 1) * r);
+  // A filtered noise burst: the click of a leg (up = a rising "schk" for pulling out).
+  function click(a, t, f, gain, up) {
+    const n = noise(a), bp = a.createBiquadFilter(), g = a.createGain(), dur = up ? 0.045 : 0.018;
+    bp.type = "bandpass"; bp.Q.value = up ? 2.2 : 1.3;
+    bp.frequency.setValueAtTime(up ? f * 0.55 : f, t);
+    if (up) bp.frequency.exponentialRampToValueAtTime(f * 1.35, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(bp).connect(g).connect(a.destination); n.start(t, Math.random() * 0.15, dur + 0.01);
+  }
+  // A short tone: the body's knock (or the little pop when a part comes free).
+  function tone(a, t, f, gain, dur, to) {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(f, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  // `legs` = how many legs go into holes. Clicks are a few milliseconds apart, as legs never go in at once.
+  function insert(type, legs = 2) {
+    played.in++;
+    const a = ctx(); if (!a) return;
+    const m = MAT[type] || MAT.resistor, t0 = a.currentTime + 0.005, n = Math.max(1, Math.min(legs, 4));
+    for (let k = 0; k < n; k++) click(a, t0 + k * vary(0.026, 0.3), vary(m.tick), 0.16 * m.g, false);
+    if (m.knock) tone(a, t0 + (n - 1) * 0.026 + 0.008, vary(m.knock, 0.04), 0.07 * m.g, 0.012 * m.kq);
+  }
+  function extract(type, legs = 2) {
+    played.out++;
+    const a = ctx(); if (!a) return;
+    const m = MAT[type] || MAT.resistor, t0 = a.currentTime + 0.005, n = Math.max(1, Math.min(legs, 4));
+    for (let k = 0; k < n; k++) click(a, t0 + k * vary(0.03, 0.3), vary(m.tick * 0.8), 0.1 * m.g, true);
+    tone(a, t0 + (n - 1) * 0.03 + 0.03, vary(320), 0.035 * m.g, 0.05, 820);
+  }
+
   function pop() {
     const a = ctx(); if (!a) return;
     const len = Math.floor(a.sampleRate * 0.18), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
@@ -151,5 +212,5 @@
   function setMuted(m) { muted = m; if (m) beep(false); }
   function unlock() { ctx(); }
 
-  BB.Effects = { voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { MAT, insert, extract, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});

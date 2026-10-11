@@ -123,7 +123,7 @@
       else if (ctl.startsWith("pin:")) G.cyclePin(id, ctl.slice(4));
       capture(e); return;
     }
-    if ((n = at("[data-probe]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "probe", id })) return; G.doc.snapshot(); st = { kind: "probe", id, k: +n.dataset.probe }; capture(e); return; }
+    if ((n = at("[data-probe]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "probe", id })) return; G.doc.snapshot(); st = { kind: "probe", id, k: +n.dataset.probe, was: (G.doc.get(id).legs || [])[+n.dataset.probe] || null }; capture(e); return; }
     if ((n = at("[data-handle]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "legs", id })) return; st = { kind: "leg", id, k: +n.dataset.handle, legs: null, ok: false }; capture(e); return; }
     // Uno header sockets: drawing a wire wins over dragging the board
     const sk = at("[data-body]") && holeUnder(e.clientX, e.clientY);
@@ -259,14 +259,18 @@
         break;
       case "move":
         if (s.moved && G.mode === "level" && overHotbar(e.clientX, e.clientY)) { G.remove(s.id); break; }
-        if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
+        if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id)); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
         else if (s.moved && s.removeOnly) G.refuse("Drop it on the parts tray to take it out.");
         else if (s.moved) G.refuse(G.doc.validate(G.doc.get(s.id).type, s.legs || [null], s.id).why || "It does not fit there.");
         break;
-      case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
+      case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id), 1); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
       case "press": G.set(s.id, "pressed", false); break;
       case "knob": G.commitSoft(); break;
-      case "probe": { const m = G.doc.get(s.id); if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`); G.commitSoft(); break; }
+      case "probe": {
+        const m = G.doc.get(s.id), now = m && m.legs[s.k];
+        if (m && s.was && s.was !== now) G.sound.out(m, 1);                 // a probe tip leaves its hole
+        if (m && now && now !== s.was) setTimeout(() => G.sound.in(m, 1), s.was ? 110 : 0);
+        if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`); G.commitSoft(); break; }
       case "body": G.commitSoft(); break;
     }
   }
