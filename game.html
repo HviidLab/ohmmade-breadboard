@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Breadboard Game · Ohmmade Breadboard</title>
 <link rel="stylesheet" href="fonts/fonts.css?v=ba7e6ae3">
-<link rel="stylesheet" href="game/game.css?v=a13351ed">
+<link rel="stylesheet" href="game/game.css?v=90d9e2f1">
 </head>
 <body>
 <div class="app" id="app">
   <header class="bar">
     <a class="brand" href="index.html">Ohmmade Breadboard</a>
-    <span class="title">Breadboard game</span>
+    <button type="button" class="title" id="to-title" title="Start screen">Breadboard game</button>
     <nav class="modes" aria-label="Game mode">
       <button type="button" id="mode-missions" aria-pressed="false">Missions</button>
       <button type="button" id="mode-sandbox" aria-pressed="true">Sandbox</button>
@@ -79,6 +79,8 @@
     </section>
   </aside>
 
+  <div class="title-screen" id="title-screen" hidden></div>
+
   <div class="narrow-note">This game needs a desktop screen (at least 900 px wide). The <a href="breadboard.html">breadboard trainer</a> works on any screen.</div>
 </div>
 
@@ -97,10 +99,11 @@
 <script src="game/render.js?v=bd540d3d"></script>
 <script src="game/effects.js?v=d047f433"></script>
 <script src="game/hud.js?v=de7d5878"></script>
-<script src="game/input.js?v=bcb15f31"></script>
+<script src="game/input.js?v=eef31c36"></script>
 <script src="game/goals.js?v=f20628c2"></script>
 <script src="game/missions.js?v=b4aa0240"></script>
 <script src="game/missionui.js?v=c0fda419"></script>
-<script src="game/main.js?v=bf5b9f01"></script>
+<script src="game/title.js?v=d0e6622c"></script>
+<script src="game/main.js?v=edd21081"></script>
 </body>
 </html>

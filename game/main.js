@@ -19,7 +19,7 @@
   }
 
   const G = BB.Game = {
-    doc: null, sim: null, sel: null, speed: 1, seen: 0, mode: "sandbox", trace: [], run: null,
+    doc: null, sim: null, sel: null, speed: 1, paused: false, seen: 0, mode: "sandbox", trace: [], run: null,
 
     redraw() { try { R.drawParts(G.doc, G.sim, G.sel); } catch (err) { BB.reportError(err, "drawing"); } },
     recompile() { G.sim.compile(); G.redraw(); },
@@ -47,15 +47,18 @@
       try { history.replaceState(null, "", `#mission-${m.id}`); } catch (e) { /* ignore */ }
     },
     enterSandbox() {
-      if (G.mode === "sandbox") return;
-      G.mode = "sandbox"; G.run = null;
-      G.load(store.get().sandbox || starter());
-      BB.MissionUI.render(true);
+      if (G.mode !== "sandbox") {
+        G.mode = "sandbox"; G.run = null;
+        G.load(store.get().sandbox || starter());
+        BB.MissionUI.render(true);
+        R.fit();
+      }
       document.getElementById("mode-missions").setAttribute("aria-pressed", "false");
       document.getElementById("mode-sandbox").setAttribute("aria-pressed", "true");
-      R.fit();
       try { history.replaceState(null, "", "#sandbox"); } catch (e) { /* ignore */ }
+      if (!G.hasSavedSandbox()) H.toast("Drag a resistor and a red LED onto the board, and connect them to the battery rails. Then try it without the resistor.", 12000);
     },
+    hasSavedSandbox() { return !!store.get().sandbox; },
     commit() { G.recompile(); G.refreshPanels(true); G.save(); },
     commitSoft() { G.refreshPanels(true); G.save(); },
     edit(fn) { G.doc.snapshot(); fn(); G.commit(); },
@@ -159,11 +162,13 @@
       for (const x of $("speed").querySelectorAll("button")) x.setAttribute("aria-pressed", x === b);
     });
     BB.MissionUI.init(G);
+    BB.Title.init(G);
     const hm = /^#mission-(\w+)$/.exec(location.hash);
     const hmission = hm && BB.Missions.list.find((m) => m.id === hm[1]);
     if (hmission) BB.MissionUI.start(hmission);
     else if (location.hash === "#missions") BB.MissionUI.showSelect();
-    else if (!saved) H.toast("Drag a resistor and a red LED onto the board, and connect them to the battery rails. Then try it without the resistor.", 12000);
+    else if (location.hash === "#sandbox") G.enterSandbox();
+    else BB.Title.show();
 
     let last = performance.now(), hudT = 0;
     function loop(now) {
@@ -173,6 +178,7 @@
     function frame(now) {
       const dtReal = Math.min((now - last) / 1000, 0.1);
       last = now;
+      if (G.paused) return;                 // the start screen is open
       const t0 = performance.now();
       G.sim.advance(dtReal * G.speed);
       G.simMs = performance.now() - t0;

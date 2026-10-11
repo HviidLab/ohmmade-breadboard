@@ -283,7 +283,7 @@
 
   // ---------- keyboard ----------
   function key(e) {
-    if (e.target.matches("input, select, textarea")) return;
+    if (e.target.matches("input, select, textarea") || G.paused) return;
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? G.redo() : G.undo(); return; }
     if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); G.redo(); return; }
