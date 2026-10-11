@@ -42,10 +42,17 @@
     return !top || !!top.closest("#canvas") || !!top.closest(".drag-float");
   }
   const overHotbar = (cx, cy) => { const t = document.elementFromPoint(cx, cy); return !!t && !!t.closest("#hotbar"); };
+  // While a part that may come off the board is dragged, the level's parts tray shows itself as a drop zone.
+  function trayState(state) {
+    const hb = document.getElementById("hotbar");
+    if (!hb) return;
+    hb.classList.toggle("drop-ready", state === "ready" || state === "over");
+    hb.classList.toggle("drop-over", state === "over");
+  }
   // The drawer picture, following the pointer (over the drawer, or for parts that have no board ghost).
-  function float(type, cx, cy) {
+  function float(type, cx, cy, color) {
     if (!type) { floater.hidden = true; floater.dataset.type = ""; return; }
-    const col = (st && st.d && st.d.color) || BB.HUD.defaults.ledColor;
+    const col = color || (st && st.d && st.d.color) || BB.HUD.defaults.ledColor;
     const key = type === "led" ? `led:${col}` : type;
     if (floater.dataset.type !== key) { floater.innerHTML = BB.HUD.icon(type, type === "led" ? R.LEDC[col].icon : null); floater.dataset.type = key; }
     floater.style.left = `${cx - 44}px`; floater.style.top = `${cy - 28}px`;
@@ -135,7 +142,7 @@
       // grab the leg nearest to the pointer
       let grab = 0, bd = Infinity;
       part.legs.forEach((pt, k) => { if (!pt || pt.startsWith("U.")) return; const [x, y] = R.xy(pt); const d = Math.hypot(x - wx, y - wy); if (d < bd) { bd = d; grab = k; } });
-      st = { kind: "move", id, grab, x: e.clientX, y: e.clientY, moved: false, legs: null, ok: false, removeOnly: !canMove };   // removeOnly: it may only go back to the tray
+      st = { kind: "move", id, grab, x: e.clientX, y: e.clientY, moved: false, legs: null, ok: false, removeOnly: !canMove, canRemove };   // removeOnly: it may only go back to the tray
       capture(e); return;
     }
     const hole = holeUnder(e.clientX, e.clientY);
@@ -195,7 +202,14 @@
       case "move": {
         if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) < 4) return;
         st.moved = true;
-        const part = G.doc.get(st.id), hole = st.removeOnly ? null : holeUnder(e.clientX, e.clientY);
+        const part = G.doc.get(st.id);
+        if (st.canRemove && overHotbar(e.clientX, e.clientY)) {     // over the tray: the part floats above it, ready to drop
+          trayState("over"); R.clearGhost(); float(part.type, e.clientX, e.clientY, part.color);
+          st.legs = null; st.ok = false; return;
+        }
+        if (st.canRemove) trayState("ready");
+        float(null);
+        const hole = st.removeOnly ? null : holeUnder(e.clientX, e.clientY);
         const from = part.legs[st.grab] && Gr.grid(part.legs[st.grab]);
         if (!hole || !from) { st.legs = null; st.ok = false; R.floatGhost(part.type, freePts(part.legs, st.grab, ...R.toWorld(e.clientX, e.clientY)), part); return; }
         const to = Gr.grid(hole), dr = to.row - from.row, dc = to.col - from.col;
@@ -238,7 +252,7 @@
     if (s.kind === "new") { st.x = e.clientX; st.y = e.clientY; preview(e.clientX, e.clientY); return finish(); }
     st = null; lastPtr = null;
     svg.classList.remove("panning");
-    R.clearGhost(); R.highlight(null); BB.HUD.tooltip(null);
+    R.clearGhost(); R.highlight(null); BB.HUD.tooltip(null); float(null); trayState(null);
     switch (s.kind) {
       case "wire":
         if (s.to && G.doc.validate("wire", [s.from, s.to]).ok) G.add({ type: "wire", legs: [s.from, s.to], color: R.C.wires[wireColor++ % R.C.wires.length] });
@@ -321,7 +335,7 @@
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? G.redo() : G.undo(); return; }
     if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); G.redo(); return; }
-    if (e.key === "Escape") { st = null; lastPtr = null; float(null); R.clearGhost(); R.highlight(null); return; }
+    if (e.key === "Escape") { st = null; lastPtr = null; float(null); trayState(null); R.clearGhost(); R.highlight(null); return; }
     if (e.key === "f" || e.key === "F") { R.fitAll(); return; }
     if (e.key === "+" || e.key === "=") { const r = svg.getBoundingClientRect(); R.zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1.15); return; }
     if (e.key === "-") { const r = svg.getBoundingClientRect(); R.zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.15); return; }

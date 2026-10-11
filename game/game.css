@@ -233,10 +233,34 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .topctl button:hover { border-color: var(--amber); }
 .topctl button[aria-pressed="true"] { background: #c4ccd3; color: #14191d; border-color: #c4ccd3; }
 
-.mentor { position: absolute; left: 14px; bottom: 14px; width: min(620px, calc(100% - 470px)); min-width: 380px; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 4px 14px;
-  padding: 14px 18px 14px 12px; border-radius: 16px; background: rgba(14, 20, 18, .92); border: 1px solid rgba(255, 181, 71, .28); box-shadow: 0 12px 34px rgba(0, 0, 0, .5); backdrop-filter: blur(6px); }
-.mentor-avatar svg { width: 74px; height: 74px; display: block; animation: spark-bob 3.2s ease-in-out infinite; }
-@keyframes spark-bob { 50% { transform: translateY(-3px); } }
+.mentor { position: absolute; left: 14px; bottom: 14px; width: min(660px, calc(100% - 600px)); min-width: 400px; display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 4px 12px; align-items: end;
+  padding: 14px 18px 14px 8px; border-radius: 16px; background: rgba(14, 20, 18, .92); border: 1px solid rgba(255, 181, 71, .28); box-shadow: 0 12px 34px rgba(0, 0, 0, .5); backdrop-filter: blur(6px); }
+/* Spark: bigger than the bar, so it sits up out of it; bobs, blinks, glows, talks and reacts */
+.mentor-avatar { align-self: end; margin-top: -76px; width: 128px; height: 145px; }
+.mentor-avatar svg { width: 128px; height: 145px; display: block; overflow: visible; }
+.mentor-avatar .sp-body { transform-box: fill-box; transform-origin: 50% 100%; animation: sp-bob 3.2s ease-in-out infinite; }
+.mentor-avatar .sp-glow { transform-box: fill-box; transform-origin: center; animation: sp-glow 2.6s ease-in-out infinite; }
+.mentor-avatar .sp-glow-bad { opacity: 0; transition: opacity .3s; }
+.mentor-avatar .sp-eyes { transform-box: fill-box; transform-origin: center; animation: sp-blink 4.8s infinite; }
+.mentor-avatar .sp-eyes-happy, .mentor-avatar .sp-mouth, .mentor-avatar .sp-frown { opacity: 0; }
+.mentor-avatar .sp-mouth { transform-box: fill-box; transform-origin: center; }
+@keyframes sp-bob { 50% { transform: translateY(-5px) rotate(-1.5deg); } }
+@keyframes sp-glow { 50% { opacity: .65; transform: scale(.94); } }
+@keyframes sp-blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes sp-talk { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+@keyframes sp-jump { 0%, 100% { transform: translateY(0) scale(1, 1); } 20% { transform: translateY(2px) scale(1.06, .92); } 50% { transform: translateY(-18px) scale(.96, 1.05); } 80% { transform: translateY(0) scale(1.04, .95); } }
+@keyframes sp-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px) rotate(-3deg); } 40% { transform: translateX(4px) rotate(3deg); } 60% { transform: translateX(-3px) rotate(-2deg); } 80% { transform: translateX(2px); } }
+.mentor-avatar.talk .sp-smile { opacity: 0; }
+.mentor-avatar.talk .sp-mouth { opacity: 1; animation: sp-talk .16s ease-in-out infinite alternate; }
+.mentor-avatar.happy .sp-body { animation: sp-jump .7s ease-in-out 2; }
+.mentor-avatar.happy .sp-eyes { opacity: 0; }
+.mentor-avatar.happy .sp-eyes-happy { opacity: 1; }
+.mentor-avatar.happy .sp-glow { animation: none; transform: scale(1.12); }
+.mentor-avatar.worried .sp-body { animation: sp-shake .45s ease-in-out 2; }
+.mentor-avatar.worried .sp-smile { opacity: 0; }
+.mentor-avatar.worried:not(.talk) .sp-frown { opacity: 1; }
+.mentor-avatar.worried .sp-eyes { animation: none; transform: scale(1.18); }
+.mentor-avatar.worried .sp-glow-bad { opacity: 1; }
 .mentor-name { margin: 0; font: 600 11px var(--font-data); letter-spacing: .14em; text-transform: uppercase; color: var(--amber); }
 .mentor-text { margin: 2px 0 0; font: 500 17px/1.45 var(--font-body); color: #f3efe6; }
 .mentor-text.pop { animation: line-in .28s ease-out; }
@@ -253,18 +277,25 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .choice { background: #20272b; border: 1px solid #3a454c; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
 .choice:hover, .choice:focus-visible { border-color: var(--amber); background: #2a2f22; }
 
-.hotbar { position: absolute; right: 14px; bottom: 14px; padding: 10px 12px 8px; border-radius: 16px; max-width: 440px;
+.hotbar { position: absolute; right: 14px; bottom: 14px; padding: 12px 14px 10px; border-radius: 18px; max-width: min(600px, 46vw); min-width: 300px; transition: transform .15s, border-color .15s, background .15s;
   background: rgba(14, 20, 18, .9); border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 12px 34px rgba(0, 0, 0, .45); backdrop-filter: blur(6px); }
-.hb-label { margin: 0 0 6px; font: 600 11px var(--font-data); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.hb-tip { margin: 6px 0 0; font-size: 11.5px; color: #6f7a80; }
-#hotbar-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-#hotbar-list li { position: relative; width: 96px; display: grid; justify-items: center; gap: 2px; padding: 8px 6px 6px; border-radius: 12px; background: #1f262a; border: 1px solid #343e44; cursor: grab; user-select: none; touch-action: none; }
-#hotbar-list li:hover { border-color: var(--amber); }
-#hotbar-list li svg { width: 60px; height: 38px; }
+.hb-label { margin: 0 0 8px; font: 600 13px var(--font-data); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); }
+.hb-tip { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+#hotbar-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px; transition: opacity .15s; }
+#hotbar-list li { position: relative; width: 128px; display: grid; justify-items: center; gap: 4px; padding: 12px 8px 10px; border-radius: 14px; background: #1f262a; border: 1px solid #343e44; cursor: grab; user-select: none; touch-action: none; }
+#hotbar-list li:hover { border-color: var(--amber); background: #252d27; }
+#hotbar-list li svg { width: 88px; height: 56px; }
 #hotbar-list li.none { opacity: .4; cursor: default; }
 #hotbar-list li.empty { width: auto; cursor: default; color: var(--muted); font-size: 13px; background: none; border: 0; }
-.hb-name { font-size: 12px; text-align: center; line-height: 1.2; }
-.hb-n { position: absolute; top: -7px; right: -7px; min-width: 24px; padding: 1px 6px; border-radius: 999px; background: var(--amber); color: #1c1305; font: 600 12px var(--font-data); text-align: center; }
+.hb-name { font-size: 14px; font-weight: 600; text-align: center; line-height: 1.2; }
+.hb-n { position: absolute; top: -8px; right: -8px; min-width: 30px; padding: 2px 7px; border-radius: 999px; background: var(--amber); color: #1c1305; font: 600 14px var(--font-data); text-align: center; }
+/* while a part that may come off the board is dragged, the tray is a drop zone */
+.hb-drop { display: none; position: absolute; inset: 0; margin: 0; place-items: center; text-align: center; padding: 12px; border-radius: 18px; font: 600 17px var(--font-display); color: var(--amber); pointer-events: none; }
+.hotbar.drop-ready { outline: 3px dashed var(--amber); outline-offset: 4px; }
+.hotbar.drop-ready .hb-drop { display: grid; background: rgba(14, 20, 18, .78); }
+.hotbar.drop-ready #hotbar-list, .hotbar.drop-ready .hb-tip { opacity: .35; }
+.hotbar.drop-over { transform: scale(1.04); background: rgba(58, 42, 14, .95); outline-style: solid; }
+.hotbar.drop-over .hb-drop { background: rgba(255, 181, 71, .16); color: #ffe1a8; }
 #hotbar-list li.none .hb-n { background: #4a5257; color: var(--ink); }
 
 .partcard { position: absolute; z-index: 8; padding: 8px 10px; border-radius: 12px; background: rgba(14, 20, 18, .94); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 10px 26px rgba(0, 0, 0, .5); }

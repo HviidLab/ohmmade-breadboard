@@ -100,6 +100,7 @@
         t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele };
       });
       BB.trail(`level ${lv.id} complete, ${res.stars} stars`);
+      BB.CoachUI.mood("happy", 2000);
       BB.CoachUI.refresh();
       setTimeout(() => { if (G.level === lv) BB.LevelMap.complete(lv, res); }, 500);
     },
@@ -302,6 +303,7 @@
         if (G.mode === "level" && G.coach) {
           const say = G.coach.simEvent(ev, part);
           if (say) BB.CoachUI.aside(say, 7000, "bad");
+          if (ev.kind === "destroyed") BB.CoachUI.mood("worried", 2600);
         } else {
           if (part && part.type === "meter" && ev.kind === "destroyed") H.toast("The meter's fuse blew. Click the meter, then Replace fuse in the Inspector. Move the red lead back to VΩ unless you are measuring current in series.", 9000);
           H.log(ev.text, "bad", ev.t);

@@ -8,12 +8,38 @@
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   let G = null, lv = null, marks = null, spotEl = null, asideTimer = null, partFor = null, lastHotbar = "", lastObjective = "";
 
-  const SPARK = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="sparkGlow"><stop offset="0" stop-color="#fff2c8"/><stop offset=".45" stop-color="#ffb547" stop-opacity=".7"/><stop offset="1" stop-color="#ffb547" stop-opacity="0"/></radialGradient>
-    <radialGradient id="sparkDome" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#ffe3a8"/><stop offset=".6" stop-color="#ffb547"/><stop offset="1" stop-color="#c77a14"/></radialGradient></defs>
-    <circle cx="32" cy="28" r="30" fill="url(#sparkGlow)"/><path d="M14 30 A18 18 0 0 1 50 30 V46 H14Z" fill="url(#sparkDome)"/><rect x="11" y="45" width="42" height="6" rx="2" fill="#c77a14"/>
-    <line x1="25" y1="51" x2="25" y2="62" stroke="#c7ccd1" stroke-width="3"/><line x1="39" y1="51" x2="39" y2="59" stroke="#c7ccd1" stroke-width="3"/>
-    <circle cx="25" cy="31" r="3.4" fill="#2a1a05"/><circle cx="39" cy="31" r="3.4" fill="#2a1a05"/><path d="M26 39 Q32 43 38 39" stroke="#2a1a05" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
-
+  // Spark, the mentor: a little LED. The parts are separate so CSS can make it bob, blink, glow, talk and react.
+  const SPARK = `<svg viewBox="0 0 120 136" aria-hidden="true"><defs>
+    <radialGradient id="spGlow"><stop offset="0" stop-color="#fff2c8"/><stop offset=".4" stop-color="#ffb547" stop-opacity=".55"/><stop offset="1" stop-color="#ffb547" stop-opacity="0"/></radialGradient>
+    <radialGradient id="spGlowBad"><stop offset="0" stop-color="#ffd2c8"/><stop offset=".4" stop-color="#ff6a4a" stop-opacity=".55"/><stop offset="1" stop-color="#ff6a4a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="spDome" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#ffecc2"/><stop offset=".55" stop-color="#ffb547"/><stop offset="1" stop-color="#c46f0e"/></radialGradient></defs>
+    <circle class="sp-glow" cx="60" cy="58" r="58" fill="url(#spGlow)"/><circle class="sp-glow-bad" cx="60" cy="58" r="58" fill="url(#spGlowBad)"/>
+    <g class="sp-body">
+      <g class="sp-legs" stroke="#c7ccd1" stroke-width="4.5" stroke-linecap="round" fill="none"><path d="M49 104 V132"/><path d="M71 104 V122 l7 8"/></g>
+      <path d="M24 62 A36 36 0 0 1 96 62 V102 H24Z" fill="url(#spDome)" stroke="#b5640c" stroke-width="1.5"/>
+      <rect x="18" y="99" width="84" height="10" rx="3.5" fill="#c46f0e"/>
+      <ellipse cx="42" cy="44" rx="7" ry="13" fill="#fff" opacity=".38" transform="rotate(24 42 44)"/>
+      <g class="sp-eyes" fill="#2a1a05"><ellipse cx="47" cy="66" rx="5.4" ry="7"/><ellipse cx="73" cy="66" rx="5.4" ry="7"/><circle cx="49" cy="63" r="1.8" fill="#fff"/><circle cx="75" cy="63" r="1.8" fill="#fff"/></g>
+      <g class="sp-eyes-happy" stroke="#2a1a05" stroke-width="3.6" stroke-linecap="round" fill="none"><path d="M41 68 Q47 59 53 68"/><path d="M67 68 Q73 59 79 68"/></g>
+      <circle cx="38" cy="78" r="5" fill="#ff7a59" opacity=".45"/><circle cx="82" cy="78" r="5" fill="#ff7a59" opacity=".45"/>
+      <path class="sp-smile" d="M51 80 Q60 88 69 80" stroke="#2a1a05" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <ellipse class="sp-mouth" cx="60" cy="83" rx="6.5" ry="5" fill="#2a1a05"/>
+      <path class="sp-frown" d="M51 86 Q55.5 81 60 85 Q64.5 89 69 84" stroke="#2a1a05" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    </g></svg>`;
+  // Spark's face for a moment: "talk" while a new line appears (the mouth moves), and a feeling on top of it:
+  // "happy" for stars and goals, "worried" when something fails. Talking and a feeling can show together.
+  const moodTimers = {};
+  function mood(name, ms) {
+    const a = $("mentor-avatar");
+    if (!a || !name) return;
+    const slot = name === "talk" ? "talk" : "feel";
+    clearTimeout(moodTimers[slot]);
+    if (slot === "feel") a.classList.remove("happy", "worried");
+    else a.classList.remove("talk");
+    void a.offsetWidth;
+    a.classList.add(name);
+    moodTimers[slot] = setTimeout(() => a.classList.remove(name), ms);
+  }
   function init(game) {
     G = game;
     $("mentor-avatar").innerHTML = SPARK;
@@ -51,7 +77,7 @@
   // Room the overlays take, so the bench is fitted into the free middle.
   function insets() {
     const st = $("stage").getBoundingClientRect();
-    const bot = Math.min($("mentor").getBoundingClientRect().top, $("hotbar").getBoundingClientRect().top);
+    const bot = Math.min($("mentor").getBoundingClientRect().top, $("hotbar").getBoundingClientRect().top, $("mentor-avatar").getBoundingClientRect().top + 30);
     R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12, right: 12 });   // room for the mentor bar to grow with a hint     // the battery sits centred, clear of the objective card
   }
 
@@ -61,6 +87,7 @@
     const p = $("mentor-text");
     p.innerHTML = esc(line) + more.map((m) => `<span class="hint-line">${esc(m)}</span>`).join("");
     p.classList.remove("pop"); void p.offsetWidth; p.classList.add("pop");
+    mood("talk", Math.min(Math.max(line.length * 40, 700), 3000));
     const act = $("mentor-act");
     act.replaceChildren();
     const btn = (label, cls, fn, id) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = label; if (id) b.id = id; b.addEventListener("click", fn); act.appendChild(b); return b; };
@@ -90,6 +117,7 @@
     refreshObjective(true);
     BB.Effects.chime && BB.Effects.chime(1);
     aside(`Bonus: ${lv.bonus[k].text} ★`, 4000, "good");
+    mood("happy", 1600);
   }
   const hooks = () => ({ say, highlight, ghost, xray, bonus, aside: (t) => aside(t, 4000), beat: () => { refresh(); } });
 
@@ -100,6 +128,7 @@
     if (!text) { a.hidden = true; return; }
     a.textContent = text;
     a.className = `aside ${kind}`;
+    if (kind === "bad") mood("worried", 2200);
     a.hidden = false;
     asideTimer = setTimeout(() => { a.hidden = true; }, ms);
   }
@@ -204,5 +233,5 @@
     document.body.appendChild(box);
   }
 
-  BB.CoachUI = { init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});
