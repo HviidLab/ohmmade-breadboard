@@ -37,6 +37,7 @@
       G.doc = new BB.Doc(docData);
       G.sim = new BB.Sim(G.doc);
       G.seen = 0; G.trace = []; G.sel = null;
+      BB.Effects.reset();                       // what is already lit on a fresh bench makes no jingle
       document.getElementById("log").replaceChildren();
       G.redraw(); G.refreshPanels(true);
     },
@@ -301,7 +302,7 @@
     function frame(now) {
       const dtReal = Math.min((now - last) / 1000, 0.1);
       last = now;
-      if (G.paused) return;                 // a screen is open over the bench
+      if (G.paused) { BB.Effects.hush(); return; }       // a screen is open over the bench: no buzz or hiss behind it
       const dt = dtReal * G.speed;
       const t0 = performance.now();
       G.sim.advance(dt);

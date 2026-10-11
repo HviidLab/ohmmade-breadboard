@@ -52,6 +52,7 @@
 
   function frame(doc, sim, dt) {
     let beeping = false;
+    circuitSounds(doc, sim, dt);
     for (const part of doc.parts) {
       const r = R.refs.get(part.id), rt = sim.rt.get(part.id);
       if (!r || !rt) continue;
@@ -120,7 +121,7 @@
     meter: { tick: 5200, knock: 2600, kq: 30, g: 0.7 },       // probe tip: a metallic tink
     uno: { tick: 3000, knock: 400, kq: 6, g: 1 },
   };
-  let noiseBuf = null, played = { in: 0, out: 0 };
+  let noiseBuf = null, played = { in: 0, out: 0, jingle: 0, connect: 0, disconnect: 0, crackle: 0 };
   function noise(a) {
     if (!noiseBuf) {
       noiseBuf = a.createBuffer(1, Math.floor(a.sampleRate * 0.25), a.sampleRate);
@@ -209,8 +210,84 @@
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(mods.excited ? 0.2 : 0.15, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(f).connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
   }
+  // ---------- the circuit's own sounds: lights coming on, the loop closing and opening, shorts, overheating ----------
+  const LED_KEY = { red: 523.25, yellow: 587.33, green: 659.25, blue: 783.99, white: 880 };    // each colour its own key
+  const ledOn = new Map();
+  let loopOn = false, primed = false, hum = null, hiss = null, hushed = false;
+  // A new bench (a level loaded, a mission started): note what is already on, without a sound.
+  function reset() { ledOn.clear(); loopOn = false; primed = false; }
+
+  // A bell-like note: a sine with a slightly out-of-tune overtone, quick attack, ringing decay.
+  function bell(a, t, f, gain, dur = 0.7) {
+    for (const [mult, g] of [[1, 1], [2.01, 0.35], [3.98, 0.12]]) tone(a, t, f * mult, gain * g, dur / mult);
+  }
+  function jingle(color) {
+    played.jingle++;
+    const a = ctx(); if (!a) return;
+    const f = LED_KEY[color] || LED_KEY.red, t = a.currentTime + 0.01;
+    [1, 1.26, 1.5].forEach((m, k) => bell(a, t + k * 0.075, f * m, 0.07));
+    bell(a, t + 0.26, f * 2, 0.04, 0.9);                    // the sparkle on top
+  }
+  function connect(up) {
+    played[up ? "connect" : "disconnect"]++;
+    const a = ctx(); if (!a) return;
+    const t = a.currentTime + 0.01;
+    if (up) { tone(a, t, 392, 0.06, 0.12, 587); tone(a, t + 0.09, 587, 0.05, 0.18, 784); }
+    else { tone(a, t, 587, 0.04, 0.14, 392); tone(a, t + 0.1, 392, 0.035, 0.2, 294); }
+  }
+  // Continuous sounds (a short circuit's buzz, a hot part's hiss): built once, faded in and out.
+  function bed(a, kind) {
+    const g = a.createGain(); g.gain.value = 0; g.connect(a.destination);
+    if (kind === "hum") {
+      const o = a.createOscillator(), lp = a.createBiquadFilter(), trem = a.createOscillator(), td = a.createGain(), body = a.createGain();
+      o.type = "sawtooth"; o.frequency.value = 100; lp.type = "lowpass"; lp.frequency.value = 900;
+      trem.frequency.value = 9; td.gain.value = 0.35; body.gain.value = 0.65;
+      trem.connect(td).connect(body.gain);                 // a flutter in the buzz
+      o.connect(lp).connect(body).connect(g); o.start(); trem.start();
+    } else {
+      const n = noise(a), hp = a.createBiquadFilter();
+      n.loop = true; hp.type = "highpass"; hp.frequency.value = 4000;
+      n.connect(hp).connect(g); n.start();
+    }
+    return g;
+  }
+  function level(node, v) { const a = audio; if (node && a) node.gain.setTargetAtTime(v, a.currentTime, 0.06); }
+  function hush() { if (hushed) return; hushed = true; level(hum, 0); level(hiss, 0); }
+
+  function circuitSounds(doc, sim, dt) {
+    hushed = false;
+    let short = false, flowing = false, heat = 0, lit = 0;
+    for (const p of doc.parts) {
+      const rt = sim.rt.get(p.id), rd = sim.read(p.id) || {};
+      if (!rt) continue;
+      if (p.type === "battery" && p.on !== false && !rt.destroyed) { if (rd.short) short = true; else if (Math.abs(rd.I || 0) > 5e-4) flowing = true; }
+      if (!rt.destroyed && p.type !== "meter") heat = Math.max(heat, rt.level || 0);
+      if (p.type === "led") {
+        const was = ledOn.get(p.id) || false, I = rt.destroyed ? 0 : rd.I || 0;
+        const on = was ? I > 0.001 : I > 0.002;           // a little hysteresis, so a dim LED does not chatter
+        if (on && !was && primed) { lit++; if (lit === 1 && I <= 0.03) jingle(p.color); }    // far too much current: no happy jingle, it is about to pop
+        ledOn.set(p.id, on);
+      }
+    }
+    if (primed && flowing !== loopOn && !short) { if (!(flowing && lit)) connect(flowing); }
+    if (!short) loopOn = flowing;
+    primed = true;
+    if (muted) { level(hum, 0); level(hiss, 0); return; }
+    // short circuit: buzz with crackles; overheating: crackles, and a hiss once it smokes
+    const a = (short || heat >= 1) ? ctx() : audio;
+    if (!a) return;
+    if (short && !hum) hum = bed(a, "hum");
+    if (heat >= 2 && !hiss) hiss = bed(a, "hiss");
+    level(hum, short ? 0.07 : 0);
+    level(hiss, heat >= 2 ? 0.025 : 0);
+    const rate = short ? 10 : heat >= 2 ? 14 : heat >= 1 ? 3 : 0;
+    if (rate && Math.random() < rate * dt) { played.crackle++; click(a, a.currentTime + 0.002, vary(3000 + Math.random() * 3000, 0), heat >= 2 || short ? 0.09 : 0.05, false); }
+    hazard.hum = short; hazard.sizzle = heat >= 2; hazard.heat = heat;
+  }
+  const hazard = { hum: false, sizzle: false, heat: 0 };
+
   function setMuted(m) { muted = m; if (m) beep(false); }
   function unlock() { ctx(); }
 
-  BB.Effects = { MAT, insert, extract, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { reset, hush, hazard, MAT, insert, extract, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});
