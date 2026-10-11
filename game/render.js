@@ -567,23 +567,24 @@
   // Coach marks: pulsing outlines round holes, strips or rails, parts, or a control. Targets as in coach.js.
   function marks(targets) {
     L.coach.replaceChildren();
-    for (const t of [].concat(targets || [])) {
-      for (const h of t.holes || []) { const [x, y] = xy(h); el("circle", { cx: x, cy: y, r: 11, class: "mark" }, L.coach); }
-      for (const n of [].concat(t.net || [], t.nets || [])) netMark(n.replace(/^bb:/, ""));
-      for (const id of [].concat(t.part || [], t.parts || [])) boxMark(svg.querySelector(`[data-body="${id}"]`) || svg.querySelector(`[data-part="${id}"]`));
-      if (t.ctl) boxMark(svg.querySelector(`[data-ctl="${t.ctl}"][data-id="${t.id}"]`), 6);
-    }
+    [].concat(targets || []).forEach((t, k) => {          // one group per target, so the coach can find each one
+      const g = el("g", { "data-t": k }, L.coach);
+      for (const h of t.holes || []) { const [x, y] = xy(h); el("circle", { cx: x, cy: y, r: 11, class: "mark" }, g); }
+      for (const n of [].concat(t.net || [], t.nets || [])) netMark(n.replace(/^bb:/, ""), g);
+      for (const id of [].concat(t.part || [], t.parts || [])) boxMark(svg.querySelector(`[data-body="${id}"]`) || svg.querySelector(`[data-part="${id}"]`), g);
+      if (t.ctl) boxMark(svg.querySelector(`[data-ctl="${t.ctl}"][data-id="${t.id}"]`), g, 6);
+    });
   }
-  function netMark(n) {
-    if (n[0] === "+" || n[0] === "-") { el("rect", { x: BOARD.x + 22, y: Y[n] - 11, width: BOARD.w - 34, height: 22, rx: 7, class: "mark" }, L.coach); return; }
+  function netMark(n, g) {
+    if (n[0] === "+" || n[0] === "-") { el("rect", { x: BOARD.x + 22, y: Y[n] - 11, width: BOARD.w - 34, height: 22, rx: 7, class: "mark" }, g); return; }
     const row = +n.slice(1), [y1, y2] = n[0] === "L" ? [Y.a, Y.e] : [Y.f, Y.j];
-    el("rect", { x: xr(row) - 11, y: y1 - 11, width: 22, height: y2 - y1 + 22, rx: 7, class: "mark" }, L.coach);
+    el("rect", { x: xr(row) - 11, y: y1 - 11, width: 22, height: y2 - y1 + 22, rx: 7, class: "mark" }, g);
   }
-  function boxMark(node, pad = 9) {
+  function boxMark(node, g, pad = 9) {
     if (!node) return;
     const b = node.getBBox();
     if (!b.width && !b.height) return;
-    el("rect", { x: b.x - pad, y: b.y - pad, width: b.width + 2 * pad, height: b.height + 2 * pad, rx: 10, class: "mark" }, L.coach);
+    el("rect", { x: b.x - pad, y: b.y - pad, width: b.width + 2 * pad, height: b.height + 2 * pad, rx: 10, class: "mark" }, g);
   }
 
   // ---------- ghost ----------

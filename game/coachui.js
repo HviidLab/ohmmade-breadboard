@@ -25,6 +25,7 @@
       <path class="sp-smile" d="M51 80 Q60 88 69 80" stroke="#2a1a05" stroke-width="3.2" fill="none" stroke-linecap="round"/>
       <ellipse class="sp-mouth" cx="60" cy="83" rx="6.5" ry="5" fill="#2a1a05"/>
       <path class="sp-frown" d="M51 86 Q55.5 81 60 85 Q64.5 89 69 84" stroke="#2a1a05" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <g class="sp-arm" transform="translate(96 78)"><path d="M0 0 H34" stroke="#6b4310" stroke-width="9" stroke-linecap="round"/><path d="M0 0 H34" stroke="#e9ecef" stroke-width="5" stroke-linecap="round"/><circle cx="38" cy="0" r="8" fill="#ffd27a" stroke="#6b4310" stroke-width="2.5"/><path d="M42 0 H51" stroke="#6b4310" stroke-width="7" stroke-linecap="round"/><path d="M42 0 H51" stroke="#ffd27a" stroke-width="3.5" stroke-linecap="round"/></g>
     </g></svg>`;
   // Spark's face for a moment: "talk" while a new line appears (the mouth moves), and a feeling on top of it:
   // "happy" for stars and goals, "worried" when something fails. Talking and a feeling can show together.
@@ -71,6 +72,9 @@
     $("mentor-act").replaceChildren();
     aside(null);
     refresh();
+    for (const n of [$("mentor-avatar"), $("mentor")]) n.removeAttribute("style");
+    lastBox = null;
+    requestAnimationFrame(() => walk(null));
   }
   function leave() {
     stopSpeaking(); shownParts = [];
@@ -84,9 +88,9 @@
     const st = $("stage").getBoundingClientRect();
     // Spark stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
     // The bottom keeps extra room for the bubble to grow when a hint is added.
-    const bot = Math.min($("mentor").getBoundingClientRect().top, $("hotbar").getBoundingClientRect().top);
-    const spark = $("mentor-avatar").getBoundingClientRect();
-    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: spark.right - st.left + 4, right: 12 });
+    const bub = $("mentor"), H = st.height;      // the bubble's home height, wherever Spark is now
+    const bot = Math.min(st.top + H - 18 - bub.offsetHeight, $("hotbar").getBoundingClientRect().top);
+    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12 + baseW() + 4, right: 12 });   // Spark's home column
   }
 
   // ---------- Spark speaks: the line types out, with a gibberish syllable every couple of letters ----------
@@ -109,12 +113,13 @@
     if (reduceMotion()) { queue.forEach((q) => { q.el.textContent = q.text; }); return; }
     let qi = 0, ci = 0, syl = 0;
     typing = { queue, timer: null };
+    queue.forEach((q) => { q.el.innerHTML = `<span class="ut">${esc(q.text)}</span>`; });   // full size from the start, so Spark knows where to stand
     talking(true);
     const tick = () => {
       const q = queue[qi];
       if (!q) { typing = null; talking(false); return; }
       ci++;
-      q.el.textContent = q.text.slice(0, ci);
+      q.el.innerHTML = `${esc(q.text.slice(0, ci))}<span class="ut">${esc(q.text.slice(ci))}</span>`;
       const ch = q.text[ci - 1];
       let delay = 26;
       if (/[a-z0-9]/i.test(ch)) {
@@ -147,6 +152,7 @@
     parts.forEach((t, k) => { if (same(k)) spans[k].textContent = t; else toSpeak.push({ el: spans[k], text: t }); });
     shownParts = parts;
     speak(toSpeak);
+    relayout();
     const act = $("mentor-act");
     act.replaceChildren();
     const btn = (label, cls, fn, id) => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = label; if (id) b.id = id; b.addEventListener("click", fn); act.appendChild(b); return b; };
@@ -161,6 +167,100 @@
     R.marks((targets && [].concat(targets).filter((t) => !t.ui)) || null);
     const ui = targets && [].concat(targets).find((t) => t.ui);
     spot(ui ? document.querySelector(ui.ui) : null);
+    relayout();
+  }
+
+  // ---------- Spark walks to what he is talking about ----------
+  // He stands next to the marked thing (below, beside or above it) with his bubble, never covering it, the objective
+  // card, the top buttons or the tray, and points at it. With nothing marked, or no room, he walks home (lower left).
+  const AWAY = 0.74;                       // his size away from home
+  let lastBox = null, layoutRaf = 0, walkTimer = null, atHome = true;
+  const rel = (r, st) => ({ left: r.left - st.left, top: r.top - st.top, right: r.right - st.left, bottom: r.bottom - st.top });
+  const grow = (r, m) => ({ left: r.left - m, top: r.top - m, right: r.right + m, bottom: r.bottom + m });
+  const meets = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  const union = (rs) => ({ left: Math.min(...rs.map((r) => r.left)), top: Math.min(...rs.map((r) => r.top)), right: Math.max(...rs.map((r) => r.right)), bottom: Math.max(...rs.map((r) => r.bottom)) });
+  const baseW = () => Math.min(Math.max(window.innerWidth * 0.165, 170), 240);
+
+  // Screen boxes (relative to the stage) of the marked things: [main, ...others]. Spark goes to the first one named.
+  function targetBoxes() {
+    if (!marks) return [];
+    const st = $("stage").getBoundingClientRect(), all = [].concat(marks), onBench = all.filter((t) => !t.ui);
+    return all.map((t) => {
+      const rs = t.ui ? [document.querySelector(t.ui)].filter(Boolean).map((n) => n.getBoundingClientRect())
+        : [...document.querySelectorAll(`#L-coach [data-t="${onBench.indexOf(t)}"] .mark`)].map((n) => n.getBoundingClientRect());
+      const ok = rs.filter((r) => r.width || r.height);
+      return ok.length ? rel(union(ok), st) : null;
+    }).filter(Boolean);
+  }
+  const targetBox = () => targetBoxes()[0] || null;
+  function relayout() {
+    if (layoutRaf || !lv) return;
+    layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; if (lv) walk(targetBox()); });
+  }
+  function walk(box) {
+    lastBox = box;
+    const st = $("stage").getBoundingClientRect(), W = st.width, H = st.height, bub = $("mentor");
+    if (box) {
+      bub.classList.add("away");
+      const bw = bub.offsetWidth, bh = bub.offsetHeight, w = baseW() * AWAY, h = (w * 136) / 120, gap = 14;
+      const avoid = [grow(box, 12), ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl")].map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
+      const cx = (box.left + box.right) / 2, cy = (box.top + box.bottom) / 2;
+      const m = 20;                       // his distance from the target (more than the 12 px it must stay clear)
+      const spots = [[cx - w / 2, box.bottom + m], [box.right + m, cy - h / 2], [box.left - m - w, cy - h / 2], [cx - w / 2, box.top - h - m],
+        [box.right + m, box.bottom - h * 0.5], [box.left - m - w, box.bottom - h * 0.5], [box.right + m, box.top - h * 0.5], [box.left - m - w, box.top - h * 0.5]];
+      // First try to keep clear of every part on the board too (wires excepted: they are long); then only the targets.
+      const parts = G.doc.parts.filter((q) => q.type !== "wire").map((q) => document.querySelector(`[data-body="${q.id}"]`) || document.querySelector(`[data-part="${q.id}"]`))
+        .filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 4));
+      for (const extra of [parts, []]) {
+        for (const [sx, sy] of spots) {
+          for (const side of cx > sx + w / 2 ? ["left", "right"] : ["right", "left"]) {      // the bubble goes on the side away from the target
+            const bx = side === "right" ? sx + w + gap : sx - gap - bw, by = Math.min(Math.max(sy + h * 0.5 - bh / 2, 8), H - bh - 8);
+            const S = { left: sx, top: sy, right: sx + w, bottom: sy + h }, B = { left: bx, top: by, right: bx + bw, bottom: by + bh }, all = union([S, B]);
+            if (all.left < 8 || all.top < 8 || all.right > W - 8 || all.bottom > H - 8) continue;
+            if (avoid.some((a) => meets(a, S) || meets(a, B)) || extra.some((a) => meets(a, S) || meets(a, B))) continue;
+            return go({ sx, sy, w, bx, by, side, aim: [cx, cy] });
+          }
+        }
+      }
+    }
+    bub.classList.remove("away");                       // home: lower left, full size, bubble beside him
+    const w = baseW(), h = (w * 136) / 120;
+    go({ sx: 12, sy: H - h - 10, w, bx: w + 22, by: H - 18 - bub.offsetHeight, side: "right", aim: null });
+  }
+  function go(p) {
+    const a = $("mentor-avatar"), b = $("mentor"), st = $("stage").getBoundingClientRect(), cur = a.getBoundingClientRect();
+    const dx = p.sx - (cur.left - st.left), dist = Math.hypot(dx, p.sy - (cur.top - st.top));
+    const dur = !a.style.left || dist < 6 || reduceMotion() ? 0 : Math.min(1.3, Math.max(0.4, dist / 650));
+    const tr = dur ? `left ${dur}s ease-in-out, top ${dur}s ease-in-out` : "none";
+    a.style.transition = dur ? `${tr}, width ${dur}s ease-in-out` : "none";
+    b.style.transition = tr;               // the bubble's width must not animate: Spark measures it to find a place
+    Object.assign(a.style, { left: `${p.sx}px`, top: `${p.sy}px`, width: `${p.w}px`, bottom: "auto" });
+    Object.assign(b.style, { left: `${p.bx}px`, top: `${p.by}px`, bottom: "auto" });
+    b.classList.toggle("tail-right", p.side === "left");
+    atHome = !p.aim;
+    clearTimeout(walkTimer);
+    a.classList.remove("pointing");
+    if (dur) {
+      a.style.setProperty("--lean", dx < 0 ? "-5deg" : "5deg");
+      a.classList.add("walking");
+      walkTimer = setTimeout(() => { a.classList.remove("walking"); aimArm(p); }, dur * 1000);
+    } else { a.classList.remove("walking"); aimArm(p); }
+  }
+  // Point at the target with the arm on its side.
+  function aimArm(p) {
+    const a = $("mentor-avatar"), arm = a.querySelector(".sp-arm");
+    if (!p.aim || !arm) return;
+    const k = p.w / 120, right = p.aim[0] > p.sx + p.w / 2, sh = [p.sx + (right ? 96 : 24) * k, p.sy + 78 * k];
+    const deg = (Math.atan2(p.aim[1] - sh[1], p.aim[0] - sh[0]) * 180) / Math.PI;
+    arm.setAttribute("transform", `translate(${right ? 96 : 24} 78) rotate(${deg.toFixed(1)})`);
+    a.classList.add("pointing");
+  }
+  // The board moved (pan, zoom, redraw) or the window changed: follow the target.
+  function follow() {
+    if (!lv) return;
+    const box = targetBox();
+    const moved = !!box !== !!lastBox || (box && ["left", "top", "right", "bottom"].some((k) => Math.abs(box[k] - lastBox[k]) > 20));
+    if (moved) walk(box);
   }
   function spot(node) {
     if (spotEl) spotEl.classList.remove("spot");
@@ -276,7 +376,7 @@
     placePartCard();
   }
   // Ten times a second from the main loop.
-  function tick() { if (!lv) return; refreshObjective(); placePartCard(); }
+  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); }
 
   function telemetry() {
     let box = $("telemetry");
@@ -292,5 +392,7 @@
     document.body.appendChild(box);
   }
 
-  BB.CoachUI = { setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  window.addEventListener("resize", () => { if (lv) walk(targetBox()); });
+
+  BB.CoachUI = { get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});

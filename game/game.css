@@ -255,6 +255,19 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 @keyframes sp-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px) rotate(-3deg); } 40% { transform: translateX(4px) rotate(3deg); } 60% { transform: translateX(-3px) rotate(-2deg); } 80% { transform: translateX(2px); } }
 .mentor-avatar.talk .sp-smile { opacity: 0; }
 .mentor-avatar .sp-mouth { transform: scaleY(.2); transition: transform 50ms ease-out; }
+/* walking: legs step, body bounces and leans the way he goes; the arm points once he arrives */
+.mentor-avatar.walking .sp-body { animation: sp-walk .32s ease-in-out infinite; }
+@keyframes sp-walk { 50% { transform: translateY(-8px) rotate(var(--lean, 5deg)); } }
+.mentor-avatar .sp-legs path { transform-box: fill-box; transform-origin: 50% 0; }
+.mentor-avatar.walking .sp-legs path:first-child { animation: sp-step .32s ease-in-out infinite alternate; }
+.mentor-avatar.walking .sp-legs path:last-child { animation: sp-step .32s ease-in-out infinite alternate-reverse; }
+@keyframes sp-step { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+.mentor-avatar .sp-arm { opacity: 0; transition: opacity .2s; }
+.mentor-avatar.pointing .sp-arm { opacity: 1; }
+.mentor-text .ut { visibility: hidden; }
+.mentor.away { width: 400px; min-width: 0; }
+.mentor.tail-right::before { left: auto; right: -17px; border-right: 0; border-left: 17px solid #e2c27a; }
+.mentor.tail-right::after { left: auto; right: -13px; border-right: 0; border-left: 14px solid #f6f0e2; }
 .mentor-avatar.talk .sp-mouth { opacity: 1; }      /* opened and closed per syllable by coachui.js */
 .mentor-text { cursor: default; }
 .mentor-avatar.happy .sp-body { animation: sp-jump .7s ease-in-out 2; }
