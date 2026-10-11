@@ -1,4 +1,4 @@
-// The level screen around the bench: objective card (top left), controls (top right), the mentor Spark with the
+// The level screen around the bench: objective card (top left), controls (top right), the mentor Sparky with the
 // current line and its buttons (bottom left), the parts hotbar (bottom right), and the part card next to the
 // selected part. Also the hooks the coach (coach.js) talks to.
 (function (BB) {
@@ -8,8 +8,9 @@
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   let G = null, lv = null, marks = null, spotEl = null, asideTimer = null, partFor = null, lastHotbar = "", lastObjective = "";
 
-  // Spark, the mentor: a little LED. The parts are separate so CSS can make it bob, blink, glow, talk and react.
-  const SPARK = `<svg viewBox="0 0 120 136" aria-hidden="true"><defs>
+  // Sparky, the mentor: a little LED. The parts are separate so CSS can make it bob, blink, glow, talk and react.
+  const SPARK = `<svg viewBox="0 -24 120 160" aria-hidden="true"><defs>
+    <linearGradient id="spHair" x1="0" y1="1" x2=".3" y2="0"><stop offset="0" stop-color="#1b3a9e"/><stop offset=".6" stop-color="#2f7fe0"/><stop offset="1" stop-color="#5fe0f0"/></linearGradient>
     <radialGradient id="spGlow"><stop offset="0" stop-color="#fff2c8"/><stop offset=".4" stop-color="#ffb547" stop-opacity=".55"/><stop offset="1" stop-color="#ffb547" stop-opacity="0"/></radialGradient>
     <radialGradient id="spGlowBad"><stop offset="0" stop-color="#ffd2c8"/><stop offset=".4" stop-color="#ff6a4a" stop-opacity=".55"/><stop offset="1" stop-color="#ff6a4a" stop-opacity="0"/></radialGradient>
     <radialGradient id="spDome" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#ffecc2"/><stop offset=".55" stop-color="#ffb547"/><stop offset="1" stop-color="#c46f0e"/></radialGradient></defs>
@@ -19,6 +20,14 @@
       <path d="M24 62 A36 36 0 0 1 96 62 V102 H24Z" fill="url(#spDome)" stroke="#b5640c" stroke-width="1.5"/>
       <rect x="18" y="99" width="84" height="10" rx="3.5" fill="#c46f0e"/>
       <ellipse cx="42" cy="44" rx="7" ry="13" fill="#fff" opacity=".38" transform="rotate(24 42 44)"/>
+      <g class="sp-hair">
+        <path d="M26 52 C22 36 30 24 40 20 L34 4 L50 14 L52 -10 L64 8 L76 -18 L80 6 L96 -2 L90 18 C98 26 100 40 96 52 C86 38 74 34 60 36 C46 36 34 40 26 52Z" fill="url(#spHair)" stroke="#0f2366" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M44 28 C52 16 60 8 70 -8" stroke="#9ff3ff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/>
+        <path d="M78 24 C84 16 88 10 92 4" stroke="#9ff3ff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/>
+        <path class="sp-zap" d="M0 -6 L1.4 -1.4 L6 0 L1.4 1.4 L0 6 L-1.4 1.4 L-6 0 L-1.4 -1.4Z" fill="#fff6c8" transform="translate(76 -22)"/>
+        <path class="sp-zap z2" d="M0 -5 L1.2 -1.2 L5 0 L1.2 1.2 L0 5 L-1.2 1.2 L-5 0 L-1.2 -1.2Z" fill="#fff6c8" transform="translate(53 -14)"/>
+        <path class="sp-zap z3" d="M0 -5 L1.2 -1.2 L5 0 L1.2 1.2 L0 5 L-1.2 1.2 L-5 0 L-1.2 -1.2Z" fill="#fff6c8" transform="translate(98 -6)"/>
+      </g>
       <g class="sp-eyes" fill="#2a1a05"><ellipse cx="47" cy="66" rx="5.4" ry="7"/><ellipse cx="73" cy="66" rx="5.4" ry="7"/><circle cx="49" cy="63" r="1.8" fill="#fff"/><circle cx="75" cy="63" r="1.8" fill="#fff"/></g>
       <g class="sp-eyes-happy" stroke="#2a1a05" stroke-width="3.6" stroke-linecap="round" fill="none"><path d="M41 68 Q47 59 53 68"/><path d="M67 68 Q73 59 79 68"/></g>
       <circle cx="38" cy="78" r="5" fill="#ff7a59" opacity=".45"/><circle cx="82" cy="78" r="5" fill="#ff7a59" opacity=".45"/>
@@ -27,7 +36,7 @@
       <path class="sp-frown" d="M51 86 Q55.5 81 60 85 Q64.5 89 69 84" stroke="#2a1a05" stroke-width="3.2" fill="none" stroke-linecap="round"/>
       <g class="sp-arm" transform="translate(96 78)"><path d="M0 0 H34" stroke="#6b4310" stroke-width="9" stroke-linecap="round"/><path d="M0 0 H34" stroke="#e9ecef" stroke-width="5" stroke-linecap="round"/><circle cx="38" cy="0" r="8" fill="#ffd27a" stroke="#6b4310" stroke-width="2.5"/><path d="M42 0 H51" stroke="#6b4310" stroke-width="7" stroke-linecap="round"/><path d="M42 0 H51" stroke="#ffd27a" stroke-width="3.5" stroke-linecap="round"/></g>
     </g></svg>`;
-  // Spark's face for a moment: "talk" while a new line appears (the mouth moves), and a feeling on top of it:
+  // Sparky's face for a moment: "talk" while a new line appears (the mouth moves), and a feeling on top of it:
   // "happy" for stars and goals, "worried" when something fails. Talking and a feeling can show together.
   const moodTimers = {};
   function mood(name, ms) {
@@ -86,14 +95,14 @@
   // Room the overlays take, so the bench is fitted into the free middle.
   function insets() {
     const st = $("stage").getBoundingClientRect();
-    // Spark stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
+    // Sparky stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
     // The bottom keeps extra room for the bubble to grow when a hint is added.
-    const bub = $("mentor"), H = st.height;      // the bubble's home height, wherever Spark is now
+    const bub = $("mentor"), H = st.height;      // the bubble's home height, wherever Sparky is now
     const bot = Math.min(st.top + H - 18 - bub.offsetHeight, $("hotbar").getBoundingClientRect().top);
-    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12 + baseW() + 4, right: 12 });   // Spark's home column
+    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12 + baseW() + 4, right: 12 });   // Sparky's home column
   }
 
-  // ---------- Spark speaks: the line types out, with a gibberish syllable every couple of letters ----------
+  // ---------- Sparky speaks: the line types out, with a gibberish syllable every couple of letters ----------
   // The mouth opens on each syllable (wider on vowels). Commas and full stops pause. Buttons never wait for it.
   let typing = null, voiceOn = true;
   const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -113,7 +122,7 @@
     if (reduceMotion()) { queue.forEach((q) => { q.el.textContent = q.text; }); return; }
     let qi = 0, ci = 0, syl = 0;
     typing = { queue, timer: null };
-    queue.forEach((q) => { q.el.innerHTML = `<span class="ut">${esc(q.text)}</span>`; });   // full size from the start, so Spark knows where to stand
+    queue.forEach((q) => { q.el.innerHTML = `<span class="ut">${esc(q.text)}</span>`; });   // full size from the start, so Sparky knows where to stand
     talking(true);
     const tick = () => {
       const q = queue[qi];
@@ -139,7 +148,7 @@
   function setVoice(on) { voiceOn = !!on; BB.Store.update((s) => { s.settings.voice = voiceOn; }); }
 
   // ---------- the coach's hooks ----------
-  // A new line from Spark. Parts already on screen (the same line with a hint added) stay; new parts are spoken.
+  // A new line from Sparky. Parts already on screen (the same line with a hint added) stay; new parts are spoken.
   let shownParts = [];
   function say(text, offer = {}) {
     const parts = String(text).split("\n");
@@ -170,7 +179,7 @@
     relayout();
   }
 
-  // ---------- Spark walks to what he is talking about ----------
+  // ---------- Sparky walks to what he is talking about ----------
   // He stands next to the marked thing (below, beside or above it) with his bubble, never covering it, the objective
   // card, the top buttons or the tray, and points at it. With nothing marked, or no room, he walks home (lower left).
   const AWAY = 0.74;                       // his size away from home
@@ -181,7 +190,7 @@
   const union = (rs) => ({ left: Math.min(...rs.map((r) => r.left)), top: Math.min(...rs.map((r) => r.top)), right: Math.max(...rs.map((r) => r.right)), bottom: Math.max(...rs.map((r) => r.bottom)) });
   const baseW = () => Math.min(Math.max(window.innerWidth * 0.165, 170), 240);
 
-  // Screen boxes (relative to the stage) of the marked things: [main, ...others]. Spark goes to the first one named.
+  // Screen boxes (relative to the stage) of the marked things: [main, ...others]. Sparky goes to the first one named.
   function targetBoxes() {
     if (!marks) return [];
     const st = $("stage").getBoundingClientRect(), all = [].concat(marks), onBench = all.filter((t) => !t.ui);
@@ -202,7 +211,7 @@
     const st = $("stage").getBoundingClientRect(), W = st.width, H = st.height, bub = $("mentor");
     if (box) {
       bub.classList.add("away");
-      const bw = bub.offsetWidth, bh = bub.offsetHeight, w = baseW() * AWAY, h = (w * 136) / 120, gap = 14;
+      const bw = bub.offsetWidth, bh = bub.offsetHeight, w = baseW() * AWAY, h = (w * 160) / 120, gap = 14;
       const avoid = [grow(box, 12), ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl")].map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
       const cx = (box.left + box.right) / 2, cy = (box.top + box.bottom) / 2;
       const m = 20;                       // his distance from the target (more than the 12 px it must stay clear)
@@ -224,7 +233,7 @@
       }
     }
     bub.classList.remove("away");                       // home: lower left, full size, bubble beside him
-    const w = baseW(), h = (w * 136) / 120;
+    const w = baseW(), h = (w * 160) / 120;
     go({ sx: 12, sy: H - h - 10, w, bx: w + 22, by: H - 18 - bub.offsetHeight, side: "right", aim: null });
   }
   function go(p) {
@@ -233,7 +242,7 @@
     const dur = !a.style.left || dist < 6 || reduceMotion() ? 0 : Math.min(1.3, Math.max(0.4, dist / 650));
     const tr = dur ? `left ${dur}s ease-in-out, top ${dur}s ease-in-out` : "none";
     a.style.transition = dur ? `${tr}, width ${dur}s ease-in-out` : "none";
-    b.style.transition = tr;               // the bubble's width must not animate: Spark measures it to find a place
+    b.style.transition = tr;               // the bubble's width must not animate: Sparky measures it to find a place
     Object.assign(a.style, { left: `${p.sx}px`, top: `${p.sy}px`, width: `${p.w}px`, bottom: "auto" });
     Object.assign(b.style, { left: `${p.bx}px`, top: `${p.by}px`, bottom: "auto" });
     b.classList.toggle("tail-right", p.side === "left");
@@ -250,7 +259,7 @@
   function aimArm(p) {
     const a = $("mentor-avatar"), arm = a.querySelector(".sp-arm");
     if (!p.aim || !arm) return;
-    const k = p.w / 120, right = p.aim[0] > p.sx + p.w / 2, sh = [p.sx + (right ? 96 : 24) * k, p.sy + 78 * k];
+    const k = p.w / 120, right = p.aim[0] > p.sx + p.w / 2, sh = [p.sx + (right ? 96 : 24) * k, p.sy + (78 + 24) * k];     // the drawing starts 24 units above the dome (the hair)
     const deg = (Math.atan2(p.aim[1] - sh[1], p.aim[0] - sh[0]) * 180) / Math.PI;
     arm.setAttribute("transform", `translate(${right ? 96 : 24} 78) rotate(${deg.toFixed(1)})`);
     a.classList.add("pointing");

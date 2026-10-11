@@ -69,7 +69,7 @@
   }
 
   function complete(lv, res) {
-    const all = BB.Levels.all(), next = all[all.indexOf(lv) + 1] || null;
+    const all = BB.Levels.all(), next = all[all.findIndex((f) => f.id === lv.id) + 1] || null;
     const concept = lv.teaches.length ? BB.Concepts.get(lv.teaches[0]) : lv.card;
     const lastOfChapter = !next || next.chapter !== lv.chapter;
     const host = show("complete", `<div class="cc-card" role="dialog" aria-labelledby="cc-h">
@@ -81,7 +81,7 @@
       <div class="scr-row">${next && !lastOfChapter ? '<button type="button" class="btn primary" id="cc-next">Next level →</button>' : '<button type="button" class="btn primary" id="cc-map">Level map</button>'}
       <button type="button" class="btn" id="cc-again">Play again</button>${next && !lastOfChapter ? '<button type="button" class="btn" id="cc-map">Level map</button>' : ""}</div></div>`, "#cc-next, #cc-map");
     on(host, "#cc-next", () => play(next));
-    on(host, "#cc-again", () => play(lv));
+    on(host, "#cc-again", () => play(BB.Levels.get(lv.id)));      // a new variant of the same level
     on(host, "#cc-map", showMap);
     BB.Effects.chime && BB.Effects.chime(3);
   }
@@ -96,7 +96,7 @@
       <button type="button" class="btn" id="pz-map">Level map</button>
       <button type="button" class="btn" id="pz-notebook">Notebook</button>
       <button type="button" class="btn" id="pz-sound" aria-pressed="${sound}">Sound: ${sound ? "on" : "off"}</button>
-      <button type="button" class="btn" id="pz-voice" aria-pressed="${BB.CoachUI.voiceOn}">Spark's voice: ${BB.CoachUI.voiceOn ? "on" : "off"}</button>
+      <button type="button" class="btn" id="pz-voice" aria-pressed="${BB.CoachUI.voiceOn}">Sparky's voice: ${BB.CoachUI.voiceOn ? "on" : "off"}</button>
       <button type="button" class="btn" id="pz-title">Title screen</button></div></div>`, "#pz-resume");
     on(host, "#pz-resume", close);
     on(host, "#pz-restart", () => play(G.level));

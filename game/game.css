@@ -233,14 +233,14 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .topctl button:hover { border-color: var(--amber); }
 .topctl button[aria-pressed="true"] { background: #c4ccd3; color: #14191d; border-color: #c4ccd3; }
 
-/* Spark stands on the bench at the lower left; his lines are in a speech bubble beside him */
+/* Sparky stands on the bench at the lower left; his lines are in a speech bubble beside him */
 .mentor { --spark-w: clamp(170px, 16.5vw, 240px);
   position: absolute; left: calc(var(--spark-w) + 22px); bottom: 18px; width: min(620px, calc(100% - var(--spark-w) - 640px)); min-width: 380px;
   padding: 16px 20px 16px; border-radius: 22px; background: #f6f0e2; color: #1f241f; border: 2px solid #e2c27a; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); }
 .mentor::before { content: ""; position: absolute; left: -17px; bottom: 92px; border: 11px solid transparent; border-right: 17px solid #e2c27a; border-left: 0; }
 .mentor::after { content: ""; position: absolute; left: -13px; bottom: 94px; border: 9px solid transparent; border-right: 14px solid #f6f0e2; border-left: 0; }
-/* Spark: bigger than the bar, so it sits up out of it; bobs, blinks, glows, talks and reacts */
-.mentor-avatar { position: absolute; left: 12px; bottom: 10px; width: clamp(170px, 16.5vw, 240px); aspect-ratio: 120 / 136; pointer-events: none; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .55)); }
+/* Sparky: bigger than the bar, so it sits up out of it; bobs, blinks, glows, talks and reacts */
+.mentor-avatar { position: absolute; left: 12px; bottom: 10px; width: clamp(170px, 16.5vw, 240px); aspect-ratio: 120 / 160; pointer-events: none; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .55)); }
 .mentor-avatar svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .mentor-avatar .sp-body { transform-box: fill-box; transform-origin: 50% 100%; animation: sp-bob 3.2s ease-in-out infinite; }
 .mentor-avatar .sp-glow { transform-box: fill-box; transform-origin: center; animation: sp-glow 2.6s ease-in-out infinite; }
@@ -263,6 +263,13 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .mentor-avatar.walking .sp-legs path:last-child { animation: sp-step .32s ease-in-out infinite alternate-reverse; }
 @keyframes sp-step { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
 .mentor-avatar .sp-arm { opacity: 0; transition: opacity .2s; }
+/* the hair: little sparks twinkle at the tips of the quiff */
+.mentor-avatar .sp-zap { transform-box: fill-box; transform-origin: center; opacity: 0; animation: sp-zap 2.6s ease-in-out infinite; }
+.mentor-avatar .sp-zap.z2 { animation-delay: .9s; } .mentor-avatar .sp-zap.z3 { animation-delay: 1.7s; }
+@keyframes sp-zap { 0%, 70%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); } 80% { opacity: 1; transform: scale(1.2) rotate(45deg); } 90% { opacity: .6; transform: scale(.8) rotate(90deg); } }
+.mentor-avatar.happy .sp-zap { animation-duration: .8s; }
+.mentor-avatar.worried .sp-hair { animation: sp-frazzle .18s steps(2) 6; }
+@keyframes sp-frazzle { 50% { transform: translate(1px, -2px); } }
 .mentor-avatar.pointing .sp-arm { opacity: 1; }
 .mentor-text .ut { visibility: hidden; }
 .mentor.away { width: 400px; min-width: 0; }

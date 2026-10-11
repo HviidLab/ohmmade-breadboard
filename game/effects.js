@@ -194,7 +194,7 @@
       o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.55);
     });
   }
-  // Spark's voice: one short pitched syllable. The pitch comes from the letter (so a word always sounds the same),
+  // Sparky's voice: one short pitched syllable. The pitch comes from the letter (so a word always sounds the same),
   // the tone colour from its vowel; questions rise, exclamations are higher and louder.
   const SCALE = [0, 2, 4, 7, 9, 12, 14], FORMANT = { a: 1000, e: 1650, i: 2200, o: 750, u: 600, y: 1900 };
   let voiced = 0;

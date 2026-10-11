@@ -79,12 +79,12 @@
       switch (act.kind) {
         case "hole": return this.inRegion(act.hole) ? OK : no("That part of the board is not open yet.");
         case "place": {
-          if (allow.place === false) return no("Not yet. Follow Spark first.");
+          if (allow.place === false) return no("Not yet. Follow Sparky first.");
           if (this.available(G, keyOf(act)) <= 0) return no(`No ${BB.Parts.name(Object.assign({ value: 330 }, act)).replace(/^Jumper wire$/, "wire")} left in the tray.`);
           return OK;
         }
         case "wire": {
-          if (allow.place === false || allow.wire === false) return no("Not yet. Follow Spark first.");
+          if (allow.place === false || allow.wire === false) return no("Not yet. Follow Sparky first.");
           if (this.available(G, "wire") <= 0) return no("No wires left in the tray. Take one off the board to reuse it.");
           return OK;
         }

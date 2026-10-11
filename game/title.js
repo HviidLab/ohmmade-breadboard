@@ -30,7 +30,7 @@
       </div>
       <p class="ts-narrow">The game needs a desktop screen (at least 900 px wide).</p>
       <ol class="ts-how">
-        <li><b>Spark</b>, a friendly LED, shows you one idea at a time.</li>
+        <li><b>Sparky</b>, a friendly LED, shows you one idea at a time.</li>
         <li><b>Build</b> on a real-feeling breadboard. The circuit is truly simulated.</li>
         <li><b>Too much current?</b> Parts smoke and pop. Then you fix it.</li>
       </ol>

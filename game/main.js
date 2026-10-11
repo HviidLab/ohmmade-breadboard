@@ -47,7 +47,7 @@
     refuse(say) { G.lastRefusal = say; if (G.mode === "level") BB.CoachUI.aside(say, 4000); else H.toast(say, 3000); },
     check(act) { const r = G.can(act); if (!r.ok) G.refuse(r.say); return r.ok; },
     emit(type, data) { if (G.coach) G.coach.emit(type, data); },
-    // In early levels a short circuit is undone at once, with a word from Spark.
+    // In early levels a short circuit is undone at once, with a word from Sparky.
     guard() {
       if (!G.rules || !G.rules.guardShorts) return;
       G.sim.settle();
@@ -70,7 +70,13 @@
       BB.CoachUI.leave();
       document.body.classList.remove("mode-level");
     },
-    enterLevel(lv) {
+    // A level family (from the map, title, Next or Play again) gets a new variant; a level already built
+    // (Restart, or a link with a seed) is played again as it is.
+    enterLevel(which, seed) {
+      const fam = which.instance ? which : BB.Levels.get(which.id);
+      if (seed === undefined) seed = which.instance ? BB.Levels.nextSeed(fam, (St.get().variants || {})[fam.id]) : which.seed;
+      const lv = fam.instance(seed);
+      St.update((s) => { s.variants = s.variants || {}; s.variants[fam.id] = seed; });
       if (G.mode === "sandbox") G.save();
       G.leaveLevel();
       $("mselect").hidden = true;
@@ -88,7 +94,7 @@
         const now = lv.goals.every((g) => { try { return g.when(S, {}); } catch (e) { return false; } });
         return now || G.run.complete ? null : `First: ${lv.goals[0].text.toLowerCase()}.`;
       };
-      St.update((s) => { const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 0 }; t.attempts++; });
+      St.update((s) => { const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 0 }; t.attempts++; t.seed = seed; });
       R.region(lv.region);
       BB.CoachUI.enter(lv);
       H.toast(null); H.banner("");
@@ -96,7 +102,7 @@
       G.coach.start();
       G.fitLevel();
       requestAnimationFrame(() => G.fitLevel());
-      try { history.replaceState(null, "", `#level-${lv.id}`); } catch (e) { /* ignore */ }
+      try { history.replaceState(null, "", `#level-${lv.id}${seed ? `/${seed}` : ""}`); } catch (e) { /* ignore */ }
     },
     fitLevel() { if (G.mode !== "level") return; BB.CoachUI.insets(); R.fitBox(...R.regionBox(G.level.region, G.doc)); },
     finishLevel() {
@@ -258,7 +264,7 @@
   function route() {
     const h = location.hash;
     let m;
-    if ((m = /^#level-(\d+-\d+)$/.exec(h)) && BB.Levels.get(m[1])) return G.enterLevel(BB.Levels.get(m[1]));
+    if ((m = /^#level-(\d+-\d+)(?:\/(\d+))?$/.exec(h)) && BB.Levels.get(m[1])) return G.enterLevel(BB.Levels.get(m[1]), m[2] === undefined ? undefined : +m[2]);
     if (h === "#map") return BB.LevelMap.showMap();
     if ((m = /^#mission-(\w+)$/.exec(h)) && BB.Missions.list.find((x) => x.id === m[1])) return BB.MissionUI.start(BB.Missions.list.find((x) => x.id === m[1]));
     if (h === "#missions" || h === "#classic") return BB.MissionUI.showSelect();
@@ -374,14 +380,14 @@
         events: G.sim.events.map((e) => e.text), t: G.sim.t, simMs: G.simMs, mode: G.mode,
         goals: G.run ? G.run.state.map((q) => q.done) : null, complete: G.run ? G.run.complete : null, stars: G.run ? G.run.stars : null,
       }),
-      level: () => (G.level ? { id: G.level.id, beat: G.coach.beat && G.coach.beat.id, done: G.coach.done, finished: G.coach.finished, stars: G.coach.stars,
+      level: () => (G.level ? { id: G.level.id, seed: G.level.seed, layout: G.level.layout, beat: G.coach.beat && G.coach.beat.id, done: G.coach.done, finished: G.coach.finished, stars: G.coach.stars,
         bonus: G.coach.bonus, complete: G.run.complete, hint: G.coach.hint } : null),
       // One step of a level's scripted solution, done through the same actions the player's clicks use.
       play(st) {
         G.lastRefusal = null;
         const own = (ref) => (G.doc.get(ref) ? ref : ([...G.doc.parts].reverse().find((p) => p.type === ref && G.rules.own(p.id)) || {}).id);
         if (st.next) G.coach.next();
-        else if (st.choose !== undefined) G.coach.choose(st.choose);
+        else if (st.choose !== undefined) G.coach.choose(st.choose === "right" ? G.coach.beat.predict.answer : st.choose);
         else if (st.wire) G.add({ type: "wire", legs: st.wire.slice(), color: R.C.wires[0] });
         else if (st.place) G.add(Object.assign({}, st.place, { legs: st.at.slice() }));
         else if (st.remove) G.remove(own(st.remove));
