@@ -402,8 +402,8 @@
     const V = variant(fam, seed), lv = Object.assign({ id: fam.id, title: fam.title, teaches: fam.teaches, uses: fam.uses, card: fam.card, chapter: fam.chapter, seed, layout: V.k }, fam.make(V));
     lv.view = lv.region.rows;
     // the battery pack sits centred above the open part of the board, clear of the objective card
-    const bat = lv.start.parts.find((p) => p.type === "battery"), [r0, r1] = lv.region.rows;
-    if (bat) { bat.bx = Math.round((xr(r0) + xr(r1)) / 2 - 115); bat.by = -150; }
+    const bats = lv.start.parts.filter((p) => p.type === "battery"), [r0, r1] = lv.region.rows;
+    bats.forEach((bat, k) => { bat.bx = Math.round((xr(r0) + xr(r1)) / 2 - 115); bat.by = k ? BBShared.Y["-B"] + 60 : -150; });   // a second pack below the board
     // the meter stands to the right of the open part of the board, its probes resting on the bench below it
     const m = lv.start.parts.find((p) => p.type === "meter");
     if (m) { const h = BB.Render ? BB.Render.meterSize()[1] : 330; m.bx = xr(r1) + 70; m.by = 100; m.loose = [[m.bx + 95, m.by + h + 40], [m.bx + 165, m.by + h + 40]]; }

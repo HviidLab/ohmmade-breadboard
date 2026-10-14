@@ -218,7 +218,7 @@
     const [x0, y0, x1, y1] = R.regionBox(lv.region, G.doc), a = R.toScreen(x0, y0), b = R.toScreen(x1, y1);
     return { left: a[0] - st.left, top: a[1] - st.top, right: b[0] - st.left, bottom: b[1] - st.top };
   }
-  const FAR = 0.45;                        // walk only to things more than this share of the screen's width away from home
+  const FAR = 0.6;                         // walk only to things more than this share of the screen's width away from home
   function walk(box) {
     lastBox = box;
     const st = $("stage").getBoundingClientRect(), W = st.width, H = st.height, bub = $("mentor");

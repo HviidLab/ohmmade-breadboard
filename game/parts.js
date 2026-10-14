@@ -35,6 +35,7 @@
   function name(part) {
     if (part.type === "led") return `${COLOR_NAME[part.color] || "Red"} LED`;
     if (part.type === "resistor") return part.tag ? `Resistor ${part.tag}` : `Resistor ${fmtR(part.value)}`;   // a tagged one hides its value
+    if (part.type === "battery" && part.cells) return `Battery pack ${part.cells}×AA`;
     return TYPES[part.type].label;
   }
 
@@ -68,9 +69,10 @@
       build(c, [pos, neg], part, rt) {
         c.preferRef(neg, 2);
         if (rt.destroyed) return { read: () => ({ I: 0, V: 0, Pint: 0 }) };
-        const s = c.add(new D.Source(pos, neg, P.battery.emf, P.battery.rint));
+        const k = (part.cells || 4) / 4, rint = P.battery.rint * k;            // part.cells: a smaller pack (2×AA = 3 V)
+        const s = c.add(new D.Source(pos, neg, P.battery.emf * k, rint));
         s.on = part.on !== false;
-        return { src: s, read: (S) => { const I = s.current(S.v); return { I, V: S.v[pos] - S.v[neg], Pint: I * I * P.battery.rint, short: I > 2 }; } };
+        return { src: s, read: (S) => { const I = s.current(S.v); return { I, V: S.v[pos] - S.v[neg], Pint: I * I * rint, short: I > 2 }; } };
       },
       stresses: () => ({ heat: { rated: 1, tau: 20, square: false, smoke: 10, fail: 40, x: (rd) => rd.Pint } }),
       legI: (rd) => [-(rd.I || 0), rd.I || 0],

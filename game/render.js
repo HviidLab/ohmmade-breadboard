@@ -127,7 +127,8 @@
   function regionBox(region, doc) {
     const [r0, r1] = region.rows || [1, ROWS], bat = doc.parts.find((p) => p.type === "battery"), m = doc.parts.find((p) => p.type === "meter");
     let x0 = Math.min(xr(r0) - 50, bat ? (bat.bx ?? 40) - 10 : Infinity), x1 = Math.max(xr(r1) + 40, bat ? (bat.bx ?? 40) + 240 : -Infinity);
-    let y0 = bat ? (bat.by ?? -150) - 12 : Y["+T"] - 40, y1 = (region.cols === "a-j" ? Y.j : Y.e) + 34;
+    let y0 = bat ? (bat.by ?? -150) - 12 : Y["+T"] - 40, y1 = (region.rails === "all" ? Y["-B"] : region.cols === "a-j" ? Y.j : Y.e) + 34;
+    for (const b of doc.parts.filter((p) => p.type === "battery" && p !== bat && p.by !== undefined)) y1 = Math.max(y1, b.by + 150);   // a second pack below the board
     if (m && m.bx !== undefined) {          // the meter beside the board, with its loose probes above it
       x0 = Math.min(x0, m.bx - 10); x1 = Math.max(x1, m.bx + meterSize()[0] + 10);
       y0 = Math.min(y0, m.by - 10); y1 = Math.max(y1, m.by + meterSize()[1] + 75);
@@ -374,7 +375,7 @@
     const body = el("g", { "data-body": part.id }, g);
     el("rect", { x: bx + 3, y: by + 5, width: W, height: H, rx: 8, fill: "rgba(0,0,0,.4)" }, body);
     el("rect", { x: bx, y: by, width: W, height: H, rx: 8, fill: "#24282c", stroke: "#0f1113" }, body);
-    for (let k = 0; k < 4; k++) {
+    for (let k = 0; k < (part.cells || 4); k++) {
       const cy = by + 10 + k * 14;
       el("rect", { x: bx + 34, y: cy, width: 140, height: 12, rx: 5, fill: dead ? "#4a3c2a" : k % 2 ? "#5b6066" : "#c1661c", stroke: "#0f1113", "stroke-width": 0.8 }, body);
       el("rect", { x: bx + (k % 2 ? 34 : 168), y: cy + 3, width: 6, height: 6, fill: "#c9ced3" }, body);
@@ -392,7 +393,9 @@
     r.leads = [];
     pts.forEach((p, k) => {
       const end = p || part.loose?.[k] || [ends[k][0], ends[k][1] + 40];
-      const d = `M${ends[k][0]} ${ends[k][1]} C ${ends[k][0]} ${ends[k][1] + drop}, ${end[0]} ${end[1] - 60}, ${end[0]} ${end[1]}`;
+      const up = end[1] < ends[k][1] - 40;          // a pack below the board: its leads rise to the holes
+      const d = up ? `M${ends[k][0]} ${ends[k][1]} C ${ends[k][0]} ${ends[k][1] - drop}, ${end[0]} ${end[1] + 60}, ${end[0]} ${end[1]}`
+        : `M${ends[k][0]} ${ends[k][1]} C ${ends[k][0]} ${ends[k][1] + drop}, ${end[0]} ${end[1] - 60}, ${end[0]} ${end[1]}`;
       r.leads[k] = d;
       el("path", { d, stroke: cols[k], "stroke-width": 3.4, fill: "none", "stroke-linecap": "round" }, g);
       el("rect", { x: end[0] - 3, y: end[1] - 3, width: 6, height: 6, fill: "#b8bec4" }, g);
@@ -404,6 +407,10 @@
     const bx = part.bx ?? 40, by = part.by ?? -150, W = 230, [iw, ih] = A.size("battery_holder"), H = (W * ih) / iw;
     const body = el("g", { "data-body": part.id }, g);
     el("image", { href: A.url("battery_holder"), x: bx, y: by, width: W, height: H, preserveAspectRatio: "none", opacity: dead ? 0.6 : 1 }, body);
+    if (part.cells && part.cells < 4) {        // a smaller pack: the slots after the first two are empty
+      el("rect", { x: bx + 0.285 * W, y: by + 0.1 * H, width: 0.525 * W, height: 0.69 * H, rx: 6, fill: "#16191c", stroke: "#0b0d0e" }, body);
+      for (let k = 0; k < 4; k++) el("rect", { x: bx + (0.3 + k * 0.128) * W, y: by + 0.14 * H, width: 0.1 * W, height: 0.6 * H, rx: 5, fill: "#1e2226" }, body);
+    }
     const [sx, sy] = A.anchor("battery_holder").switch || [0.83, 0.12];
     const sw = el("g", { class: "ctl", "data-ctl": "switch", "data-id": part.id }, body);
     const on = part.on !== false;
@@ -411,7 +418,8 @@
     r.sw = el("circle", { cx: bx + sx * W + (on ? 10 : -10), cy: by + sy * H, r: 7, fill: on ? "#6fdc8c" : "#9aa3a8" }, sw);
     el("text", { x: bx + sx * W, y: by + sy * H + 22, "text-anchor": "middle", fill: "#e9ecef", "font-family": "IBM Plex Mono, monospace", "font-size": 9 }, body).textContent = on ? "ON" : "OFF";
     if (dead) el("text", { x: bx + W / 2, y: by + H / 2, "text-anchor": "middle", fill: "#ffb08a", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body).textContent = "LEAKING";
-    leads(g, [[bx + W * 0.3, by + H - 10], [bx + W * 0.45, by + H - 10]], pts, part, ["#d64545", "#1a1a1a"], 60, r);
+    const ly = by > Y.j ? by + 10 : by + H - 10;      // below the board, the leads leave from the pack's top edge
+    leads(g, [[bx + W * 0.3, ly], [bx + W * 0.45, ly]], pts, part, ["#d64545", "#1a1a1a"], 60, r);
   }
 
   function drawMeterSprite(g, part, pts, r) {

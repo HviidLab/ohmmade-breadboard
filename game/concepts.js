@@ -11,12 +11,14 @@
     { id: "polarity", name: "LEDs are one-way", text: "Current goes through an LED only from its + leg (the long leg) to its − leg. The wrong way round, it stays dark." },
     { id: "resistor", name: "The resistor", text: "A resistor holds the current back. Without one, an LED takes far too much current and burns out." },
     { id: "short", name: "Short circuit", text: "A path from + to − with nothing in it is a short circuit: a huge current, heat, and your circuit goes dark." },
-    { id: "volts", name: "Volts", text: "Volts measure the battery's push. The meter compares two points: the red probe against the black one. Your battery pushes with 6 V." },
-    { id: "across", name: "Volts across a part", text: "Put the probes on each side of a part to see how much of the push it uses. An LED uses about 2 V. A wire uses almost none." },
-    { id: "break", name: "Finding a break", text: "In an open loop, nothing flows and the parts use no push. Most of the push shows up across the break, so that is where you find it." },
+    { id: "volts", name: "Volts: the push", text: "Volts measure how hard a battery pushes. The meter compares two points, red probe against black. More push drives more current: the LED glows brighter." },
+    { id: "across", name: "Sharing the push", text: "Each part in the loop takes a share of the push. The shares add up to the battery's volts. An LED takes about 2 V, the resistor the rest, a wire almost none." },
     { id: "current", name: "Measuring current", text: "Current is counted in milliamps (mA), thousandths of an amp. To measure it, open the loop and close it again with the meter, so the current flows through it." },
+    { id: "sameCurrent", name: "Current is not used up", text: "In one loop the current is the same everywhere: before the LED, after it, all the way round. Parts use push, not current." },
     { id: "fuse", name: "The meter's fuse", text: "Set for mA, the meter is almost a wire. Across a battery that is a short circuit, and the meter's fuse blows. mA goes in the path, never across." },
-    { id: "ohms", name: "Ohms", text: "Ohms (Ω) say how hard a resistor holds back the current. 1 kΩ is 1000 Ω. Measure ohms only with the power off." },
+    { id: "biggerR", name: "Bigger resistor, less current", text: "Resistors come in sizes, measured in ohms (Ω). A bigger resistor holds back more: less current flows, and the LED dims." },
+    { id: "ohms", name: "Measuring ohms", text: "The meter can measure a resistor's ohms. Do it with the power off, or with the part on its own. 1 kΩ is 1000 Ω." },
+    { id: "break", name: "Finding a break", text: "A break is a place where the loop is cut: a missing wire, a leg in the wrong strip, a broken wire. Nothing flows, and most of the push shows up across the break." },
     { id: "continuity", name: "The beep", text: "In beep mode, the meter beeps when two points are joined by metal. It checks wires and connections without any power." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
