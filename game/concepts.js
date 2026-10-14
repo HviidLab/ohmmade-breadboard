@@ -20,6 +20,11 @@
     { id: "ohms", name: "Measuring ohms", text: "The meter can measure a resistor's ohms. Do it with the power off, or with the part on its own. 1 kΩ is 1000 Ω." },
     { id: "break", name: "Finding a break", text: "A break is a place where the loop is cut: a missing wire, a leg in the wrong strip, a broken wire. Nothing flows, and most of the push shows up across the break." },
     { id: "continuity", name: "The beep", text: "In beep mode, the meter beeps when two points are joined by metal. It checks wires and connections without any power." },
+    { id: "twiceR", name: "Twice the resistance", text: "Double the resistance and the current halves: 1 kΩ lets 6 mA through, 2 kΩ only 3 mA. They go opposite ways, in step." },
+    { id: "twiceV", name: "Twice the push", text: "Double the push and the current doubles: the same resistor lets 3 mA through on 3 V, and 6 mA on 6 V." },
+    { id: "ohmsLaw", name: "Ohm's law", text: "Current = push ÷ resistance. A handy form: volts ÷ kΩ = mA. So 6 V across 2 kΩ makes 3 mA." },
+    { id: "findR", name: "Finding a resistance", text: "Turn the rule round: resistance = push ÷ current. 6 V pushing 4 mA means 1.5 kΩ. Know two of the three, work out the third." },
+    { id: "power", name: "Power and heat", text: "A resistor turns push into heat. Power = push × current, in watts. A small resistor handles ¼ W: 6 V × 6 mA = 0.036 W is fine, 1 W burns it." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };

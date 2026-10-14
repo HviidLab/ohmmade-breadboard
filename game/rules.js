@@ -102,7 +102,11 @@
           if (key === "socket" && val !== undefined && !this.socketOK(G, val)) return no("Leave the red lead where it is for now.");
         }
         // falls through
-        case "move": case "legs": case "remove": case "flip": case "replace": case "probe":
+        case "replace":
+          // a part that burned out can always be replaced, so no level can get stuck on a broken part
+          if (act.kind === "replace" && G && G.sim && (G.sim.rt.get(act.id) || {}).destroyed) return OK;
+        // falls through
+        case "move": case "legs": case "remove": case "flip": case "probe":
           if (this.own(act.id) || listed(allow[act.kind], act.id)) return OK;
           return no(FIXED[act.kind]);
         default: return OK;

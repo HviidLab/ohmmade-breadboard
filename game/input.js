@@ -116,6 +116,7 @@
       G.select(id);
       if (!G.check({ kind: "ctl", id, ctl })) { capture(e); return; }
       if (ctl === "switch") G.set(id, "on", part.on === false, true);
+      else if (ctl === "cells") G.set(id, "cells", (part.cells || 4) === 4 ? 2 : 4, true);      // two cells in or out: 3 V ↔ 6 V
       else if (ctl.startsWith("mode:")) G.set(id, "mode", ctl.slice(5), true);
       else if (ctl.startsWith("socket:")) G.set(id, "socket", ctl.slice(7), true);
       else if (ctl === "press") { if (e.shiftKey) G.set(id, "pressed", !part.pressed, true); else { G.set(id, "pressed", true); st = { kind: "press", id }; } }

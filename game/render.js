@@ -348,12 +348,15 @@
     const body = el("g", { "data-body": part.id }, g);
     el("rect", { x: bx + 3, y: by + 5, width: W, height: H, rx: 18, fill: "rgba(4, 10, 20, .4)" }, body);
     el("rect", { x: bx, y: by, width: W, height: H, rx: 18, fill: "#1a2433", stroke: "#2e3e54", "stroke-width": 2 }, body);
+    // a pack with cellSwap: click its slots to put in two more cells (or take them out): 3 V ↔ 6 V
+    const slots = part.cellSwap ? el("g", { class: "ctl", "data-ctl": "cells", "data-id": part.id }, body) : body;
+    if (part.cellSwap) el("rect", { x: bx + 10, y: by + 8, width: 150, height: H - 16, rx: 14, fill: "transparent" }, slots);
     for (let k = 0; k < 4; k++) {                       // four slots; a 2×AA pack leaves two empty
       const cx = bx + 16 + k * 36, full = k < cells;
-      el("rect", { x: cx, y: by + 14, width: 28, height: H - 28, rx: 12, fill: full ? "#2b313a" : "#121a25", stroke: full ? "none" : "#26354a", "stroke-dasharray": full ? null : "4 3" }, body);
-      if (!full) continue;
-      el("rect", { x: cx, y: by + (k % 2 ? 14 : H / 2), width: 28, height: H / 2 - 14, rx: 12, fill: dead ? "#5a4630" : "#ee9a3c" }, body);
-      el("rect", { x: cx + 5, y: by + 18, width: 5, height: H - 36, rx: 2.5, fill: "#fff", opacity: 0.18 }, body);
+      el("rect", { x: cx, y: by + 14, width: 28, height: H - 28, rx: 12, fill: full ? "#2b313a" : "#121a25", stroke: full ? "none" : part.cellSwap ? "#ffb547" : "#26354a", "stroke-dasharray": full ? null : "4 3" }, slots);
+      if (!full) { if (part.cellSwap) el("text", { x: cx + 14, y: by + H / 2 + 6, "text-anchor": "middle", fill: "#ffb547", "font-family": "Fredoka, sans-serif", "font-size": 18, "font-weight": 600 }, slots).textContent = "+"; continue; }
+      el("rect", { x: cx, y: by + (k % 2 ? 14 : H / 2), width: 28, height: H / 2 - 14, rx: 12, fill: dead ? "#5a4630" : "#ee9a3c" }, slots);
+      el("rect", { x: cx + 5, y: by + 18, width: 5, height: H - 36, rx: 2.5, fill: "#fff", opacity: 0.18 }, slots);
     }
     const on = part.on !== false, sx = bx + W - 40, sy = by + 22;
     const sw = el("g", { class: "ctl", "data-ctl": "switch", "data-id": part.id }, body);

@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const OK = { ok: true };
   const clone = (x) => JSON.parse(JSON.stringify(x));
-  const CTL_KEYS = ["on", "pos", "pressed", "lux", "mode", "socket", "pins"];
+  const CTL_KEYS = ["on", "pos", "pressed", "lux", "mode", "socket", "pins", "cells"];
   // Sounds of legs going into holes and coming out (see effects.js); a move is out, then in.
   const legsIn = (p) => (p ? p.legs.filter(Boolean).length : 0);
   const sound = {
@@ -433,6 +433,7 @@
         else if (st.remove) G.remove(own(st.remove));
         else if (st.flip) G.rotate(own(st.flip));
         else if (st.ctl) G.set(st.ctl, "on", G.doc.get(st.ctl).on === false, true);
+        else if (st.cells) G.set(st.cells, "cells", (G.doc.get(st.cells).cells || 4) === 4 ? 2 : 4, true);
         else if (st.replace) G.replace(st.replace);
         else if (st.move) { const id = own(st.move); if (G.check({ kind: "move", id })) { G.edit(() => { G.doc.get(id).legs = st.to.slice(); }); G.emit("move", { id }); } }
         else if (st.dial) G.set(meter(), "mode", st.dial, true);

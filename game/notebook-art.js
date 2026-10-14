@@ -134,6 +134,30 @@
       tx(112, 124, "the break", { s: 16 }),
     continuity: () => slot(80, 24) + probe([[80, 24], [118, 18], [148, 44]], RED) + probe([[80, 72], [118, 80], [148, 72]], PEN) + meter(160, 58, ")))") +
       tx(196, 40, "beep!", { s: 20, c: "#2f8a43", r: -8 }) + tx(110, 116, "joined by metal", { s: 16 }),
+    // Chapter 3: Ohm's law
+    twiceR: () => {
+      const mini = (ox, r, mA, gap) => current([[ox, 50], [ox, 26], [ox + 76, 26], [ox + 76, 94], [ox, 94], [ox, 70]], gap) +
+        pl([[ox, 55], [ox, 26], [ox + 22, 26]]) + resH(ox + 22, ox + 54, 26, 5) + pl([[ox + 54, 26], [ox + 76, 26], [ox + 76, 94], [ox + 50, 94]]) +
+        pl([[ox + 26, 94], [ox, 94], [ox, 64]]) + battery(ox, 60, false) + meter(ox + 38, 94, "mA") + tx(ox + 38, 16, r, { s: 17 }) + tx(ox + 38, 66, mA, { s: 19, c: "#a3360f" });
+      return mini(18, "1 kΩ", "6 mA", 8) + mini(126, "2 kΩ", "3 mA", 16) + tx(110, 124, "twice the resistance, half the current", { s: 15 });
+    },
+    twiceV: () => {
+      const mini = (ox, v, mA, gap, two) => current([[ox, 50], [ox, 26], [ox + 76, 26], [ox + 76, 94], [ox, 94], [ox, 70]], gap) +
+        pl([[ox, 50], [ox, 26], [ox + 22, 26]]) + resH(ox + 22, ox + 54, 26, 5) + pl([[ox + 54, 26], [ox + 76, 26], [ox + 76, 94], [ox + 50, 94]]) +
+        pl([[ox + 26, 94], [ox, 94], [ox, two ? 76 : 64]]) + battery(ox, two ? 52 : 60, false) + (two ? battery(ox, 68, false) : "") +
+        meter(ox + 38, 94, "mA") + tx(ox - 6, 112, v, { s: 17 }) + tx(ox + 38, 66, mA, { s: 19, c: "#a3360f" });
+      return mini(24, "3 V", "3 mA", 16, false) + mini(128, "6 V", "6 mA", 8, true) + tx(112, 126, "twice the push, twice the current", { s: 15 });
+    },
+    ohmsLaw: () => tx(110, 34, "current = push ÷ resistance", { s: 22 }) + ln(30, 44, 190, 44, HL, 7) +
+      tx(110, 74, "volts ÷ kΩ = mA", { s: 22, c: "#a3360f" }) + tx(100, 106, "6 V ÷ 2 kΩ = 3 mA", { s: 21 }) + tick(192, 100),
+    findR: () => ln(46, 50, 70, 50) + resH(70, 150, 50, 7) + ln(150, 50, 174, 50) + tx(110, 30, "?", { s: 30, c: RED }) +
+      `<path d="M70 70 q40 12 80 0" fill="none" stroke="#a3360f" stroke-width="2"/>` + tx(110, 92, "6 V across, 4 mA through", { s: 17, c: "#a3360f" }) +
+      tx(110, 118, "6 V ÷ 4 mA = 1.5 kΩ", { s: 20 }),
+    power: () => ln(26, 56, 46, 56) + resH(46, 104, 56, 7) + ln(104, 56, 124, 56) +
+      `<path d="M58 36 q6 -8 0 -16 M74 38 q6 -9 0 -18 M90 36 q6 -8 0 -16" fill="none" stroke="${RED}" stroke-width="2.4" stroke-linecap="round"/>` +
+      tx(66, 86, "33 Ω: about 1 W", { s: 16, c: RED }) + tx(66, 104, "too hot!", { s: 17, c: RED }) +
+      ln(146, 56, 158, 56) + resH(158, 196, 56, 6) + ln(196, 56, 208, 56) + tx(178, 86, "1 kΩ: 0.036 W", { s: 15 }) + tick(178, 100) +
+      tx(110, 126, "power = push × current", { s: 17 }),
   };
 
   function diagram(id) {

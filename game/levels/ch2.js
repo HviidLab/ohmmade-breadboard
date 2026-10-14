@@ -47,7 +47,7 @@
           start: start(V.BAT("+T3", "-T4"), Object.assign(V.BAT("+B3", "-B4"), { id: "bat2", cells: 2 }),
             V.RES("res1", "+T6", "a6", 330), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "-T7"),
             V.WIRE("wa", "+B5", "j5"), V.RES("res2", "g5", "g8", 330), V.LED("led2", "h8", "h9"), V.WIRE("wb", "f9", "-B9"), METER("off")),
-          rules: { tray: [], allow: allow({ dial: ["off", "V"], socket: ["VO"], legs: ["wa", "wb"], move: ["wa", "wb"] }), guardMeter: true },
+          rules: { tray: [], allow: allow({ dial: ["off", "V"], socket: ["VO"], legs: ["wa", "wb"], move: ["wa", "wb"] }), guardMeter: true, guardShorts: true },   // moving wire ends between rails: shorts are easy, and not the lesson
           ui: { xray: true },
           beats: [
             { id: "q", say: "Two circuits with the same parts. So why is the bottom LED dimmer than the top one?", highlight: { parts: ["led1", "led2"] },
@@ -482,4 +482,6 @@
   ];
 
   K.chapter(2, "Measuring", L);
+  // The meter checks and helpers, for the later chapters.
+  K.meter = { net, M, mode, probes, on, volts, ohms, amps, across, fmtV, fmtR, fmtmA, RING, METER, allow, REGION, NEXT };
 })(window.BB = window.BB || {});

@@ -1,0 +1,227 @@
+// Chapter 3: Ohm's law. Chapter 2 showed that a bigger resistor lets less current through; here the numbers come in:
+// twice the resistance halves the current, twice the push doubles it, the rule current = push ÷ resistance, the rule
+// turned round to find a resistor, and power (push × current) that turns into heat. Then a challenge with two answers.
+// Same rules as Chapter 2: a question in every level, predict first, the goal and not the holes, hints only on request.
+// Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
+(function (BB) {
+  "use strict";
+  const K = BB.Levels.kit, { start, part, FINISH } = K;
+  const { M, mode, ohms, RING, METER, allow, REGION, NEXT } = K.meter;
+
+  const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
+  const fmtK = (r) => (r >= 1000 ? `${+(r / 1000).toFixed(1)} kΩ` : `${r} Ω`);
+  // the meter, set for mA, closes the loop from strip 6 (red) to the − rail (black)
+  const LOOP_METER = (V) => METER("mA", "mA", V.hs("b6", "-T9"));
+  const RES = (V, r) => V.RES("res1", "+T6", "a6", r);
+  const PLACE = (V, r) => ({ place: { type: "resistor", value: r }, at: V.hs("+T6", "a6") });
+  // the one resistor on the board has this value, and the meter reads its current
+  const reading = (S) => { const rs = S.parts("resistor"); return rs.length === 1 && S.readsCurrentOf(rs[0], 0.0002, 0.05) ? Math.abs(M(S).value) : null; };
+  const only = (S, r) => { const rs = S.parts("resistor"); return rs.length === 1 && rs[0].part.value === r && reading(S) !== null; };
+  const between = (S, lo, hi) => { const i = reading(S); return i !== null && i >= lo && i <= hi; };
+  const cells = (S) => (S.battery() ? S.battery().part.cells || 4 : 0);
+  const SWAP_HINT = { say: "Click the resistor and press Remove. Then drag the new one into the same two holes." };
+
+  const L = [
+    {
+      id: "3-1", title: "Twice the resistor", teaches: ["twiceR"], uses: ["current", "biggerR", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
+      layouts: [{}],
+      make: (V) => {
+        const P = V.predict(["12 mA", "6 mA", "3 mA"], 2), seen = {};
+        const rec = (r) => (S) => { if (only(S, r)) seen[r] = reading(S); return only(S, r); };
+        const goal = (S) => between(S, 0.00135, 0.00165);
+        return {
+          region: REGION(V),
+          start: start(V.BAT("+T3", "-T4"), RES(V, 1000), LOOP_METER(V)),
+          rules: { tray: [{ type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "resistor", value: 3900, n: 1 }, { type: "resistor", value: 10000, n: 1 }],
+            allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"], replace: ["meter"] }) },
+          allowDamage: true,
+          ui: { xray: true },
+          goalsFrom: 3,
+          beats: [
+            { id: "p", say: "No LED this time: a 1 kΩ resistor and the meter, counting 6 mA. With 2 kΩ, twice the resistance, what will it read?",
+              highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
+            { id: "swap", say: "Find out: swap in the 2 kΩ resistor from the tray.", hints: [SWAP_HINT], waitFor: { when: rec(2000) } },
+            { id: "name", say: (C) => `${C.right("p") ? "Right: " : ""}${fmtI(seen[2000] || 0.003)}. Twice the resistance, half the current. Halve it once more?`, waitFor: NEXT },
+            { id: "use", say: "Make about 1.5 mA flow, with one resistor from the tray.",
+              hints: [{ say: "2 kΩ gave 3 mA. Half of that needs twice 2 kΩ: about 4 kΩ." }, { say: "3.9 kΩ is the nearest size in the tray." }],
+              waitFor: { when: goal, hold: 0.6 } },
+            FINISH("Double the resistance and the current halves. They go opposite ways, in step."),
+          ],
+          goals: [{ text: "Make about 1.5 mA flow", when: goal }],
+          bonus: [
+            { text: "Predict the current with 2 kΩ", final: (C) => C.right("p") },
+            { text: "Pick the 1.5 mA resistor on the first try", final: (C) => (C.count.place || 0) <= 2 },
+          ],
+          solution: [{ choose: "right" }, { remove: "res1" }, PLACE(V, 2000), { wait: 0.6 }, { next: 1 }, { remove: "resistor" }, PLACE(V, 3900), { wait: 1 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "3-2", title: "Twice the push", teaches: ["twiceV"], uses: ["twiceR", "volts", "current", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
+      layouts: [{}],
+      make: (V) => {
+        const P1 = V.predict(["1.5 mA", "3 mA", "6 mA"], 2), P2 = V.predict(["3 mA", "6 mA", "12 mA"], 0), seen = {};
+        const six = (S) => cells(S) === 4 && only(S, 1000) && between(S, 0.0055, 0.0065);
+        const goal = (S) => cells(S) === 4 && only(S, 2000);
+        return {
+          region: REGION(V),
+          start: start(Object.assign(V.BAT("+T3", "-T4"), { cells: 2, cellSwap: true }), RES(V, 1000), LOOP_METER(V)),
+          rules: { tray: [{ type: "resistor", value: 2000, n: 1 }], allow: allow({ ctl: ["meter", "bat"], remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
+          ui: { xray: true },
+          goalsFrom: 3,
+          beats: [
+            { id: "p1", say: "This pack holds only two cells: 3 V. With 1 kΩ the meter shows 3 mA. With four cells, twice the push, what will it show?",
+              highlight: { part: "bat" }, predict: P1, waitFor: { predict: true } },
+            { id: "add", say: "Find out: click the empty slots in the battery pack to put in two more cells.", highlight: { part: "bat" },
+              hints: [{ say: "The two dashed slots with a + in them. One click puts both cells in." }],
+              waitFor: { when: (S) => { if (six(S)) seen.six = reading(S); return six(S); } } },
+            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}${fmtI(seen.six || 0.006)}. Twice the push, twice the current. Keep 6 V, use 2 kΩ: what will it read?`,
+              highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
+            { id: "swap", say: "Find out: swap in the 2 kΩ resistor.", hints: [SWAP_HINT], waitFor: { when: goal } },
+            FINISH("More push, more current. More resistance, less current. The next level puts both in one rule."),
+          ],
+          goals: [{ text: "Measure the current with 6 V and 2 kΩ", when: goal }],
+          bonus: [
+            { text: "Predict the current with twice the push", final: (C) => C.right("p1") },
+            { text: "Predict the current with 6 V and 2 kΩ", final: (C) => C.right("p2") },
+          ],
+          solution: [{ choose: "right" }, { cells: "bat" }, { wait: 0.6 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2000), { wait: 0.8 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "3-3", title: "The rule", teaches: ["ohmsLaw"], uses: ["twiceR", "twiceV", "current", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
+      layouts: [{}],
+      make: (V) => {
+        const P1 = V.predict(["About 2.7 mA", "About 13 mA", "About 0.4 mA"], 0), P2 = V.predict(["About 1.3 mA", "About 4.7 mA", "About 28 mA"], 0), seen = {};
+        const rec = (r) => (S) => { if (only(S, r)) seen[r] = reading(S); return only(S, r); };
+        return {
+          region: REGION(V),
+          start: start(V.BAT("+T3", "-T4"), RES(V, 1000), LOOP_METER(V)),
+          rules: { tray: [{ type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
+          ui: { xray: true },
+          goalsFrom: 4,
+          beats: [
+            { id: "rule", say: "Here is the rule: current = push ÷ resistance. 6 V ÷ 1 kΩ = 6 mA, just what the meter shows.", highlight: { lcd: "meter" }, waitFor: NEXT },
+            { id: "p1", say: "A handy trick: volts ÷ kΩ gives mA. So what will 2.2 kΩ give with 6 V?", predict: P1, waitFor: { predict: true } },
+            { id: "m1", say: "Measure it: swap in the 2.2 kΩ resistor.", hints: [SWAP_HINT], waitFor: { when: rec(2200) } },
+            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}${fmtI(seen[2200] || 0.0027)} with 2.2 kΩ. And with 4.7 kΩ?`, highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
+            { id: "m2", say: "Check it with the 4.7 kΩ resistor.", hints: [SWAP_HINT], waitFor: { when: rec(4700) } },
+            FINISH((C) => `${C.right("p2") ? "Right again. " : ""}Current = push ÷ resistance. Engineers call it Ohm's law.`),
+          ],
+          goals: [{ text: "Measure the current with 4.7 kΩ", when: (S) => only(S, 4700) }],
+          bonus: [
+            { text: "Predict the current with 2.2 kΩ", final: (C) => C.right("p1") },
+            { text: "Predict the current with 4.7 kΩ", final: (C) => C.right("p2") },
+          ],
+          solution: [{ next: 1 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2200), { wait: 0.6 }, { choose: "right" }, { remove: "resistor" }, PLACE(V, 4700), { wait: 0.8 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "3-4", title: "Find the resistor", teaches: ["findR"], uses: ["ohmsLaw", "ohms", "current", "resistor", "switch", "loop", "strip", "rail"], shifts: [0, 4, 8],
+      values: [1500, 1200, 3000],
+      layouts: [{}],
+      make: (V) => {
+        const R = V.ohms, mA = 6000 / R;                                   // 4, 5 or 2 mA
+        // the two wrong answers: push × current, and current ÷ push
+        const P = V.predict([fmtK(R), `${+(6 * mA).toFixed(0)} kΩ`, `${+(mA / 6).toFixed(2)} kΩ`], 0);
+        const I2 = R === 3000 ? 3 : 2, R2 = 6 / I2;                   // the second one, worked out in your head (never the same as the first)
+        const P2 = V.predict([`${R2} kΩ`, `${6 * I2} kΩ`, `${+(I2 / 6).toFixed(2)} kΩ`], 0);
+        const checked = (S) => { const q = part(S, "resX"); return !!q && S.battery().part.on === false && S.across(q) && ohms(S) !== null && S.near(ohms(S), R, 0.03); };
+        return {
+          region: REGION(V),
+          start: start(V.BAT("+T3", "-T4"), Object.assign(V.RES("resX", "+T6", "a6", R), { tag: "X" }), LOOP_METER(V)),
+          rules: { tray: [], allow: allow({ ctl: ["meter", "bat"], dial: ["V", "mA", "ohm"], socket: ["VO", "mA"] }) },
+          ui: { xray: true },
+          goalsFrom: 2,
+          beats: [
+            { id: "intro", say: `This resistor lost its label. The 6 V battery pushes ${+mA.toFixed(1)} mA through it. Turn the rule round: resistance = push ÷ current.`,
+              highlight: { lcd: "meter" }, waitFor: NEXT },
+            { id: "p", say: `So how big is it? 6 V ÷ ${+mA.toFixed(1)} mA = …`, predict: P, waitFor: { predict: true } },
+            { id: "check", say: (C) => `${C.right("p") ? "Let's check: " : "Let's see: "}switch the battery off, set the meter to Ω, and measure across the resistor.`,
+              hints: [{ say: "Battery switch off. Dial to Ω, red lead back in VΩ. Then one probe on each side of the resistor." }, RING(V.hs("+T8", "b6"))],
+              waitFor: { when: checked } },
+            { id: "p2", say: `One more, in your head: 6 V pushes ${I2} mA through another resistor. How big is that one?`, predict: P2, waitFor: { predict: true } },
+            FINISH((C) => `${C.right("p2") ? "Right: " : ""}6 V ÷ ${I2} mA = ${R2} kΩ. Know two of push, current and resistance, and you can work out the third.`),
+          ],
+          goals: [{ text: "Check the resistor with Ω", when: checked }],
+          bonus: [
+            { text: "Work out the mystery resistor", final: (C) => C.right("p") },
+            { text: "Work out the second one in your head", final: (C) => C.right("p2") },
+          ],
+          solution: [{ next: 1 }, { choose: "right" }, { ctl: "bat" }, { socket: "VO" }, { dial: "ohm" }, { probe: V.hs("+T8", "b6") }, { wait: 0.6 }, { choose: "right" }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "3-5", title: "Hot resistor", teaches: ["power"], uses: ["ohmsLaw", "resistor", "short", "loop", "rail"], shifts: [0, 4, 8],
+      layouts: [{}],
+      make: (V) => {
+        const P = V.predict(["The 1 kΩ", "The 33 Ω", "Neither"], 1);
+        const across = (q) => q.nets.includes("bb:+T") && q.nets.includes("bb:-T");
+        const hot = (S) => S.parts("resistor").some((q) => q.part.value === 33 && across(q) && (q.rt.level || 0) >= 1);
+        const gone = (S) => !S.parts("resistor").some((q) => q.part.value === 33 && q.ok);
+        const cool = (S) => S.parts("resistor").some((q) => q.part.value === 1000 && across(q) && q.ok) && gone(S);
+        return {
+          region: REGION(V),
+          start: start(V.BAT("+T3", "-T4")),
+          rules: { tray: [{ type: "resistor", value: 33, n: 1 }, { type: "resistor", value: 1000, n: 1 }], banner: true },
+          allowDamage: true, simText: { resistor: null },
+          ui: { xray: true },
+          beats: [
+            { id: "p", say: "Resistors turn push into heat. Which one will get hot, straight across the 6 V rails: the 1 kΩ or the 33 Ω?", predict: P, waitFor: { predict: true } },
+            { id: "try", say: "Find out: put the 33 Ω resistor straight across the rails, one leg on +, one on −.", highlight: { nets: ["bb:+T", "bb:-T"] },
+              hints: [{ say: "Drag it from the tray so one leg lands on the red + rail and the other on the blue − rail." }, { show: [V.RES("h", "+T10", "-T13", 33)] }],
+              waitFor: { when: hot, hold: 0.05 } },
+            { id: "pull", say: "It glows! 6 V pushes 180 mA through it: 6 V × 0.18 A ≈ 1 watt. It is made for ¼ watt. Pull it out!",
+              hints: [{ say: "Drag it onto the parts tray, or click it and press Remove." }], waitFor: { when: gone, hold: 0.05 } },
+            { id: "name", say: (C) => `${C.broken.has("resistor") ? "Too late, it burned. " : "Phew. "}Power = push × current. The 1 kΩ takes 6 V × 6 mA = 0.036 W.`, waitFor: NEXT },
+            { id: "cool", say: "Put the 1 kΩ resistor across the rails instead. It stays cool.", hints: [{ show: [V.RES("h", "+T10", "-T13", 1000)] }],
+              waitFor: { when: cool, hold: 1 } },
+            FINISH("A small resistor handles ¼ W. Work out push × current, and keep well below that."),
+          ],
+          goals: [{ text: "A resistor across the rails that stays cool", when: cool, hold: 1 }],
+          bonus: [
+            { text: "Predict which one gets hot", final: (C) => C.right("p") },
+            { text: "Pull the 33 Ω out before it burns", final: (C) => !C.broken.has("resistor") },
+          ],
+          solution: [{ choose: "right" }, { place: { type: "resistor", value: 33 }, at: V.hs("+T10", "-T13") }, { wait: 2 }, { remove: "resistor" }, { wait: 0.4 }, { next: 1 },
+            { place: { type: "resistor", value: 1000 }, at: V.hs("+T10", "-T13") }, { wait: 1.6 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "3-6", title: "Exactly 3 mA", teaches: [], uses: ["ohmsLaw", "twiceR", "twiceV", "findR", "current", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
+      card: { name: "Ohm's law at work", text: "Current = push ÷ resistance. To get the current you want, choose the resistance, or the push." },
+      layouts: [{}],
+      make: (V) => {
+        const three = (S) => between(S, 0.0029, 0.0031);
+        return {
+          region: REGION(V),
+          start: start(Object.assign(V.BAT("+T3", "-T4"), { cellSwap: true }), LOOP_METER(V)),
+          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }],
+            allow: allow({ ctl: ["meter", "bat"], replace: ["meter"] }), banner: true },
+          allowDamage: true,
+          ui: { xray: true },
+          beats: [
+            { id: "brief", say: V.say("Make exactly 3 mA flow through the meter. There is more than one way to do it.",
+              "Your task: exactly 3 mA through the meter. Find a way, then maybe a second one."), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Put a resistor from the + rail into the meter's strip. Ask for a hint if you need one.",
+              hints: [{ say: "Current = push ÷ resistance. 6 V ÷ what = 3 mA?" }, { say: "Or change the push: take two cells out. 3 V ÷ what = 3 mA?" }],
+              waitFor: { when: three, hold: 0.6 } },
+            FINISH("Two ways to the same current: choose the resistance, or choose the push."),
+          ],
+          goals: [{ text: "Make exactly 3 mA flow", when: three, hold: 0.6 }],
+          bonus: [
+            { text: "Find both ways", when: (S, m) => { if (three(S)) m[cells(S)] = true; return !!m[2] && !!m[4]; } },
+            { text: "Nothing breaks, no fuse blown", final: (C) => C.broken.size === 0 },
+          ],
+          solution: [{ next: 1 }, PLACE(V, 2000), { wait: 1 }, { remove: "resistor" }, { cells: "bat" }, PLACE(V, 1000), { wait: 1 }, { next: 1 }],
+        };
+      },
+    },
+  ];
+
+  K.chapter(3, "Ohm's law", L);
+})(window.BB = window.BB || {});
