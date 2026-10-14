@@ -13,6 +13,7 @@
   function init(game) {
     G = game;
     $("mode-missions").addEventListener("click", showSelect);
+    $("mode-missions").hidden = !BB.CLASSIC;
     $("mode-sandbox").addEventListener("click", () => G.enterSandbox());
   }
 
@@ -68,7 +69,7 @@
       <button type="button" class="btn" id="mp-restart">Restart</button>
       <button type="button" class="btn" id="mp-all">All missions</button>
       ${run.complete && nextMission(m) ? '<button type="button" class="btn primary" id="mp-next">Next mission</button>' : ""}
-      </div><p class="note"><a href="${m.workbook}" target="_blank" rel="noopener">Open this experiment in the workbook</a></p>`;
+      </div>`;
     const on = (id, fn) => { const b = $(id); if (b) b.addEventListener("click", fn); };
     on("mp-hint", () => { hintsShown++; render(true); });
     on("mp-guide", () => { guideOn = !guideOn; BB.Render.guide(guideOn ? guideParts(m) : null); render(true); });

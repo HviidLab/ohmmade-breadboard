@@ -302,14 +302,17 @@
   };
   window.addEventListener("error", (e) => BB.reportError(e.error || e.message, "page"));
 
+  // The old Classic lab (the workbook missions) is kept for development only: game.html?classic opens the way to it.
+  BB.CLASSIC = /[?&]classic\b/.test(location.search);
+
   // Where a link (game.html#…) should take you.
   function route() {
     const h = location.hash;
     let m;
     if ((m = /^#level-(\d+-\d+)(?:\/(\d+))?$/.exec(h)) && BB.Levels.get(m[1])) return G.enterLevel(BB.Levels.get(m[1]), m[2] === undefined ? undefined : +m[2]);
     if (h === "#map") return BB.LevelMap.showMap();
-    if ((m = /^#mission-(\w+)$/.exec(h)) && BB.Missions.list.find((x) => x.id === m[1])) return BB.MissionUI.start(BB.Missions.list.find((x) => x.id === m[1]));
-    if (h === "#missions" || h === "#classic") return BB.MissionUI.showSelect();
+    if (BB.CLASSIC && (m = /^#mission-(\w+)$/.exec(h)) && BB.Missions.list.find((x) => x.id === m[1])) return BB.MissionUI.start(BB.Missions.list.find((x) => x.id === m[1]));
+    if (BB.CLASSIC && (h === "#missions" || h === "#classic")) return BB.MissionUI.showSelect();
     if (h === "#sandbox") return G.enterSandbox();
     BB.Title.show();
   }
