@@ -38,11 +38,7 @@
   }
 
   const A = BB.Art || { has: () => false };
-  function sprite(g, name, cx, cy, w, ang = 0, attrs = {}) {
-    const [iw, ih] = A.size(name), h = (w * ih) / iw;
-    return el("image", Object.assign({ href: A.url(name), x: cx - w / 2, y: cy - h / 2, width: w, height: h, preserveAspectRatio: "none",
-      transform: ang ? `rotate(${ang} ${cx} ${cy})` : null }, attrs), g);
-  }
+
 
   let svg, world, L = {};
   const view = { tx: 40, ty: 210, k: 1 };
@@ -137,11 +133,7 @@
     return [x0, y0, x1, y1];
   }
   // The meter body's size in world units (the sprite keeps its picture's shape).
-  function meterSize() {
-    if (!A.has("meter_body")) return [190, 270];
-    const [iw, ih] = A.size("meter_body");
-    return [270, (270 * ih) / iw];
-  }
+  function meterSize() { return [240, 340]; }
   // Which of the meter's dial positions and sockets are locked in this level (set by the game; null: none).
   let ctlLocked = null;
   function setCtlLock(fn) { ctlLocked = fn; }
@@ -234,138 +226,112 @@
   }
 
   // Draw one part into group g. dead = destroyed. Returns refs for dynamic updates.
+  // Art style 1 (the glowing flat cartoon): flat bodies with one soft highlight, a darker outline and a soft shadow;
+  // what carries electricity glows. Drawn in code so every leg sits exactly in its hole.
+  const shade = (g, d, dx = 2, dy = 3) => el("path", { d, fill: "rgba(4, 10, 20, .32)", transform: `translate(${dx} ${dy})` }, g);
   function drawBody(g, part, pts, dead, fx = null) {
     const r = {};
     const [a, b] = pts;
     const mid = a && b ? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] : null;
+    const angOf = (p, q) => (Math.atan2(q[1] - p[1], q[0] - p[0]) * 180) / Math.PI;
     switch (part.type) {
       case "resistor": {
         leg(g, a, b);
-        if (A.has("resistor_body")) {
-          const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
-          const w = Math.max(48, Math.min(74, Math.hypot(b[0] - a[0], b[1] - a[1]) + 14)), h = (w * A.size("resistor_body")[1]) / A.size("resistor_body")[0];
-          const body = el("g", { transform: `translate(${mid[0]} ${mid[1]}) rotate(${ang})` }, g);
-          sprite(body, dead ? "resistor_charred" : "resistor_body", 0, 0, w);
-          const bx0 = -w / 2 + 0.29 * w, bw = 0.42 * w;
-          if (!dead) bandColors(part.value).forEach((c, k) => el("rect", { x: bx0 + 2 + k * (bw - 6) / 3.6 + (k === 3 ? 3 : 0), y: -h * 0.3, width: 2.8, height: h * 0.6, fill: c, opacity: 0.92 }, body));
-          r.heat = el("rect", { x: bx0 - 2, y: -h * 0.32, width: bw + 4, height: h * 0.64, rx: 5, fill: "#ff5a1a", opacity: 0 }, body);
-          break;
-        }
-        const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
-        const len = Math.min(36, Math.max(18, Math.hypot(b[0] - a[0], b[1] - a[1]) - 8));
-        const body = el("g", { transform: `translate(${mid[0]} ${mid[1]}) rotate(${ang})` }, g);
-        r.body = el("rect", { x: -len / 2, y: -7, width: len, height: 14, rx: 6, fill: dead ? "#3b2a1c" : "url(#resBody)", stroke: dead ? "#1a120c" : C.resEdge, "stroke-width": 1 }, body);
-        if (!dead) bandColors(part.value).forEach((c, k) => el("rect", { x: -len / 2 + 6 + k * (len - 14) / 3.4 + (k === 3 ? 3 : 0), y: -7, width: 3.2, height: 14, fill: c }, body));
-        else el("path", { d: `M${-len / 2 + 4} -3 l6 5 l5 -6 l6 7`, stroke: "#120b06", "stroke-width": 2, fill: "none" }, body);
-        r.heat = el("rect", { x: -len / 2, y: -7, width: len, height: 14, rx: 6, fill: "#ff5a1a", opacity: 0 }, body);
+        const len = Math.min(42, Math.max(24, Math.hypot(b[0] - a[0], b[1] - a[1]) - 10)), hh = 8;
+        const body = el("g", { transform: `translate(${mid[0]} ${mid[1]}) rotate(${angOf(a, b)})` }, g);
+        const cap = `M${-len / 2 + hh} ${-hh}H${len / 2 - hh}A${hh} ${hh} 0 0 1 ${len / 2 - hh} ${hh}H${-len / 2 + hh}A${hh} ${hh} 0 0 1 ${-len / 2 + hh} ${-hh}Z`;
+        shade(body, cap);
+        r.body = el("path", { d: cap, fill: dead ? "#3b2a1c" : "#ecd3a4", stroke: dead ? "#1a120c" : "#a8834c", "stroke-width": 1.4 }, body);
+        if (!dead) {
+          const x0 = -len / 2 + hh * 0.9, span = len - hh * 1.8;
+          bandColors(part.value).forEach((c, k) => el("rect", { x: x0 + (k < 3 ? k * span * 0.24 : span * 0.82), y: -hh + 0.7, width: 3.6, height: 2 * hh - 1.4, fill: c }, body));
+          el("rect", { x: -len / 2 + hh * 0.6, y: -hh + 2, width: len - hh * 1.2, height: 3, rx: 1.5, fill: "#fff", opacity: 0.35 }, body);
+        } else el("path", { d: `M${-len / 2 + 6} -3 l6 5 l5 -6 l6 7`, stroke: "#120b06", "stroke-width": 2, fill: "none" }, body);
+        r.heat = el("path", { d: cap, fill: "#ff5a1a", opacity: 0 }, body);
         break;
       }
       case "wire": {
         const col = part.color || C.wires[0];
         r.track = curve(a, b, 16);
-        r.path = el("path", { d: r.track, stroke: dead ? "#4a3a2a" : col, "stroke-width": 4.2, fill: "none", "stroke-linecap": "round", "stroke-dasharray": dead ? "3 4" : null }, g);
-        el("path", { d: curve(a, b, 16), stroke: "#fff", "stroke-width": 1.2, fill: "none", opacity: 0.25, transform: "translate(-.6 -.8)" }, g);
-        for (const p of [a, b]) el("rect", { x: p[0] - 2.5, y: p[1] - 2.5, width: 5, height: 5, fill: "#b8bec4" }, g);
-        r.glow = el("path", { d: curve(a, b, 16), stroke: "#ff8a3a", "stroke-width": 10, fill: "none", opacity: 0, filter: "url(#soft)" }, g);
+        el("path", { d: r.track, stroke: "rgba(4, 10, 20, .35)", "stroke-width": 7.5, fill: "none", "stroke-linecap": "round", transform: "translate(1.5 2.5)" }, g);
+        el("path", { d: r.track, stroke: dead ? "#2a2018" : "rgba(10, 16, 24, .55)", "stroke-width": 7, fill: "none", "stroke-linecap": "round" }, g);
+        r.path = el("path", { d: r.track, stroke: dead ? "#4a3a2a" : col, "stroke-width": 4.6, fill: "none", "stroke-linecap": "round", "stroke-dasharray": dead ? "3 4" : null }, g);
+        el("path", { d: r.track, stroke: "#fff", "stroke-width": 1.3, fill: "none", opacity: 0.3, transform: "translate(-.6 -.9)" }, g);
+        for (const p of [a, b]) el("circle", { cx: p[0], cy: p[1], r: 2.8, fill: "#d5dbe1", stroke: "#6b7580", "stroke-width": 0.8 }, g);
+        r.glow = el("path", { d: r.track, stroke: "#ff8a3a", "stroke-width": 10, fill: "none", opacity: 0, filter: "url(#soft)" }, g);
         break;
       }
       case "led": {
         leg(g, a, mid); leg(g, b, mid);
-        const col = ledc(part);
+        const col = ledc(part), L = LEDC[col];
         r.glowFill = `url(#glow-${col})`;
-        if (A.has("probe_led_off")) {
-          r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: r.glowFill, opacity: 0 }, fx || g);
-          const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
-          sprite(g, dead ? "led_burnt" : "probe_led_off", mid[0], mid[1], 26, ang, { filter: LEDC[col].matrix ? `url(#tint-${col})` : null });
-          r.core = el("circle", { cx: mid[0], cy: mid[1], r: 5, fill: "#fff6e0", opacity: 0 }, g);
-          el("text", { x: a[0] - 4, y: a[1] + 17, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";
-          break;
-        }
         r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: r.glowFill, opacity: 0 }, fx || g);
-        const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
-        const dome = el("g", { transform: `translate(${mid[0]} ${mid[1]}) rotate(${ang})` }, g);
-        el("path", { d: "M-11 0 A11 11 0 1 1 8.5 7 L8.5 -7 A11 11 0 0 1 -11 0Z", fill: "rgba(0,0,0,.35)", transform: "translate(2 3)" }, dome);
-        r.body = el("path", { d: "M8.5 -7 A11 11 0 1 0 8.5 7 Z", fill: dead ? "url(#domeDead)" : `url(#dome-${col})`, stroke: dead ? "#2a1a1a" : LEDC[col].edge, "stroke-width": 1 }, dome);
-        if (dead) el("path", { d: "M-6 -6 l4 5 l-3 4 l5 4", stroke: "#111", "stroke-width": 1.4, fill: "none" }, dome);
-        r.core = el("circle", { cx: -2, cy: 0, r: 4, fill: "#fff6e0", opacity: 0 }, dome);
+        const dome = el("g", { transform: `translate(${mid[0]} ${mid[1]}) rotate(${angOf(a, b)})` }, g);
+        const rim = "M11.5 -9.8 A15 15 0 1 0 11.5 9.8 Z", top = "M9.8 -8.2 A12.8 12.8 0 1 0 9.8 8.2 Z";     // the flat side marks the − leg
+        shade(dome, rim);
+        el("path", { d: rim, fill: dead ? "#2a1d1d" : L.dome[2], stroke: dead ? "#140c0c" : L.edge, "stroke-width": 1.2 }, dome);
+        r.body = el("path", { d: top, fill: dead ? "url(#domeDead)" : L.dome[1] }, dome);
+        if (!dead) {
+          r.shine = el("path", { d: top, fill: L.glow[0], opacity: 0 }, dome);                  // lights up with the current
+          el("ellipse", { cx: -5, cy: -4.5, rx: 3.6, ry: 5.6, fill: "#fff", opacity: 0.55, transform: "rotate(35 -5 -4.5)" }, dome);
+        } else el("path", { d: "M-6 -6 l4 5 l-3 4 l5 4", stroke: "#111", "stroke-width": 1.4, fill: "none" }, dome);
+        r.core = el("circle", { cx: -1, cy: 0, r: 4, fill: "#fff6e0", opacity: 0 }, dome);
         el("text", { x: a[0] - 4, y: a[1] + 17, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";
         break;
       }
       case "cap": {
         leg(g, a, mid); leg(g, b, mid);
-        if (A.has("cap_top")) {
-          const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
-          sprite(g, dead ? "cap_vented" : "cap_top", mid[0], mid[1], part.value >= 1e-3 ? 34 : part.value >= 1e-4 ? 26 : 20, ang);
-          el("text", { x: a[0] - 4, y: a[1] + 19, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";
-          break;
-        }
-        const big = part.value >= 1e-3, rr = big ? 15 : 11;
-        el("circle", { cx: mid[0] + 2, cy: mid[1] + 3, r: rr, fill: "rgba(0,0,0,.35)" }, g);
-        r.body = el("circle", { cx: mid[0], cy: mid[1], r: rr, fill: dead ? "#2c2f36" : "url(#capTop)", stroke: "#162650", "stroke-width": 1 }, g);
-        const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
-        const sx = mid[0] + Math.cos(ang) * rr * 0.62, sy = mid[1] + Math.sin(ang) * rr * 0.62;
-        el("circle", { cx: sx, cy: sy, r: rr * 0.32, fill: "#c9d4ee", opacity: 0.85 }, g);
-        el("path", { d: `M${mid[0] - rr * 0.5} ${mid[1]}h${rr}M${mid[0]} ${mid[1] - rr * 0.5}v${rr}`, stroke: dead ? "#ffb08a" : "#aab8dd", "stroke-width": 1.4, opacity: 0.8 }, g);
+        const rr = part.value >= 1e-3 ? 16 : part.value >= 1e-4 ? 13 : 11, ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+        el("circle", { cx: mid[0] + 2, cy: mid[1] + 3, r: rr, fill: "rgba(4, 10, 20, .32)" }, g);
+        r.body = el("circle", { cx: mid[0], cy: mid[1], r: rr, fill: dead ? "#2c2f36" : "#3a63d6", stroke: dead ? "#14161a" : "#1c3474", "stroke-width": 1.4 }, g);
+        // the light stripe marks the − side
+        const sx = mid[0] + Math.cos(ang) * rr * 0.58, sy = mid[1] + Math.sin(ang) * rr * 0.58;
+        el("circle", { cx: sx, cy: sy, r: rr * 0.34, fill: dead ? "#4a4d55" : "#c9d6f6" }, g);
+        el("circle", { cx: mid[0] - rr * 0.3, cy: mid[1] - rr * 0.32, r: rr * 0.22, fill: "#fff", opacity: dead ? 0 : 0.35 }, g);
+        el("path", { d: `M${mid[0] - rr * 0.45} ${mid[1]}h${rr * 0.9}M${mid[0]} ${mid[1] - rr * 0.45}v${rr * 0.9}`, stroke: dead ? "#ffb08a" : "#9fb4ea", "stroke-width": 1.5, opacity: 0.85 }, g);
         el("text", { x: a[0] - 4, y: a[1] + 19, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";
         break;
       }
       case "ldr": {
         leg(g, a, b);
-        if (A.has("ldr")) { sprite(g, "ldr", mid[0], mid[1], 24); break; }
-        el("circle", { cx: mid[0] + 1.5, cy: mid[1] + 2.5, r: 10, fill: "rgba(0,0,0,.35)" }, g);
-        r.body = el("circle", { cx: mid[0], cy: mid[1], r: 10, fill: "#e9c46a", stroke: "#a67c2a" }, g);
-        el("path", { d: `M${mid[0] - 7} ${mid[1] - 3}h3v6h3v-6h3v6h3v-6h3`, stroke: "#8b3a1a", "stroke-width": 1.4, fill: "none" }, g);
+        el("circle", { cx: mid[0] + 2, cy: mid[1] + 3, r: 11, fill: "rgba(4, 10, 20, .32)" }, g);
+        r.body = el("circle", { cx: mid[0], cy: mid[1], r: 11, fill: "#f0c85c", stroke: "#a67c2a", "stroke-width": 1.4 }, g);
+        el("path", { d: `M${mid[0] - 7} ${mid[1] - 3}h3v6h3v-6h3v6h3v-6h3`, stroke: "#8b3a1a", "stroke-width": 1.6, fill: "none", "stroke-linejoin": "round" }, g);
+        el("circle", { cx: mid[0] - 4, cy: mid[1] - 5, r: 2.4, fill: "#fff", opacity: 0.45 }, g);
         break;
       }
       case "pot": {
         const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-        if (A.has("pot_body")) {
-          const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-          sprite(g, "pot_body", cx, cy, 58, 0, { opacity: dead ? 0.55 : 1 });
-          const knob = el("g", { class: "ctl", "data-ctl": "knob", "data-id": part.id }, g);
-          el("circle", { cx, cy, r: 14, fill: "transparent" }, knob);
-          const ang = (-135 + 270 * (part.pos ?? 0.5)) * Math.PI / 180;
-          r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 9, y2: cy - Math.cos(ang) * 9, stroke: "#5b6066", "stroke-width": 3, "stroke-linecap": "round" }, knob);
-          break;
-        }
-        const x0 = Math.min(...xs) - 14, x1 = Math.max(...xs) + 14, y0 = Math.min(...ys) - 16, y1 = Math.max(...ys) + 16;
-        el("rect", { x: x0 + 2, y: y0 + 3, width: x1 - x0, height: y1 - y0, rx: 5, fill: "rgba(0,0,0,.35)" }, g);
-        r.body = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 5, fill: dead ? "#2b2f36" : C.pot, stroke: "#123a6b" }, g);
+        const x0 = Math.min(...xs) - 15, x1 = Math.max(...xs) + 15, y0 = Math.min(...ys) - 18, y1 = Math.max(...ys) + 16;
+        el("rect", { x: x0 + 2, y: y0 + 3, width: x1 - x0, height: y1 - y0, rx: 9, fill: "rgba(4, 10, 20, .32)" }, g);
+        r.body = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 9, fill: dead ? "#2b2f36" : "#2f6fd0", stroke: "#173a75", "stroke-width": 1.4 }, g);
         const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
         const knob = el("g", { class: "ctl", "data-ctl": "knob", "data-id": part.id }, g);
-        el("circle", { cx, cy, r: 13, fill: "#e9ecef", stroke: "#9aa3a8" }, knob);
+        el("circle", { cx, cy, r: 14, fill: "#eef1f4", stroke: "#8f9aa5", "stroke-width": 1.4 }, knob);
+        el("circle", { cx: cx - 4, cy: cy - 5, r: 4, fill: "#fff", opacity: 0.7 }, knob);
         const ang = (-135 + 270 * (part.pos ?? 0.5)) * Math.PI / 180;
-        r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 10, y2: cy - Math.cos(ang) * 10, stroke: "#333", "stroke-width": 2.5, "stroke-linecap": "round" }, knob);
+        r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 10, y2: cy - Math.cos(ang) * 10, stroke: "#26303a", "stroke-width": 3, "stroke-linecap": "round" }, knob);
         break;
       }
       case "npn": {
         const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-        if (A.has("npn_to92")) {
-          const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = Math.min(...ys);
-          sprite(g, dead ? "npn_burnt" : "npn_to92", cx, cy, 54);
-          ["C", "B", "E"].forEach((t, k) => el("text", { x: pts[k][0], y: cy + 31, "text-anchor": "middle", fill: "#e9ecef", stroke: "#111", "stroke-width": 2.5, "paint-order": "stroke", "font-family": "IBM Plex Mono, monospace", "font-size": 10, "font-weight": 600 }, g).textContent = t);
-          break;
-        }
-        const x0 = Math.min(...xs) - 12, x1 = Math.max(...xs) + 12, yc = Math.min(...ys);
-        r.body = el("path", { d: `M${x0} ${yc - 12}H${x1}V${yc + 2}Q${(x0 + x1) / 2} ${yc + 26} ${x0} ${yc + 2}Z`, fill: dead ? "#3a2a22" : C.npn, stroke: "#000", filter: "url(#shadow)" }, g);
+        const x0 = Math.min(...xs) - 13, x1 = Math.max(...xs) + 13, yc = Math.min(...ys);
+        const d = `M${x0} ${yc - 13}H${x1}V${yc + 2}Q${(x0 + x1) / 2} ${yc + 27} ${x0} ${yc + 2}Z`;
+        shade(g, d);
+        r.body = el("path", { d, fill: dead ? "#3a2a22" : "#2b3038", stroke: "#0c0e11", "stroke-width": 1.4 }, g);
+        el("rect", { x: x0 + 3, y: yc - 10, width: x1 - x0 - 6, height: 4, rx: 2, fill: "#fff", opacity: 0.12 }, g);
         ["C", "B", "E"].forEach((t, k) => el("text", { x: pts[k][0], y: yc + 5, "text-anchor": "middle", fill: "#e9ecef", "font-family": "IBM Plex Mono, monospace", "font-size": 10, "font-weight": 600 }, g).textContent = t);
         if (dead) el("circle", { cx: (x0 + x1) / 2, cy: yc, r: 6, fill: "#5a3a2a", opacity: 0.8 }, g);
         break;
       }
       case "button": {
         const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-        if (A.has("button")) {
-          const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-          sprite(g, "button", cx, cy, 70);
-          const cap = el("g", { class: "ctl", "data-ctl": "press", "data-id": part.id }, g);
-          r.cap = el("circle", { cx, cy, r: 15, fill: part.pressed ? "rgba(0,0,0,.45)" : "transparent" }, cap);
-          break;
-        }
-        const x0 = Math.min(...xs) - 11, x1 = Math.max(...xs) + 11, y0 = Math.min(...ys) - 11, y1 = Math.max(...ys) + 11;
-        el("rect", { x: x0 + 2, y: y0 + 3, width: x1 - x0, height: y1 - y0, rx: 4, fill: "rgba(0,0,0,.35)" }, g);
-        r.body = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 4, fill: C.btn, stroke: "#1b1e21" }, g);
-        const cap = el("g", { class: "ctl", "data-ctl": "press", "data-id": part.id }, g);
-        r.cap = el("circle", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, r: Math.min(x1 - x0, y1 - y0) * 0.3, fill: part.pressed ? "#6b737a" : "#9aa3a8", stroke: "#2b3035" }, cap);
+        const x0 = Math.min(...xs) - 12, x1 = Math.max(...xs) + 12, y0 = Math.min(...ys) - 12, y1 = Math.max(...ys) + 12;
+        el("rect", { x: x0 + 2, y: y0 + 3, width: x1 - x0, height: y1 - y0, rx: 8, fill: "rgba(4, 10, 20, .32)" }, g);
+        r.body = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 8, fill: "#2b3038", stroke: "#0c0e11", "stroke-width": 1.4 }, g);
+        const cap = el("g", { class: "ctl", "data-ctl": "press", "data-id": part.id }, g), rc = Math.min(x1 - x0, y1 - y0) * 0.3;
+        r.cap = el("circle", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, r: rc, fill: part.pressed ? "#c23a3a" : "#ff5a5a", stroke: "#7a1d1d", "stroke-width": 1.4 }, cap);
+        el("circle", { cx: (x0 + x1) / 2 - rc * 0.3, cy: (y0 + y1) / 2 - rc * 0.35, r: rc * 0.3, fill: "#fff", opacity: part.pressed ? 0.15 : 0.45 }, cap);
         break;
       }
       case "battery": drawBattery(g, part, pts, r, dead); break;
@@ -375,23 +341,29 @@
     return r;
   }
 
+  // The battery pack: a flat dark box with its AA cells, a switch, and two leads into the board.
+  const BAT = { W: 230, H: 104 };
   function drawBattery(g, part, pts, r, dead) {
-    if (A.has("battery_holder")) return drawBatterySprite(g, part, pts, r, dead);
-    const bx = part.bx ?? 40, by = part.by ?? -150, W = 210, H = 74;
+    const bx = part.bx ?? 40, by = part.by ?? -150, { W, H } = BAT, cells = part.cells || 4;
     const body = el("g", { "data-body": part.id }, g);
-    el("rect", { x: bx + 3, y: by + 5, width: W, height: H, rx: 8, fill: "rgba(0,0,0,.4)" }, body);
-    el("rect", { x: bx, y: by, width: W, height: H, rx: 8, fill: "#24282c", stroke: "#0f1113" }, body);
-    for (let k = 0; k < (part.cells || 4); k++) {
-      const cy = by + 10 + k * 14;
-      el("rect", { x: bx + 34, y: cy, width: 140, height: 12, rx: 5, fill: dead ? "#4a3c2a" : k % 2 ? "#5b6066" : "#c1661c", stroke: "#0f1113", "stroke-width": 0.8 }, body);
-      el("rect", { x: bx + (k % 2 ? 34 : 168), y: cy + 3, width: 6, height: 6, fill: "#c9ced3" }, body);
+    el("rect", { x: bx + 3, y: by + 5, width: W, height: H, rx: 18, fill: "rgba(4, 10, 20, .4)" }, body);
+    el("rect", { x: bx, y: by, width: W, height: H, rx: 18, fill: "#1a2433", stroke: "#2e3e54", "stroke-width": 2 }, body);
+    for (let k = 0; k < 4; k++) {                       // four slots; a 2×AA pack leaves two empty
+      const cx = bx + 16 + k * 36, full = k < cells;
+      el("rect", { x: cx, y: by + 14, width: 28, height: H - 28, rx: 12, fill: full ? "#2b313a" : "#121a25", stroke: full ? "none" : "#26354a", "stroke-dasharray": full ? null : "4 3" }, body);
+      if (!full) continue;
+      el("rect", { x: cx, y: by + (k % 2 ? 14 : H / 2), width: 28, height: H / 2 - 14, rx: 12, fill: dead ? "#5a4630" : "#ee9a3c" }, body);
+      el("rect", { x: cx + 5, y: by + 18, width: 5, height: H - 36, rx: 2.5, fill: "#fff", opacity: 0.18 }, body);
     }
+    const on = part.on !== false, sx = bx + W - 40, sy = by + 22;
     const sw = el("g", { class: "ctl", "data-ctl": "switch", "data-id": part.id }, body);
-    el("rect", { x: bx + 182, y: by + 20, width: 20, height: 34, rx: 4, fill: "#111" }, sw);
-    r.sw = el("rect", { x: bx + 185, y: by + (part.on !== false ? 23 : 37), width: 14, height: 14, rx: 3, fill: part.on !== false ? "#6fdc8c" : "#7b8288" }, sw);
-    el("text", { x: bx + 8, y: by + 42, fill: "#9aa3a8", "font-family": "IBM Plex Mono, monospace", "font-size": 10, transform: `rotate(-90 ${bx + 12} ${by + 40})` }, body).textContent = "4×AA";
-    // leads
-    leads(g, [[bx + 60, by + H], [bx + 110, by + H]], pts, part, ["#d64545", "#1a1a1a"], 60, r);
+    el("rect", { x: sx - 24, y: sy - 13, width: 48, height: 26, rx: 13, fill: on ? "#22a65a" : "#3a4552", stroke: "#0c1118", "stroke-width": 1.4 }, sw);
+    r.sw = el("circle", { cx: sx + (on ? 11 : -11), cy: sy, r: 9.5, fill: on ? "#dfffe9" : "#aeb7c0" }, sw);
+    el("text", { x: sx, y: sy + 30, "text-anchor": "middle", fill: on ? "#8ff0b4" : "#93a6b8", "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, body).textContent = on ? "ON" : "OFF";
+    el("text", { x: sx, y: by + H - 14, "text-anchor": "middle", fill: "#93a6b8", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, body).textContent = `${cells}×AA`;
+    if (dead) el("text", { x: bx + W / 2 - 20, y: by + H / 2 + 5, "text-anchor": "middle", fill: "#ffb08a", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body).textContent = "LEAKING";
+    const ly = by > Y.j ? by + 10 : by + H - 8;          // below the board, the leads leave from the pack's top edge
+    leads(g, [[bx + W * 0.3, ly], [bx + W * 0.45, ly]], pts, part, ["#e04848", "#151a20"], 60, r);
   }
 
   // Battery leads from the holder to their holes. r.leads keeps each lead's path (holder → hole) for the current flow.
@@ -407,64 +379,6 @@
       el("rect", { x: end[0] - 3, y: end[1] - 3, width: 6, height: 6, fill: "#b8bec4" }, g);
       el("circle", { cx: end[0], cy: end[1], r: 9, fill: "transparent", class: "lead-end", "data-handle": k, "data-id": part.id, style: "cursor:grab" }, g);
     });
-  }
-
-  function drawBatterySprite(g, part, pts, r, dead) {
-    const bx = part.bx ?? 40, by = part.by ?? -150, W = 230, [iw, ih] = A.size("battery_holder"), H = (W * ih) / iw;
-    const body = el("g", { "data-body": part.id }, g);
-    el("image", { href: A.url("battery_holder"), x: bx, y: by, width: W, height: H, preserveAspectRatio: "none", opacity: dead ? 0.6 : 1 }, body);
-    if (part.cells && part.cells < 4) {        // a smaller pack: the slots after the first two are empty
-      el("rect", { x: bx + 0.285 * W, y: by + 0.1 * H, width: 0.525 * W, height: 0.69 * H, rx: 6, fill: "#16191c", stroke: "#0b0d0e" }, body);
-      for (let k = 0; k < 4; k++) el("rect", { x: bx + (0.3 + k * 0.128) * W, y: by + 0.14 * H, width: 0.1 * W, height: 0.6 * H, rx: 5, fill: "#1e2226" }, body);
-    }
-    const [sx, sy] = A.anchor("battery_holder").switch || [0.83, 0.12];
-    const sw = el("g", { class: "ctl", "data-ctl": "switch", "data-id": part.id }, body);
-    const on = part.on !== false;
-    el("rect", { x: bx + sx * W - 20, y: by + sy * H - 9, width: 40, height: 18, rx: 9, fill: on ? "#1f6b3a" : "#3a3f44", stroke: "#0b0d0e" }, sw);
-    r.sw = el("circle", { cx: bx + sx * W + (on ? 10 : -10), cy: by + sy * H, r: 7, fill: on ? "#6fdc8c" : "#9aa3a8" }, sw);
-    el("text", { x: bx + sx * W, y: by + sy * H + 22, "text-anchor": "middle", fill: "#e9ecef", "font-family": "IBM Plex Mono, monospace", "font-size": 9 }, body).textContent = on ? "ON" : "OFF";
-    if (dead) el("text", { x: bx + W / 2, y: by + H / 2, "text-anchor": "middle", fill: "#ffb08a", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body).textContent = "LEAKING";
-    const ly = by > Y.j ? by + 10 : by + H - 10;      // below the board, the leads leave from the pack's top edge
-    leads(g, [[bx + W * 0.3, ly], [bx + W * 0.45, ly]], pts, part, ["#d64545", "#1a1a1a"], 60, r);
-  }
-
-  function drawMeterSprite(g, part, pts, r) {
-    const bx = part.bx ?? 60, by = part.by ?? 560, Wi = 270, [iw, ih] = A.size("meter_body"), Hi = (Wi * ih) / iw, an = A.anchor("meter_body");
-    const P_ = (fx, fy) => [bx + fx * Wi, by + fy * Hi];
-    const body = el("g", { "data-body": part.id }, g);
-    el("image", { href: A.url("meter_body"), x: bx, y: by, width: Wi, height: Hi, preserveAspectRatio: "none", "data-markbox": "" }, body);   // its outline, for marks
-    // live LCD
-    const [l0, t0] = P_(an.lcd[0], an.lcd[1]), [l1, t1] = P_(an.lcd[2], an.lcd[3]);
-    el("rect", { x: l0, y: t0, width: l1 - l0, height: t1 - t0, fill: "transparent", "data-lcd": part.id }, body);   // what Sparky points at
-    r.lcd = el("text", { x: l1 - 10, y: t1 - 16, "text-anchor": "end", fill: "#1a2418", "font-family": "IBM Plex Mono, monospace", "font-size": 34, "font-weight": 600 }, body);
-    r.lcdUnit = el("text", { x: l0 + 8, y: t0 + 16, fill: "#33452f", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body);
-    // rotating knob: a clipped copy of the sprite, turned to the selected mode
-    const [cx, cy] = P_(an.dial[0], an.dial[1]), kr = an.dial[2] * Wi;
-    const cid = `knob-${part.id}`;
-    const defs = el("clipPath", { id: cid }, body);
-    el("circle", { cx, cy, r: kr * 0.93 }, defs);
-    const cur = DIAL.find((d) => d[0] === (part.mode || "V")) || DIAL[1];
-    el("circle", { cx, cy, r: kr * 0.93, fill: "#2b2f33" }, body);
-    el("image", { href: A.url("meter_body"), x: bx, y: by, width: Wi, height: Hi, preserveAspectRatio: "none", "clip-path": `url(#${cid})`, transform: `rotate(${cur[2] - an.dialAngle} ${cx} ${cy})` }, body);
-    for (const [mode, lbl, deg] of DIAL) {
-      const a = (deg - 90) * Math.PI / 180, lx = cx + Math.cos(a) * (kr + 17), ly = cy + Math.sin(a) * (kr + 17);
-      const t = el("g", { class: "ctl", "data-ctl": `mode:${mode}`, "data-id": part.id }, body);
-      el("circle", { cx: lx, cy: ly, r: 14, fill: "transparent" }, t);
-      el("text", { x: lx, y: ly + 4, "text-anchor": "middle", fill: (part.mode || "V") === mode ? "#ffb547" : "#d6dade", "font-family": "IBM Plex Mono, monospace", "font-size": 12, "font-weight": 600 }, t).textContent = lbl;
-    }
-    // sockets
-    const sock = {};
-    for (const [k, [fx, fy]] of Object.entries(an.sockets)) {
-      const [sx, sy] = P_(fx, fy); sock[k] = [sx, sy];
-      const t = el("g", { class: k === "COM" ? "" : "ctl", "data-ctl": k === "COM" ? null : `socket:${k}`, "data-id": part.id }, body);
-      el("circle", { cx: sx, cy: sy, r: 13, fill: "transparent" }, t);
-      el("text", { x: sx, y: sy - 17, "text-anchor": "middle", fill: "#d6dade", "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, t).textContent = k === "VO" ? "VΩ" : k;
-    }
-    const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
-    lockCtls(body, part);
-    el("circle", { cx: from[0][0], cy: from[0][1], r: 5, fill: "#d64545" }, body);
-    el("circle", { cx: from[1][0], cy: from[1][1], r: 5, fill: "#1a1a1a" }, body);
-    probes(g, part, pts, from, r);
   }
 
   // Probe cables; r.leads keeps each cable's path (meter → probe tip) for the current flow.
@@ -484,39 +398,44 @@
   }
 
   const DIAL = [["off", "OFF", -60], ["V", "V⎓", -20], ["mA", "mA", 20], ["ohm", "Ω", 60], ["cont", "·)))", 100]];
+  // The multimeter: a flat yellow body, a dark face, a glowing display, the dial and three sockets.
+  const MTR = { W: 240, H: 340 };
   function drawMeter(g, part, pts, r) {
-    if (A.has("meter_body")) return drawMeterSprite(g, part, pts, r);
-    const bx = part.bx ?? 60, by = part.by ?? 560, W = 190, H = 270;
+    const bx = part.bx ?? 60, by = part.by ?? 560, { W, H } = MTR;
     const body = el("g", { "data-body": part.id }, g);
-    el("rect", { x: bx + 4, y: by + 6, width: W, height: H, rx: 18, fill: "rgba(0,0,0,.45)" }, body);
-    el("rect", { x: bx, y: by, width: W, height: H, rx: 18, fill: "#e5b622", stroke: "#8a6a0a", "stroke-width": 1.5 }, body);
-    el("rect", { x: bx + 10, y: by + 10, width: W - 20, height: H - 20, rx: 12, fill: "#23272b" }, body);
-    el("rect", { x: bx + 22, y: by + 22, width: W - 44, height: 52, rx: 5, fill: "#9db39a", "data-lcd": part.id }, body);
-    r.lcd = el("text", { x: bx + W - 30, y: by + 60, "text-anchor": "end", fill: "#1a2418", "font-family": "IBM Plex Mono, monospace", "font-size": 26, "font-weight": 600 }, body);
-    r.lcdUnit = el("text", { x: bx + 30, y: by + 40, fill: "#33452f", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, body);
-    // dial
-    const cx = bx + W / 2, cy = by + 146;
-    el("circle", { cx, cy, r: 40, fill: "#15181b", stroke: "#3a3f44", "stroke-width": 2 }, body);
+    el("rect", { x: bx + 4, y: by + 7, width: W, height: H, rx: 30, fill: "rgba(4, 10, 20, .4)" }, body);
+    el("rect", { x: bx, y: by, width: W, height: H, rx: 30, fill: "#ffc43d", stroke: "#b9800f", "stroke-width": 2.5, "data-markbox": "" }, body);   // its outline, for marks
+    el("rect", { x: bx + 6, y: by + 6, width: W - 12, height: 10, rx: 5, fill: "#fff", opacity: 0.3 }, body);
+    el("rect", { x: bx + 14, y: by + 18, width: W - 28, height: H - 32, rx: 22, fill: "#1c2633", stroke: "#0d131b", "stroke-width": 1.5 }, body);
+    // the display, glowing a little
+    el("rect", { x: bx + 28, y: by + 34, width: W - 56, height: 84, rx: 12, fill: "#0e2620", stroke: "#2c5a4b", "stroke-width": 1.5, "data-lcd": part.id }, body);
+    r.lcd = el("text", { "data-lcd-text": part.id, x: bx + W - 42, y: by + 98, "text-anchor": "end", fill: "#9dffc8", "font-family": "IBM Plex Mono, monospace", "font-size": 40, "font-weight": 600, style: "filter: drop-shadow(0 0 4px rgba(120, 255, 190, .55))" }, body);
+    r.lcdUnit = el("text", { x: bx + 40, y: by + 56, fill: "#6fd4a4", "font-family": "IBM Plex Mono, monospace", "font-size": 14, "font-weight": 600 }, body);
+    // the dial
+    const cx = bx + W / 2, cy = by + 196, kr = 44;
+    el("circle", { cx, cy, r: kr + 4, fill: "#121a24" }, body);
+    el("circle", { cx, cy, r: kr, fill: "#2b3644", stroke: "#0d131b", "stroke-width": 1.5 }, body);
+    el("circle", { cx: cx - 12, cy: cy - 14, r: 12, fill: "#fff", opacity: 0.06 }, body);
+    const cur = DIAL.find((d) => d[0] === (part.mode || "V")) || DIAL[1], pa = (cur[2] - 90) * Math.PI / 180;
+    el("line", { x1: cx, y1: cy, x2: cx + Math.cos(pa) * (kr - 6), y2: cy + Math.sin(pa) * (kr - 6), stroke: "#f2f5f8", "stroke-width": 6, "stroke-linecap": "round" }, body);
+    el("circle", { cx, cy, r: 9, fill: "#1c2633" }, body);
     for (const [mode, lbl, deg] of DIAL) {
-      const a = (deg - 90) * Math.PI / 180;
+      const an = (deg - 90) * Math.PI / 180, lx = cx + Math.cos(an) * (kr + 22), ly = cy + Math.sin(an) * (kr + 22);
       const t = el("g", { class: "ctl", "data-ctl": `mode:${mode}`, "data-id": part.id }, body);
-      el("circle", { cx: cx + Math.cos(a) * 58, cy: cy + Math.sin(a) * 58, r: 14, fill: "transparent" }, t);
-      el("text", { x: cx + Math.cos(a) * 58, y: cy + Math.sin(a) * 58 + 4, "text-anchor": "middle", fill: (part.mode || "V") === mode ? "#ffb547" : "#c9ced3", "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, t).textContent = lbl;
+      el("circle", { cx: lx, cy: ly, r: 15, fill: "transparent" }, t);
+      el("text", { x: lx, y: ly + 4.5, "text-anchor": "middle", fill: (part.mode || "V") === mode ? "#ffb547" : "#c9d3dd", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, t).textContent = lbl;
     }
-    const cur = DIAL.find((d) => d[0] === (part.mode || "V")) || DIAL[1];
-    const pa = (cur[2] - 90) * Math.PI / 180;
-    el("line", { x1: cx, y1: cy, x2: cx + Math.cos(pa) * 34, y2: cy + Math.sin(pa) * 34, stroke: "#e9ecef", "stroke-width": 5, "stroke-linecap": "round" }, body);
-    el("circle", { cx, cy, r: 10, fill: "#2b3035" }, body);
     // sockets: mA, COM, VΩ
-    const sock = { mA: [bx + 46, by + 236], COM: [bx + 95, by + 236], VO: [bx + 144, by + 236] };
+    const sock = { mA: [bx + 58, by + 294], COM: [bx + W / 2, by + 294], VO: [bx + W - 58, by + 294] };
     for (const [k, [sx, sy]] of Object.entries(sock)) {
       const t = el("g", { class: k === "COM" ? "" : "ctl", "data-ctl": k === "COM" ? null : `socket:${k}`, "data-id": part.id }, body);
-      el("circle", { cx: sx, cy: sy, r: 10, fill: "#0d0f11", stroke: k === "COM" ? "#555" : k === "mA" ? "#c9a227" : "#d64545", "stroke-width": 2 }, t);
-      el("text", { x: sx, y: sy - 15, "text-anchor": "middle", fill: "#c9ced3", "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, t).textContent = k === "VO" ? "VΩ" : k;
+      el("circle", { cx: sx, cy: sy, r: 14, fill: "#0a0e13", stroke: k === "COM" ? "#5b6672" : k === "mA" ? "#ffc43d" : "#ff5a5a", "stroke-width": 3 }, t);
+      el("text", { x: sx, y: sy - 21, "text-anchor": "middle", fill: "#c9d3dd", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, t).textContent = k === "VO" ? "VΩ" : k;
     }
     lockCtls(body, part);
-    // leads and probe tips
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
+    el("circle", { cx: from[0][0], cy: from[0][1], r: 6, fill: "#e04848" }, body);
+    el("circle", { cx: from[1][0], cy: from[1][1], r: 6, fill: "#151a20" }, body);
     probes(g, part, pts.map((p, k) => p || part.loose?.[k] || [bx + 60 + k * 70, by - 40]), from, r);
   }
 
