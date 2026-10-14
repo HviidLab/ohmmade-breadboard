@@ -123,6 +123,11 @@
         if (e.shiftKey || part.latch) G.set(id, "pressed", !part.pressed, true); else { G.set(id, "pressed", true); st = { kind: "press", id }; }
       }
       else if (ctl === "knob") st = { kind: "knob", id, y: e.clientY, pos0: part.pos ?? 0.5 };
+      else if (ctl === "cover") {                      // the light sensor: covered while held (Shift-click: stays covered)
+        const room = part.room ?? 200;
+        if (e.shiftKey) G.set(id, "lux", (part.lux ?? room) <= 5 ? room : 1, true);
+        else { part.room = part.lux > 5 ? part.lux : room; G.set(id, "lux", 1, true); st = { kind: "cover", id }; }
+      }
       else if (ctl.startsWith("pin:")) G.cyclePin(id, ctl.slice(4));
       capture(e); return;
     }
@@ -276,6 +281,7 @@
         break;
       case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id), 1); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
       case "press": G.set(s.id, "pressed", false); break;
+      case "cover": { const p = G.doc.get(s.id); if (p) G.set(s.id, "lux", p.room ?? 200, true); break; }
       case "knob": G.commitSoft(); break;
       case "probe": {
         const m = G.doc.get(s.id), now = m && m.legs[s.k];

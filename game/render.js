@@ -300,9 +300,15 @@
       case "ldr": {
         leg(g, a, b);
         el("circle", { cx: mid[0] + 2, cy: mid[1] + 3, r: 11, fill: "rgba(4, 10, 20, .32)" }, g);
-        r.body = el("circle", { cx: mid[0], cy: mid[1], r: 11, fill: "#f0c85c", stroke: "#a67c2a", "stroke-width": 1.4 }, g);
-        el("path", { d: `M${mid[0] - 7} ${mid[1] - 3}h3v6h3v-6h3v6h3v-6h3`, stroke: "#8b3a1a", "stroke-width": 1.6, fill: "none", "stroke-linejoin": "round" }, g);
-        el("circle", { cx: mid[0] - 4, cy: mid[1] - 5, r: 2.4, fill: "#fff", opacity: 0.45 }, g);
+        // press and hold to cover it with your hand (dark); Shift-click keeps it covered
+        const face = el("g", { class: "ctl", "data-ctl": "cover", "data-id": part.id }, g);
+        r.body = el("circle", { cx: mid[0], cy: mid[1], r: 11, fill: "#f0c85c", stroke: "#a67c2a", "stroke-width": 1.4 }, face);
+        el("path", { d: `M${mid[0] - 7} ${mid[1] - 3}h3v6h3v-6h3v6h3v-6h3`, stroke: "#8b3a1a", "stroke-width": 1.6, fill: "none", "stroke-linejoin": "round" }, face);
+        el("circle", { cx: mid[0] - 4, cy: mid[1] - 5, r: 2.4, fill: "#fff", opacity: 0.45 }, face);
+        if ((part.lux ?? 200) <= 5) {               // covered: a hand's shadow over it
+          el("circle", { cx: mid[0], cy: mid[1], r: 17, fill: "#0a1220", opacity: 0.72, "pointer-events": "none" }, g);
+          el("text", { x: mid[0], y: mid[1] - 21, "text-anchor": "middle", fill: "#cfe0f4", "font-family": "Fredoka, sans-serif", "font-size": 11, "font-weight": 600, "pointer-events": "none" }, g).textContent = "dark";
+        }
         break;
       }
       case "pot": {

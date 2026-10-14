@@ -48,6 +48,9 @@
     { id: "capPolarity", name: "Which way round", text: "An electrolytic capacitor is one-way: + leg to the + side, the striped − leg to the − side. Backwards it swells and vents." },
     { id: "npnSwitch", name: "The transistor", text: "A tiny current into the base (B) lets a big current flow from the collector (C) to the emitter (E). A transistor is a switch worked by a small current." },
     { id: "baseR", name: "The base resistor", text: "The base is like an LED inside: straight from + it takes far too much current and burns. A 10 kΩ lets in about half a milliamp, plenty to switch." },
+    { id: "ldr", name: "The light sensor", text: "A light sensor (LDR) is a resistor that reacts to light: about 2 kΩ in room light, 75 kΩ or more in the dark." },
+    { id: "ldrDivider", name: "A light meter", text: "Put a light sensor in a divider and its middle point follows the light: light becomes a push you can measure." },
+    { id: "nightLight", name: "The night light", text: "Feed a transistor's base from a divider with a light sensor: in the dark the base gets current and the LED comes on." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };

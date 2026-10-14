@@ -258,6 +258,23 @@
       return ln(20, 44, 40, 44) + resH(40, 70, 44, 4) + ln(70, 44, 86, 44) + npn(105, 44) + tick(150, 44) + tx(56, 26, "10 kΩ", { s: 15 }) +
         ln(20, 98, 86, 98) + npn(105, 98) + burst(126, 86, 11) + tx(170, 104, "pop!", { s: 18, c: RED }) + tx(52, 120, "straight from +", { s: 15 });
     },
+    // Chapter 10: sensors (the light sensor: a resistor in a circle, with arrows of light)
+    ldr: () => {
+      const ldr = (x, y, lit) => circ(x, y, 20, "#fffdf6") + resH(x - 14, x + 14, y, 4) + (lit ? arrow(x - 16, y - 24, 50, "#e0a21c") + ln(x - 30, y - 40, x - 17, y - 25, "#e0a21c", 2.2) +
+        arrow(x - 4, y - 26, 60, "#e0a21c") + ln(x - 14, y - 44, x - 5, y - 27, "#e0a21c", 2.2) : "");
+      return ldr(60, 60, true) + tx(60, 104, "light: 2 kΩ", { s: 17 }) + ldr(160, 60, false) + `<path d="M140 26 q20 -14 40 0 l4 24 h-48z" fill="#5c6b7c" opacity=".55"/>` +
+        tx(160, 104, "dark: 75 kΩ", { s: 17, c: "#a3360f" });
+    },
+    ldrDivider: () => ln(30, 16, 150, 16, RED, 2.4) + ln(30, 114, 150, 114, BLUE, 2.4) + ln(90, 16, 90, 26) + circ(90, 40, 13, "#fffdf6") + resV(90, 30, 50, 4) +
+      ln(90, 53, 90, 72) + resV(90, 72, 104, 6) + ln(90, 104, 90, 114) + circ(90, 62, 3.5, PEN) + probe([[93, 62], [150, 62]], RED) + meter(166, 62, "V") +
+      tx(188, 40, "light: 5 V", { s: 15 }) + tx(186, 96, "dark: 0.7 V", { s: 15, c: "#a3360f" }) + tx(50, 44, "sensor", { s: 14 }) + tx(52, 92, "10 kΩ", { s: 14 }),
+    nightLight: () => {
+      const x = 156, y = 84;
+      const npn = circ(x, y, 15, "#fffdf6") + ln(x - 7, y - 9, x - 7, y + 9, PEN, 3) + pl([[x - 7, y - 3], [x, y - 10], [x, y - 15]]) + pl([[x - 7, y + 3], [x, y + 10], [x, y + 15]]);
+      return ln(30, 12, 196, 12, RED, 2.2) + ln(30, 122, 196, 122, BLUE, 2.2) + ln(x, 12, x, 20) + resV(x, 20, 36, 4) + ledV(x, 46, true, true) + ln(x, 53, x, y - 15) + npn +
+        ln(x, y + 15, x, 122) + ln(70, 12, 70, 24) + resV(70, 24, 60, 5) + ln(70, 60, 70, y) + ln(70, y, x - 7 - 15, y) + circ(70, 100, 11, "#fffdf6") + resV(70, 92, 108, 3) +
+        ln(70, y, 70, 89) + ln(70, 111, 70, 122) + tx(40, 46, "100 kΩ", { s: 14 }) + tx(36, 104, "sensor", { s: 14 }) + tx(196, 50, "on in", { s: 15, c: "#a3360f" }) + tx(196, 66, "the dark", { s: 15, c: "#a3360f" });
+    },
   };
 
   function diagram(id) {

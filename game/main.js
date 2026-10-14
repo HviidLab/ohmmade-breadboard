@@ -435,6 +435,7 @@
         else if (st.ctl) G.set(st.ctl, "on", G.doc.get(st.ctl).on === false, true);
         else if (st.cells) G.set(st.cells, "cells", (G.doc.get(st.cells).cells || 4) === 4 ? 2 : 4, true);
         else if (st.knob) { G.set(own(st.knob), "pos", st.pos); G.commitSoft(); }
+        else if (st.cover) G.set(own(st.cover), "lux", st.on === false ? 200 : 1, true);
         else if (st.press) { const id = own(st.press), b = G.doc.get(id); G.set(id, "pressed", st.on ?? !b.pressed, true); }
         else if (st.replace) G.replace(st.replace);
         else if (st.move) { const id = own(st.move); if (G.check({ kind: "move", id })) { G.edit(() => { G.doc.get(id).legs = st.to.slice(); }); G.emit("move", { id }); } }
