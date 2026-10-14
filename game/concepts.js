@@ -30,6 +30,11 @@
     { id: "chooseR", name: "Choosing a resistor", text: "For the current you want: resistor = (battery − LED) ÷ current. 4 V ÷ 10 mA = 400 Ω, so take the nearest size, 390 Ω." },
     { id: "ledColours", name: "LED colours", text: "Each colour takes its own push: red about 2 V, yellow and green a little more, blue and white about 3 V. So they need different resistors." },
     { id: "ledMax", name: "The 20 mA limit", text: "A small LED is made for 20 mA at most. Far above that it pops. The smallest safe resistor is (battery − LED) ÷ 20 mA." },
+    { id: "seriesR", name: "Resistors in a row", text: "Resistors in a row add up: 1 kΩ + 1 kΩ = 2 kΩ. The same current goes through all of them." },
+    { id: "seriesShare", name: "Sharing out the push", text: "In a row, the parts share out the battery's push: the bigger resistor takes the bigger share. The shares add up to the battery." },
+    { id: "parallelV", name: "Side by side", text: "Parts side by side, each from the same + to the same −, all get the whole push of the battery." },
+    { id: "parallelI", name: "Branches add up", text: "Side by side, each branch takes its own current, and the battery supplies the sum: 6 mA + 3 mA = 9 mA." },
+    { id: "ownResistor", name: "One resistor per LED", text: "LEDs side by side get the same push, so the one that needs the least takes all the current. Give every LED its own resistor." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };
