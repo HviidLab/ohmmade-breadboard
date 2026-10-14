@@ -1,6 +1,7 @@
 // Coach: runs a level's beats. Each beat is one short mentor line, an optional highlight, and something to wait for:
 // a Continue click, a prediction, an action by the player (an event), or a state of the circuit (`when`).
-// Also the hint ladder, bonus objectives, plain-language messages for failures, and local telemetry. No DOM:
+// Also the hint ladder (only when the player presses Hint: never on a timer, so there is time to think), bonus
+// objectives, plain-language messages for failures, and local telemetry. No DOM:
 // the screen side (coachui.js) passes in `hooks`, and the tests pass in a stub.
 //
 // beat = { id, say: "text" | (coach) => "text", highlight, do: {xray}, allow: {...rules},
@@ -9,7 +10,6 @@
 // level.bonus = [{ text, when: (S, mem, coach) => bool } | { text, final: (coach) => bool }]
 (function (BB) {
   "use strict";
-  const HINT_AT = [15, 30, 45];          // seconds without a successful action before each hint step
 
   // Plain words for failures, for players who have not met the numbers yet.
   const PLAIN = {
@@ -88,8 +88,6 @@
         this.held = ok ? this.held + dt : 0;
         if (this.held >= (w.hold ?? 0.3)) { this.advance(); return; }
       }
-      const hs = this.beat.hints || [];
-      if (this.hint < hs.length && this.idle >= (hs[this.hint].after ?? HINT_AT[this.hint] ?? 60)) this.showHint();
     }
     showHint() {
       const b = this.beat, hs = (b && b.hints) || [];
@@ -145,5 +143,5 @@
     }
   }
 
-  BB.Coach = { CoachRun, SHORT, METER, PLAIN, HINT_AT };
+  BB.Coach = { CoachRun, SHORT, METER, PLAIN };
 })(window.BB = window.BB || {});

@@ -363,7 +363,7 @@
           beats: [
             { id: "case", say: V.say("This one should light, but it doesn't. Use the meter to find out why, then fix it.",
               "A dark LED, and no idea why. Find the fault with the meter, then fix it."),
-              hints: [{ say: "Measure volts across each part and each join. Where almost the whole push shows up, look closely.", after: 600 }, { say: V.L.hint, after: 900 }],
+              hints: [{ say: "Measure volts across each part and each join. Where most of the push shows up, look closely." }, { say: V.L.hint }],
               waitFor: { when: ok } },
             FINISH("Case closed. Measure first, then change things: that is how you fix any circuit."),
           ],
