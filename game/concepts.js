@@ -38,6 +38,10 @@
     { id: "divider", name: "The middle point", text: "Two resistors in a row make a middle point at part of the push: 6 V × lower ÷ total. Two equal ones give half: 3 V." },
     { id: "potKnob", name: "The knob", text: "A potentiometer is a middle point you can move. Its ends go to + and −; turning the knob slides the middle leg from 0 V to the full push." },
     { id: "dimmer", name: "A dimmer", text: "A knob in an LED's loop changes the current, so the brightness. Keep a fixed resistor in the loop too: at one end the knob is almost 0 Ω." },
+    { id: "buttonLoop", name: "The push button", text: "A push button closes the loop only while it is pressed. Let go, and the loop opens again." },
+    { id: "buttonLegs", name: "A button's four legs", text: "The two legs in the same row are always joined; pressing joins the two rows. So a button sits across the centre gap." },
+    { id: "buttonsAnd", name: "Both buttons (AND)", text: "Two buttons in a row: the current must pass both, so the light needs this one AND that one pressed." },
+    { id: "buttonsOr", name: "Either button (OR)", text: "Two buttons side by side: each gives the current its own path, so this one OR that one is enough." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };

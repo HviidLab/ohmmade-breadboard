@@ -202,6 +202,30 @@
     dimmer: () => current(loopPath, 18) + pl([[X0, YM - 5], [X0, Y0], [64, Y0]]) + resH(64, 96, Y0, 5) + pl([[96, Y0], [118, Y0]]) + resH(118, 158, Y0, 6) +
       pl([[132, 8], [138, 20]], PEN, 2.2) + arrow(139, 21, 60, PEN) + pl([[158, Y0], [X1, Y0], [X1, YM - 7]]) + pl([[X1, YM + 7], [X1, Y1], [X0, Y1], [X0, YM + 4]]) +
       battery(X0, YM) + ledV(X1, YM, true, true) + tx(80, 50, "keep me!", { s: 16, c: RED }) + tx(140, 50, "the knob", { s: 16 }) + tx(110, 124, "a dimmer, with a fixed resistor", { s: 15 }),
+    // Chapter 7: buttons (a push button: two contacts, and a bar above them that presses down)
+    buttonLoop: () => {
+      const btn = (x1, x2, y, down) => circ(x1, y, 3, PEN) + circ(x2, y, 3, PEN) + ln(x1 - 2, down ? y - 3 : y - 14, x2 + 2, down ? y - 3 : y - 14, PEN, 2.6) +
+        ln((x1 + x2) / 2, down ? y - 3 : y - 14, (x1 + x2) / 2, down ? y - 14 : y - 25, PEN, 2.2);
+      return current(loopPath) + pl([[X0, YM - 5], [X0, Y0], [X1, Y0], [X1, YM - 7]]) + pl([[X1, YM + 7], [X1, Y1], [126, Y1]]) + pl([[94, Y1], [X0, Y1], [X0, YM + 4]]) +
+        btn(97, 123, Y1, true) + battery(X0, YM) + ledV(X1, YM) + tx(110, 124, "lights while you press", { s: 16 });
+    },
+    buttonLegs: () => `<rect x="70" y="30" width="80" height="64" rx="10" fill="#efe7d4" stroke="${PEN}" stroke-width="2"/>` + circ(110, 62, 16, "#ff8a7a") +
+      [[64, 40], [156, 40], [64, 84], [156, 84]].map(([x, y]) => ln(x < 110 ? 70 : 150, y, x < 110 ? 54 : 166, y, PEN, 3)).join("") +
+      `<path d="M54 40 C34 40 34 40 34 40" fill="none"/>` + ln(46, 34, 174, 34, "#a3360f", 2) + ln(46, 90, 174, 90, "#a3360f", 2) +
+      tx(110, 22, "always joined", { s: 16, c: "#a3360f" }) + tx(110, 112, "always joined", { s: 16, c: "#a3360f" }) + tx(196, 66, "press:", { s: 15 }) + tx(196, 82, "rows join", { s: 15 }) +
+      `<rect x="107" y="4" width="6" height="122" fill="#d9cfb8" opacity=".7"/>` + tx(24, 66, "gap", { s: 15 }),
+    buttonsAnd: () => {
+      const btn = (x, y) => circ(x - 12, y, 3, PEN) + circ(x + 12, y, 3, PEN) + ln(x - 14, y - 3, x + 14, y - 3, PEN, 2.6) + ln(x, y - 3, x, y - 14, PEN, 2.2);
+      return current(loopPath) + pl([[X0, YM - 5], [X0, Y0], [X1, Y0], [X1, YM - 7]]) + pl([[X1, YM + 7], [X1, Y1], [150, Y1]]) + btn(138, Y1) + pl([[126, Y1], [96, Y1]]) +
+        btn(84, Y1) + pl([[72, Y1], [X0, Y1], [X0, YM + 4]]) + battery(X0, YM) + ledV(X1, YM) + tx(108, 66, "this AND that", { s: 19, c: "#a3360f" });
+    },
+    buttonsOr: () => {
+      const btn = (x, y) => circ(x - 12, y, 3, PEN) + circ(x + 12, y, 3, PEN) + ln(x - 14, y - 3, x + 14, y - 3, PEN, 2.6) + ln(x, y - 3, x, y - 14, PEN, 2.2);
+      return current([[X0, YM - 10], [X0, Y0], [X1, Y0], [X1, Y1], [126, Y1], [94, Y1], [X0, Y1], [X0, YM + 12]]) + pl([[X0, YM - 5], [X0, Y0], [X1, Y0], [X1, YM - 7]]) +
+        pl([[X1, YM + 7], [X1, Y1], [124, Y1]]) + btn(110, Y1) + pl([[96, Y1], [X0, Y1], [X0, YM + 4]]) +
+        pl([[150, Y1], [150, 82], [124, 82]]) + `<g opacity=".9">${circ(98, 82, 3, PEN) + circ(122, 82, 3, PEN) + ln(96, 68, 124, 68, PEN, 2.6) + ln(110, 68, 110, 57, PEN, 2.2)}</g>` +
+        pl([[96, 82], [70, 82], [70, Y1]]) + battery(X0, YM) + ledV(X1, YM) + tx(110, 46, "this OR that", { s: 20, c: "#a3360f" });
+    },
   };
 
   function diagram(id) {

@@ -119,7 +119,9 @@
       else if (ctl === "cells") G.set(id, "cells", (part.cells || 4) === 4 ? 2 : 4, true);      // two cells in or out: 3 V ↔ 6 V
       else if (ctl.startsWith("mode:")) G.set(id, "mode", ctl.slice(5), true);
       else if (ctl.startsWith("socket:")) G.set(id, "socket", ctl.slice(7), true);
-      else if (ctl === "press") { if (e.shiftKey) G.set(id, "pressed", !part.pressed, true); else { G.set(id, "pressed", true); st = { kind: "press", id }; } }
+      else if (ctl === "press") {                      // held down while the mouse is; Shift-click, or a latching button, stays down
+        if (e.shiftKey || part.latch) G.set(id, "pressed", !part.pressed, true); else { G.set(id, "pressed", true); st = { kind: "press", id }; }
+      }
       else if (ctl === "knob") st = { kind: "knob", id, y: e.clientY, pos0: part.pos ?? 0.5 };
       else if (ctl.startsWith("pin:")) G.cyclePin(id, ctl.slice(4));
       capture(e); return;
@@ -313,7 +315,7 @@
     if (d.type === "cap") part.value = d.value;
     if (d.type === "pot") part.pos = 0.5;
     if (d.type === "ldr") part.lux = 200;
-    if (d.type === "button") { part.pairs = "across"; part.pressed = false; }
+    if (d.type === "button") { part.pairs = "across"; part.pressed = false; if (G.level && G.level.rules && G.level.rules.latchButtons) part.latch = true; }
     if (d.type === "battery") { part.on = true; const [x] = R.xy(s.legs[0]); part.bx = x - 90; part.by = -170; }
     if (d.type === "wire") part.color = R.C.wires[wireColor++ % R.C.wires.length];
     G.add(part);
