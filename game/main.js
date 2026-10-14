@@ -71,8 +71,21 @@
     },
 
     // ---------- modes ----------
+    // The attempt going on now, for the playtest data: the steps so far and the one the player is on.
+    attempt() {
+      const C = G.coach;
+      if (G.mode !== "level" || !C || C.finished) return null;
+      const beats = C.tele.concat(C.beat ? [{ id: C.beat.id || String(C.i), t: +C.beatT.toFixed(1), hints: C.hint }] : []);
+      return { id: G.level.id, beat: C.beat ? C.beat.id || String(C.i) : "finish", t: +C.t.toFixed(1), beats };
+    },
+    // An attempt left without finishing (Restart, the map, another level, closing the page) is kept: that is where a player got stuck.
+    keepUnfinished() {
+      const a = G.attempt();
+      if (a && a.t >= 5) St.update((s) => { const t = s.telemetry[a.id] = s.telemetry[a.id] || { attempts: 1 }; t.unfinished = a; });
+    },
     leaveLevel() {
       if (G.mode !== "level") return;
+      G.keepUnfinished();
       G.level = null; G.rules = null; G.coach = null; G.run = null;
       R.region(null); R.guide(null); R.setInsets(null); R.setCtlLock(null);
       BB.Flow.xray(false);
@@ -123,6 +136,7 @@
         for (const c of lv.teaches) if (!s.notebook.includes(c)) s.notebook.push(c);
         const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 1 };
         t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele };
+        delete t.unfinished;
       });
       BB.trail(`level ${lv.id} complete, ${res.stars} stars`);
       BB.CoachUI.mood("happy", 2000);
@@ -295,6 +309,7 @@
     G.redraw(); G.refreshPanels(true);
     requestAnimationFrame(() => { if (G.mode !== "level") R.fit(); });
     window.addEventListener("resize", () => (G.mode === "level" ? G.fitLevel() : R.refit()));
+    window.addEventListener("pagehide", () => G.keepUnfinished());
     if (St.get().settings.sound === false) G.setSound(false);
 
     $("undo").addEventListener("click", G.undo);

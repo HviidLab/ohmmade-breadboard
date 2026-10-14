@@ -67,7 +67,7 @@
     });
     // Hidden tuning overlay (the backquote key): per level, attempts, time and hints of the last finished attempt.
     // Kept on this computer only; nothing is sent anywhere.
-    window.addEventListener("keydown", (e) => { if (e.key === "`" && !e.target.matches("input, select, textarea")) telemetry(); });
+    window.addEventListener("keydown", (e) => { if ((e.key === "`" || e.code === "Backquote") && !e.target.matches("input, select, textarea")) telemetry(); });
   }
 
   // ---------- entering and leaving a level ----------
@@ -388,17 +388,14 @@
   // Ten times a second from the main loop.
   function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); }
 
+  // The playtest data as a small overlay (the backquote key); the pause menu and the map show it in full.
   function telemetry() {
     let box = $("telemetry");
     if (box) { box.remove(); return; }
-    const tl = BB.Store.get().telemetry || {};
     box = document.createElement("div");
     box.id = "telemetry";
     box.className = "telemetry";
-    box.innerHTML = `<h2>Playtest data (this computer only)</h2><table><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Slowest step</th></tr>${BB.Levels.all().map((l) => {
-      const t = tl[l.id] || {}, last = t.last, slow = last && last.beats.length ? last.beats.reduce((a, b) => (b.t > a.t ? b : a)) : null;
-      return `<tr><td>${l.id}</td><td>${t.attempts || 0}</td><td>${last ? `${last.t} s` : "—"}</td><td>${last ? last.hints : "—"}</td><td>${slow ? `${esc(slow.id)} (${slow.t} s)` : "—"}</td></tr>`;
-    }).join("")}</table><p>Press \` to close.</p>`;
+    box.innerHTML = `<h2>Playtest data (this computer only)</h2>${BB.LevelMap.playtestTable()}<p>Press \` to close. To copy it: Menu → Playtest data.</p>`;
     document.body.appendChild(box);
   }
 

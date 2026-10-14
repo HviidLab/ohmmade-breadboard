@@ -61,9 +61,10 @@
       <div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</p></div>
       ${ch}
       <section class="lm-coming"><h2>Coming next</h2><ul>${COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)).map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>
-      <div class="scr-row"><button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
+      <div class="scr-row"><button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-playtest">Playtest data</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
     host.querySelectorAll(".lm-node").forEach((b) => b.addEventListener("click", () => play(BB.Levels.get(b.dataset.id))));
     on(host, "#lm-notebook", () => notebook("map"));
+    on(host, "#lm-playtest", () => playtest("map"));
     on(host, "#lm-title", () => { hideAll(); BB.Title.show(); });
     try { history.replaceState(null, "", "#map"); } catch (e) { /* ignore */ }
   }
@@ -97,6 +98,7 @@
       <button type="button" class="btn" id="pz-notebook">Notebook</button>
       <button type="button" class="btn" id="pz-sound" aria-pressed="${sound}">Sound: ${sound ? "on" : "off"}</button>
       <button type="button" class="btn" id="pz-voice" aria-pressed="${BB.CoachUI.voiceOn}">Sparky's voice: ${BB.CoachUI.voiceOn ? "on" : "off"}</button>
+      <button type="button" class="btn" id="pz-playtest">Playtest data</button>
       <button type="button" class="btn" id="pz-title">Title screen</button></div></div>`, "#pz-resume");
     on(host, "#pz-resume", close);
     on(host, "#pz-restart", () => play(G.level));
@@ -104,6 +106,7 @@
     on(host, "#pz-notebook", () => notebook("pause"));
     on(host, "#pz-sound", () => { G.setSound(BB.Effects.muted); pause(); });
     on(host, "#pz-voice", () => { BB.CoachUI.setVoice(!BB.CoachUI.voiceOn); pause(); });
+    on(host, "#pz-playtest", () => playtest("pause"));
     on(host, "#pz-title", () => { hideAll(); BB.Title.show(); });
   }
 
@@ -118,11 +121,58 @@
     on(host, "#nb-back", () => (from === "pause" ? pause() : from === "map" ? showMap() : (hideAll(), BB.Title.show())));
   }
 
+  // ---------- playtest data ----------
+  // Per level played: attempts, the last finished attempt, and the last attempt left unfinished (or the one going on now).
+  // It stays on this computer; the player copies it to share it.
+  function playtestRows() {
+    const tl = BB.Store.get().telemetry || {}, now = G.attempt();
+    return BB.Levels.all().map((l) => {
+      const t = tl[l.id] || {};
+      const live = !!now && now.id === l.id;
+      return { id: l.id, title: l.title, attempts: t.attempts || 0, last: t.last || null, open: live ? now : t.unfinished || null, live };
+    }).filter((r) => r.attempts);
+  }
+  const slowest = (beats) => (beats && beats.length ? beats.reduce((a, b) => (b.t > a.t ? b : a)) : null);
+  const steps = (beats) => beats.map((b) => `${b.id} ${b.t} s${b.hints ? ` (${b.hints} hint${b.hints > 1 ? "s" : ""})` : ""}`).join(", ");
+  function playtestTable() {
+    const rows = playtestRows();
+    if (!rows.length) return '<p class="scr-sub">No levels played yet.</p>';
+    return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
+      const s = slowest(r.last && r.last.beats);
+      return `<tr><td>${r.id}</td><td>${r.attempts}</td><td>${r.last ? `${r.last.t} s` : "—"}</td><td>${r.last ? r.last.hints : "—"}</td>
+        <td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
+    }).join("")}</table>`;
+  }
+  function playtestText() {
+    const lines = [`Ohmmade Breadboard playtest data, ${new Date().toISOString().slice(0, 10)}`];
+    for (const r of playtestRows()) {
+      lines.push(`${r.id} ${r.title}: ${r.attempts} attempt${r.attempts > 1 ? "s" : ""}`);
+      if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}`);
+      if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}`);
+    }
+    if (lines.length === 1) lines.push("No levels played yet.");
+    return lines.join("\n");
+  }
+  function playtest(from) {
+    const host = show("notebook", `<div class="scr-inner"><div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Playtest data</h1>
+      <p class="scr-sub">How long each step took and how many hints you used. It stays on this computer: nothing is sent anywhere. To share it, copy it.</p></div>
+      ${playtestTable()}
+      <textarea class="pt-text" readonly rows="8" aria-label="Playtest data as text">${esc(playtestText())}</textarea>
+      <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><button type="button" class="btn" id="pt-back">Back</button>
+      <span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
+    on(host, "#pt-copy", async () => {
+      const ta = host.querySelector(".pt-text"), say = (t) => { host.querySelector("#pt-ok").textContent = t; };
+      try { await navigator.clipboard.writeText(ta.value); say("Copied. Paste it into your message."); }
+      catch (e) { ta.focus(); ta.select(); say(document.execCommand && document.execCommand("copy") ? "Copied. Paste it into your message." : "Select the text above and copy it."); }
+    });
+    on(host, "#pt-back", () => (from === "pause" ? pause() : showMap()));
+  }
+
   // Esc closes the pause menu and the Notebook.
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !open) return;
     if (open === "pause") { e.preventDefault(); e.stopImmediatePropagation(); close(); }
   }, true);
 
-  BB.LevelMap = { init, showMap, complete, pause, notebook, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
+  BB.LevelMap = { init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
 })(window.BB = window.BB || {});
