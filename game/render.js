@@ -10,7 +10,8 @@
   const xy = (pt) => (pt.startsWith("U.") ? BB.Uno.socketXY(pt) : bbxy(pt));
   const BOARD = { x: 18, y: 56, w: xr(ROWS) + 52 - 18, h: 444 };
   const C = {
-    leg: "#c7ccd1", legHi: "#f4f6f8", board: "#ece7dc", boardEdge: "#c9c1b0", strip: "#e1dbcd", hole: "#3a3d3f",
+    leg: "#c7ccd1", legHi: "#f4f6f8", board: "#f3efe6", boardEdge: "#d9d0bd", strip: "#e1dbcd", hole: "#3b4048",
+    slot: "#e6dece", slotEdge: "#cfc4ad", gap: "#e2dbcb", label: "#a59b86",
     pos: "#d64545", gnd: "#3a78d6", res: "#dcc293", resEdge: "#a98b55", led: "#e8202a", cap: "#2f4fa3",
     pot: "#2a6fc2", npn: "#202326", btn: "#3b4046", wires: ["#2fae5a", "#f08c2a", "#f2c94c", "#3a8ee6", "#e9ecef", "#c2410c"],
   };
@@ -60,7 +61,8 @@
       <radialGradient id="capTop" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#5f84d8"/><stop offset="1" stop-color="#20387a"/></radialGradient>
       <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity=".45"/></filter>
       <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
-      <pattern id="matgrid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="rgba(255,255,255,.045)" stroke-width="1"/></pattern>`;
+      <pattern id="matgrid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="rgba(160,200,255,.035)" stroke-width="1"/></pattern>
+      <radialGradient id="bench" cx=".42" cy=".38" r=".6"><stop offset="0" stop-color="#16304a"/><stop offset=".55" stop-color="#0d1b2c"/><stop offset="1" stop-color="#070f1a"/></radialGradient>`;
     for (const [k, c] of Object.entries(LEDC)) {
       defs.insertAdjacentHTML("beforeend",
         `<radialGradient id="glow-${k}"><stop offset="0" stop-color="${c.glow[0]}" stop-opacity="1"/><stop offset=".18" stop-color="${c.glow[1]}" stop-opacity=".85"/><stop offset=".5" stop-color="${c.glow[2]}" stop-opacity=".32"/><stop offset="1" stop-color="${c.glow[2]}" stop-opacity="0"/></radialGradient>` +
@@ -68,11 +70,10 @@
         (c.matrix ? `<filter id="tint-${k}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${c.matrix}"/></filter>` : ""));
     }
     world = el("g", { id: "world" }, svg);
-    if (A.has("bg_mat")) {
-      el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "#0e1d18" }, world);
-      el("image", { href: A.url("bg_mat"), x: -900, y: -650, width: 3400, height: 1912, preserveAspectRatio: "none" }, world);
-      el("rect", { x: -900, y: -650, width: 3400, height: 1912, fill: "#06110d", opacity: 0.38 }, world);
-    } else el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "url(#matgrid)" }, world);
+    // the bench: deep night blue, brightest behind the board, with a faint grid (art style 1: the glowing flat cartoon)
+    el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "#070f1a" }, world);
+    el("rect", { x: -1400, y: -1100, width: 4600, height: 2700, fill: "url(#bench)" }, world);
+    el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "url(#matgrid)" }, world);
     // layers, bottom to top; only the board and the parts take the pointer
     for (const k of ["board", "xray", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
     drawBoard();
@@ -181,22 +182,27 @@
   // ---------- board ----------
   function drawBoard() {
     const g = L.board;
-    el("rect", { x: BOARD.x, y: BOARD.y, width: BOARD.w, height: BOARD.h, rx: 10, fill: C.board, stroke: C.boardEdge, "stroke-width": 1.5, filter: "url(#shadow)" }, g);
-    // centre channel
-    el("rect", { x: BOARD.x + 6, y: (Y.e + Y.f) / 2 - 7, width: BOARD.w - 12, height: 14, rx: 3, fill: "#d9d2c3" }, g);
-    // rail stripes
-    for (const [k, col, side] of [["+T", C.pos, -1], ["-T", C.gnd, 1], ["+B", C.pos, -1], ["-B", C.gnd, 1]]) {
-      el("line", { x1: BOARD.x + 26, x2: BOARD.x + BOARD.w - 12, y1: Y[k] + side * 12, y2: Y[k] + side * 12, stroke: col, "stroke-width": 2, opacity: 0.85 }, g);
-      el("text", { x: BOARD.x + 10, y: Y[k] + 5, fill: col, "font-family": "IBM Plex Mono, monospace", "font-size": 15, "font-weight": 600 }, g).textContent = k[0] === "+" ? "+" : "−";
+    // "Strips you can see": each group of five joined holes sits in its own rounded slot, each rail in one long band
+    el("rect", { x: BOARD.x, y: BOARD.y, width: BOARD.w, height: BOARD.h, rx: 16, fill: C.board, stroke: C.boardEdge, "stroke-width": 2, filter: "url(#shadow)" }, g);
+    el("rect", { x: BOARD.x + 8, y: (Y.e + Y.f) / 2 - 8, width: BOARD.w - 16, height: 16, rx: 8, fill: C.gap }, g);      // centre gap
+    for (const [k, col] of [["+T", C.pos], ["-T", C.gnd], ["+B", C.pos], ["-B", C.gnd]]) {
+      el("rect", { x: BOARD.x + 24, y: Y[k] - 10, width: BOARD.w - 36, height: 20, rx: 10, fill: col, "fill-opacity": 0.07, stroke: col, "stroke-opacity": 0.45, "stroke-width": 1.4 }, g);
+      el("line", { x1: BOARD.x + 30, x2: BOARD.x + BOARD.w - 18, y1: Y[k] + (k[0] === "+" ? -13 : 13), y2: Y[k] + (k[0] === "+" ? -13 : 13), stroke: col, "stroke-width": 2.2, opacity: 0.9, "stroke-linecap": "round" }, g);
+      el("text", { x: BOARD.x + 12, y: Y[k] + 5, "text-anchor": "middle", fill: col, "font-family": "IBM Plex Mono, monospace", "font-size": 15, "font-weight": 600 }, g).textContent = k[0] === "+" ? "+" : "−";
     }
-    for (const c of "abcdefghij") el("text", { x: BOARD.x + 12, y: Y[c] + 4, fill: "#8f8676", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, g).textContent = c;
-    // holes (one path per column type for speed)
-    const d = [];
-    for (let r = 1; r <= ROWS; r++) for (const c of COLS) d.push(`M${xr(r) - 3.2} ${Y[c] - 3.2}h6.4v6.4h-6.4z`);
+    const slots = [];                                    // one path for all the slots, for speed
+    for (let r = 1; r <= ROWS; r++) for (const [y0, y1] of [[Y.a, Y.e], [Y.f, Y.j]]) {
+      const x = xr(r) - 10, t = y0 - 11, h = y1 - y0 + 22;
+      slots.push(`M${x + 10} ${t}a10 10 0 0 1 10 10v${h - 20}a10 10 0 0 1 -20 0v${-(h - 20)}a10 10 0 0 1 10 -10z`);
+    }
+    el("path", { d: slots.join(""), fill: C.slot, stroke: C.slotEdge, "stroke-width": 1.1 }, g);
+    for (const c of "abcdefghij") el("text", { x: BOARD.x + 12, y: Y[c] + 4, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, g).textContent = c;
+    const d = [];                                        // round holes, one path
+    for (let r = 1; r <= ROWS; r++) for (const c of COLS) d.push(`M${xr(r) - 3.2} ${Y[c]}a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0z`);
     el("path", { d: d.join(""), fill: C.hole }, g);
     for (let r = 1; r <= ROWS; r++) if (r === 1 || r % 5 === 0) {
-      el("text", { x: xr(r), y: Y.a - 16, "text-anchor": "middle", fill: "#8f8676", "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, g).textContent = r;
-      el("text", { x: xr(r), y: Y.j + 22, "text-anchor": "middle", fill: "#8f8676", "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, g).textContent = r;
+      el("text", { x: xr(r), y: Y.a - 18, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, g).textContent = r;
+      el("text", { x: xr(r), y: Y.j + 24, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, g).textContent = r;
     }
   }
 
@@ -205,11 +211,11 @@
     L.hi.replaceChildren();
     if (!pt || pt.startsWith("U.")) return;
     const p = BBShared.parse(pt);
-    if (p.kind === "rail") el("rect", { x: BOARD.x + 22, y: Y[p.rail] - 9, width: BOARD.w - 34, height: 18, rx: 5, class: "strip-hi" }, L.hi);
-    else {
+    if (p.kind === "rail") el("rect", { x: BOARD.x + 24, y: Y[p.rail] - 10, width: BOARD.w - 36, height: 20, rx: 10, class: "strip-hi" }, L.hi);
+    else {                                               // the slot under the pointer: the strip it would join
       const top = "abcde".includes(p.col);
       const [y1, y2] = top ? [Y.a, Y.e] : [Y.f, Y.j];
-      el("rect", { x: xr(p.row) - 9, y: y1 - 9, width: 18, height: y2 - y1 + 18, rx: 5, class: "strip-hi" }, L.hi);
+      el("rect", { x: xr(p.row) - 10, y: y1 - 11, width: 20, height: y2 - y1 + 22, rx: 10, class: "strip-hi" }, L.hi);
     }
   }
 
