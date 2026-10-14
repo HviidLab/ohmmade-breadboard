@@ -35,6 +35,9 @@
     { id: "parallelV", name: "Side by side", text: "Parts side by side, each from the same + to the same −, all get the whole push of the battery." },
     { id: "parallelI", name: "Branches add up", text: "Side by side, each branch takes its own current, and the battery supplies the sum: 6 mA + 3 mA = 9 mA." },
     { id: "ownResistor", name: "One resistor per LED", text: "LEDs side by side get the same push, so the one that needs the least takes all the current. Give every LED its own resistor." },
+    { id: "divider", name: "The middle point", text: "Two resistors in a row make a middle point at part of the push: 6 V × lower ÷ total. Two equal ones give half: 3 V." },
+    { id: "potKnob", name: "The knob", text: "A potentiometer is a middle point you can move. Its ends go to + and −; turning the knob slides the middle leg from 0 V to the full push." },
+    { id: "dimmer", name: "A dimmer", text: "A knob in an LED's loop changes the current, so the brightness. Keep a fixed resistor in the loop too: at one end the knob is almost 0 Ω." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };
