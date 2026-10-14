@@ -171,6 +171,12 @@
     if (offer.choices) { const first = act.querySelector(".choice"); if (first) first.focus({ preventScroll: true }); }
     else if (offer.next) $("mentor-next").focus({ preventScroll: true });
   }
+  // The holes Sparky has ringed for the red (0) and black (1) probe, if any: a probe dropped near one snaps into it.
+  function probeTargets() {
+    const out = [null, null];
+    for (const t of [].concat(marks || [])) (t.probes || []).forEach((h, k) => { if (h) out[k] = h; });
+    return out;
+  }
   function highlight(targets) {
     marks = targets;
     R.marks((targets && [].concat(targets).filter((t) => !t.ui)) || null);
@@ -179,9 +185,10 @@
     relayout();
   }
 
-  // ---------- Sparky walks to what he is talking about ----------
-  // He stands next to the marked thing (below, beside or above it) with his bubble, never covering it, the objective
-  // card, the top buttons or the tray, and points at it. With nothing marked, or no room, he walks home (lower left).
+  // ---------- Sparky points at what he is talking about ----------
+  // He stays home (lower left) and points his arm at the marked thing. Only when it is far from him does he walk, and
+  // then only to the edge of the bench (above, below or beside it), never onto the board, the objective card, the top
+  // buttons or the tray. With no room there, he points from home.
   const AWAY = 0.74;                       // his size away from home
   let lastBox = null, layoutRaf = 0, walkTimer = null, atHome = true;
   const rel = (r, st) => ({ left: r.left - st.left, top: r.top - st.top, right: r.right - st.left, bottom: r.bottom - st.top });
@@ -206,17 +213,25 @@
     if (layoutRaf || !lv) return;
     layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; if (lv) walk(targetBox()); });
   }
+  // The open bench on screen (the board's open rows, the battery and the meter), relative to the stage.
+  function benchBox(st) {
+    const [x0, y0, x1, y1] = R.regionBox(lv.region, G.doc), a = R.toScreen(x0, y0), b = R.toScreen(x1, y1);
+    return { left: a[0] - st.left, top: a[1] - st.top, right: b[0] - st.left, bottom: b[1] - st.top };
+  }
+  const FAR = 0.45;                        // walk only to things more than this share of the screen's width away from home
   function walk(box) {
     lastBox = box;
     const st = $("stage").getBoundingClientRect(), W = st.width, H = st.height, bub = $("mentor");
-    if (box) {
+    const homeW = baseW(), homeH = (homeW * 160) / 120, aim = box ? [(box.left + box.right) / 2, (box.top + box.bottom) / 2] : null;
+    if (box && Math.hypot(aim[0] - (12 + homeW / 2), aim[1] - (H - homeH / 2)) > FAR * W) {
       bub.classList.add("away");
       const bw = bub.offsetWidth, bh = bub.offsetHeight, w = baseW() * AWAY, h = (w * 160) / 120, gap = 14;
-      const avoid = [grow(box, 12), ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl"), document.querySelector('[data-body="meter"] [data-markbox]')].filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
-      const cx = (box.left + box.right) / 2, cy = (box.top + box.bottom) / 2;
-      const m = 20;                       // his distance from the target (more than the 12 px it must stay clear)
-      const spots = [[cx - w / 2, box.bottom + m], [box.right + m, cy - h / 2], [box.left - m - w, cy - h / 2], [cx - w / 2, box.top - h - m],
-        [box.right + m, box.bottom - h * 0.5], [box.left - m - w, box.bottom - h * 0.5], [box.right + m, box.top - h * 0.5], [box.left - m - w, box.top - h * 0.5]];
+      const bench = grow(benchBox(st), 6), zone = union([box, bench]);
+      const avoid = [grow(box, 12), bench, ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl")].filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
+      const [cx, cy] = aim;
+      const m = 20;                       // his distance from the bench's edge
+      const spots = [[cx - w / 2, zone.bottom + m], [cx - w / 2, zone.top - h - m], [zone.right + m, cy - h / 2], [zone.left - m - w, cy - h / 2],
+        [zone.right + m, zone.bottom - h], [zone.left - m - w, zone.bottom - h]];
       // First try to keep clear of every part on the board too (wires excepted: they are long); then only the targets.
       const parts = G.doc.parts.filter((q) => q.type !== "wire").map((q) => document.querySelector(`[data-body="${q.id}"]`) || document.querySelector(`[data-part="${q.id}"]`))
         .filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 4));
@@ -232,9 +247,8 @@
         }
       }
     }
-    bub.classList.remove("away");                       // home: lower left, full size, bubble beside him
-    const w = baseW(), h = (w * 160) / 120;
-    go({ sx: 12, sy: H - h - 10, w, bx: w + 22, by: H - 18 - bub.offsetHeight, side: "right", aim: null });
+    bub.classList.remove("away");                       // home: lower left, full size, bubble beside him, pointing from there
+    go({ sx: 12, sy: H - homeH - 10, w: homeW, bx: homeW + 22, by: H - 18 - bub.offsetHeight, side: "right", aim, home: true });
   }
   function go(p) {
     const a = $("mentor-avatar"), b = $("mentor"), st = $("stage").getBoundingClientRect(), cur = a.getBoundingClientRect();
@@ -246,7 +260,7 @@
     Object.assign(a.style, { left: `${p.sx}px`, top: `${p.sy}px`, width: `${p.w}px`, bottom: "auto" });
     Object.assign(b.style, { left: `${p.bx}px`, top: `${p.by}px`, bottom: "auto" });
     b.classList.toggle("tail-right", p.side === "left");
-    atHome = !p.aim;
+    atHome = !!p.home;
     clearTimeout(walkTimer);
     a.classList.remove("pointing");
     if (dur) {
@@ -401,5 +415,5 @@
 
   window.addEventListener("resize", () => { if (lv) walk(targetBox()); });
 
-  BB.CoachUI = { get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});

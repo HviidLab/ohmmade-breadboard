@@ -463,6 +463,7 @@
       r.leads[k] = d;
       el("path", { d, stroke: cols[k], "stroke-width": 3, fill: "none", "stroke-linecap": "round", opacity: 0.95 }, g);
       const pr = el("g", { class: "probe", "data-probe": k, "data-id": part.id, style: "cursor:grab" }, g);
+      el("circle", { cx: tip[0], cy: tip[1] + 10, r: 22, fill: "transparent" }, pr);          // a big area to grab it by
       el("path", { d: `M${tip[0]} ${tip[1]} l-4 8 v16 h8 v-16z`, fill: cols[k], stroke: "#000", "stroke-width": 0.8 }, pr);
       el("circle", { cx: tip[0], cy: tip[1], r: 3, fill: "#e9ecef" }, pr);
     });
@@ -590,6 +591,11 @@
     [].concat(targets || []).forEach((t, k) => {          // one group per target, so the coach can find each one
       const g = el("g", { "data-t": k }, L.coach);
       for (const h of t.holes || []) { const [x, y] = xy(h); el("circle", { cx: x, cy: y, r: 11, class: "mark" }, g); }
+      (t.probes || []).forEach((h, k) => {                  // where the red (0) and the black (1) probe tip should go
+        if (!h) return;
+        const [x, y] = xy(h);
+        el("circle", { cx: x, cy: y, r: 12, class: `mark probe-ring ${k ? "black" : "red"}` }, g);
+      });
       for (const n of [].concat(t.net || [], t.nets || [])) netMark(n.replace(/^bb:/, ""), g);
       for (const id of [].concat(t.part || [], t.parts || [])) boxMark(svg.querySelector(`[data-body="${id}"] [data-markbox]`) || svg.querySelector(`[data-body="${id}"]`) || svg.querySelector(`[data-part="${id}"]`), g);
       for (const c of [].concat(t.ctl || [])) boxMark(svg.querySelector(`[data-ctl="${c}"][data-id="${t.id}"]`), g, 6);

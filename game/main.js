@@ -406,6 +406,13 @@
         events: G.sim.events.map((e) => e.text), t: G.sim.t, simMs: G.simMs, mode: G.mode,
         goals: G.run ? G.run.state.map((q) => q.done) : null, complete: G.run ? G.run.complete : null, stars: G.run ? G.run.stars : null,
       }),
+      // Does Sparky (or his bubble) cover the open bench: the board's open rows, the battery or the meter?
+      sparkyOnBench: () => {
+        if (!G.level) return false;
+        const [x0, y0, x1, y1] = R.regionBox(G.level.region, G.doc), a = R.toScreen(x0, y0), b = R.toScreen(x1, y1);
+        const meets = (r) => r.left < b[0] && a[0] < r.right && r.top < b[1] && a[1] < r.bottom;
+        return ["mentor-avatar", "mentor"].filter((id) => meets(document.getElementById(id).getBoundingClientRect()));
+      },
       level: () => (G.level ? { id: G.level.id, seed: G.level.seed, layout: G.level.layout, beat: G.coach.beat && G.coach.beat.id, done: G.coach.done, finished: G.coach.finished, stars: G.coach.stars,
         bonus: G.coach.bonus, complete: G.run.complete, hint: G.coach.hint } : null),
       // One step of a level's scripted solution, done through the same actions the player's clicks use.

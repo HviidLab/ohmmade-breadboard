@@ -230,6 +230,8 @@
       case "probe": {
         const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         let hole = holeUnder(e.clientX, e.clientY);
+        const ring = G.mode === "level" && BB.CoachUI.probeTargets()[st.k];       // near the ring Sparky marked: snap into it
+        if (ring) { const [rx, ry] = R.xy(ring); if (Math.hypot(wx - rx, wy - ry) < 1.6 * BBShared.P) hole = ring; }
         if (hole && !G.can({ kind: "hole", hole }).ok) hole = null;      // a closed part of the board: the tip stays loose
         part.legs[st.k] = hole;
         part.loose = part.loose || [null, null];
