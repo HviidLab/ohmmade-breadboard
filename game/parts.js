@@ -36,6 +36,7 @@
     if (part.type === "led") return `${COLOR_NAME[part.color] || "Red"} LED`;
     if (part.type === "resistor") return part.tag ? `Resistor ${part.tag}` : `Resistor ${fmtR(part.value)}`;   // a tagged one hides its value
     if (part.type === "battery" && part.cells) return `Battery pack ${part.cells}×AA`;
+    if (part.type === "cap" && part.value) return `Capacitor ${Math.round(part.value * 1e6)} µF`;
     return TYPES[part.type].label;
   }
 

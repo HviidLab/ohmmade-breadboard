@@ -283,6 +283,11 @@
         leg(g, a, mid); leg(g, b, mid);
         const rr = part.value >= 1e-3 ? 16 : part.value >= 1e-4 ? 13 : 11, ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
         el("circle", { cx: mid[0] + 2, cy: mid[1] + 3, r: rr, fill: "rgba(4, 10, 20, .32)" }, g);
+        // the charge ring: fills with amber as the capacitor charges (effects.js sets how far)
+        r.fillC = 2 * Math.PI * (rr + 4.5);
+        el("circle", { cx: mid[0], cy: mid[1], r: rr + 4.5, fill: "none", stroke: "rgba(255, 181, 71, .18)", "stroke-width": 3.5 }, g);
+        r.fill = el("circle", { cx: mid[0], cy: mid[1], r: rr + 4.5, fill: "none", stroke: "#ffb547", "stroke-width": 3.5, "stroke-linecap": "round",
+          "stroke-dasharray": `0 ${r.fillC}`, transform: `rotate(-90 ${mid[0]} ${mid[1]})`, style: "filter: drop-shadow(0 0 3px rgba(255, 181, 71, .8))" }, g);
         r.body = el("circle", { cx: mid[0], cy: mid[1], r: rr, fill: dead ? "#2c2f36" : "#3a63d6", stroke: dead ? "#14161a" : "#1c3474", "stroke-width": 1.4 }, g);
         // the light stripe marks the − side
         const sx = mid[0] + Math.cos(ang) * rr * 0.58, sy = mid[1] + Math.sin(ang) * rr * 0.58;

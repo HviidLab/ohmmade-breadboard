@@ -70,6 +70,10 @@
         const h = rt.stress.heat.h;
         r.heat.setAttribute("opacity", Math.max(0, Math.min((h - 0.8) / 3.2, 0.85)));
       }
+      if (part.type === "cap" && r.fill) {                                   // the charge ring: full at 6 V
+        const f = rt.destroyed ? 0 : Math.max(0, Math.min(Math.abs(rd.Vc || 0) / 6, 1));
+        r.fill.setAttribute("stroke-dasharray", `${(f * r.fillC).toFixed(1)} ${r.fillC.toFixed(1)}`);
+      }
       if (part.type === "wire" && r.glow && !rt.destroyed) r.glow.setAttribute("opacity", Math.max(0, Math.min((Math.abs(rd.I) - 2) / 6, 0.9)));
       if (part.type === "uno" && r.onLed) {
         r.onLed.setAttribute("opacity", rd.powered ? 0.95 : 0);

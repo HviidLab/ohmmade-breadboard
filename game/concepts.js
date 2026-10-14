@@ -42,6 +42,10 @@
     { id: "buttonLegs", name: "A button's four legs", text: "The two legs in the same row are always joined; pressing joins the two rows. So a button sits across the centre gap." },
     { id: "buttonsAnd", name: "Both buttons (AND)", text: "Two buttons in a row: the current must pass both, so the light needs this one AND that one pressed." },
     { id: "buttonsOr", name: "Either button (OR)", text: "Two buttons side by side: each gives the current its own path, so this one OR that one is enough." },
+    { id: "capStore", name: "The capacitor", text: "A capacitor is a little bucket for charge. It fills up from the battery, and when the battery goes off it empties again, through whatever is there." },
+    { id: "capTime", name: "Filling takes time", text: "Filling a capacitor through a resistor takes time: fast at first, then slower and slower as it gets full." },
+    { id: "tau", name: "R × C", text: "Resistance × capacitance, in seconds, is the capacitor's time: about two thirds full after R × C. 1 kΩ × 1000 µF = 1 s." },
+    { id: "capPolarity", name: "Which way round", text: "An electrolytic capacitor is one-way: + leg to the + side, the striped − leg to the − side. Backwards it swells and vents." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };

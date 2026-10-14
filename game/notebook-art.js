@@ -226,6 +226,23 @@
         pl([[150, Y1], [150, 82], [124, 82]]) + `<g opacity=".9">${circ(98, 82, 3, PEN) + circ(122, 82, 3, PEN) + ln(96, 68, 124, 68, PEN, 2.6) + ln(110, 68, 110, 57, PEN, 2.2)}</g>` +
         pl([[96, 82], [70, 82], [70, Y1]]) + battery(X0, YM) + ledV(X1, YM) + tx(110, 46, "this OR that", { s: 20, c: "#a3360f" });
     },
+    // Chapter 8: capacitors and time (the capacitor symbol: two plates, the + one marked)
+    capStore: () => {
+      const cap = (x, y) => ln(x - 14, y - 4, x + 14, y - 4, PEN, 3) + `<path d="M${x - 14} ${y + 6} q14 -6 28 0" fill="none" stroke="${PEN}" stroke-width="3"/>` + tx(x - 20, y - 6, "+", { s: 16, c: RED });
+      return current([[70, 58], [70, 104], [150, 104], [150, 40], [110, 40], [110, 58]], 14) + pl([[110, 56], [110, 40], [150, 40], [150, 58]]) + ledV(150, 66, true, true) +
+        pl([[150, 73], [150, 104], [70, 104], [70, 64]]) + pl([[70, 54], [70, 40], [110, 40]]) + cap(70, 58) + tx(110, 24, "the bucket empties", { s: 17, c: "#a3360f" }) +
+        tx(110, 124, "through the LED: a short glow", { s: 16 });
+    },
+    capTime: () => ln(30, 108, 200, 108, PEN, 2) + ln(30, 108, 30, 18, PEN, 2) + `<path d="M30 108 C60 40 100 28 196 24" fill="none" stroke="${DOT}" stroke-width="4"/>` +
+      ln(30, 24, 200, 24, GREY, 1.4) + tx(14, 30, "6 V", { s: 15 }) + tx(196, 124, "time", { s: 15 }) + tx(80, 60, "fast", { s: 17, c: "#a3360f" }) + tx(160, 46, "slow", { s: 17, c: "#a3360f" }),
+    tau: () => tx(110, 36, "R × C = seconds", { s: 24 }) + ln(40, 46, 180, 46, HL, 7) + tx(110, 78, "1 kΩ × 1000 µF = 1 s", { s: 19, c: "#a3360f" }) +
+      tx(110, 108, "10 kΩ × 1000 µF = 10 s", { s: 19 }),
+    capPolarity: () => {
+      const cap = (x, y) => ln(x - 4, y - 14, x - 4, y + 14, PEN, 3) + `<path d="M${x + 6} ${y - 14} q-6 14 0 28" fill="none" stroke="${PEN}" stroke-width="3"/>`;
+      return ln(30, 50, 66, 50) + cap(70, 50) + ln(76, 50, 110, 50) + tx(52, 38, "+", { s: 18, c: RED }) + tx(96, 38, "−", { s: 18, c: BLUE }) + tick(130, 50) +
+        ln(30, 96, 66, 96) + cap(70, 96) + ln(76, 96, 110, 96) + tx(52, 84, "−", { s: 18, c: BLUE }) + tx(96, 84, "+", { s: 18, c: RED }) + burst(132, 96, 12) +
+        tx(176, 54, "right", { s: 17 }) + tx(180, 100, "vents!", { s: 17, c: RED });
+    },
   };
 
   function diagram(id) {
