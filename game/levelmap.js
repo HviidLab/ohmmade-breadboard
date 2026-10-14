@@ -60,7 +60,7 @@
     const host = show("levelmap", `<div class="scr-inner">
       <div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</p></div>
       ${ch}
-      <section class="lm-coming"><h2>Coming next</h2><ul>${COMING.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>
+      <section class="lm-coming"><h2>Coming next</h2><ul>${COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)).map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>
       <div class="scr-row"><button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
     host.querySelectorAll(".lm-node").forEach((b) => b.addEventListener("click", () => play(BB.Levels.get(b.dataset.id))));
     on(host, "#lm-notebook", () => notebook("map"));

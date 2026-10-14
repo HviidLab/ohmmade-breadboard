@@ -124,6 +124,7 @@ select { background: var(--panel); color: var(--ink); border: 1px solid var(--li
 .selected .sel-ring { stroke: var(--amber); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
 .part { cursor: grab; }
 .ctl { cursor: pointer; }
+.ctl.locked { opacity: .25; cursor: not-allowed; }
 
 /* current flow and x-ray */
 .flow { fill: none; stroke: #ffc35c; stroke-width: 4.6; stroke-linecap: round; filter: drop-shadow(0 0 2px rgba(255, 181, 71, .9)); }

@@ -228,11 +228,17 @@
         break;
       }
       case "probe": {
-        const part = G.doc.get(st.id), hole = holeUnder(e.clientX, e.clientY), [wx, wy] = R.toWorld(e.clientX, e.clientY);
+        const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
+        let hole = holeUnder(e.clientX, e.clientY);
+        if (hole && !G.can({ kind: "hole", hole }).ok) hole = null;      // a closed part of the board: the tip stays loose
         part.legs[st.k] = hole;
         part.loose = part.loose || [null, null];
         part.loose[st.k] = hole ? null : [wx, wy];
         G.recompile();
+        if (hole && G.rules && G.rules.guardMeter && BB.Rules.meterOverload(G.doc, G.sim)) {   // not even while dragging
+          part.legs[st.k] = null; part.loose[st.k] = [wx, wy]; G.recompile(); hole = null;
+          if (!st.warned) { st.warned = true; BB.CoachUI.aside(BB.Coach.METER, 7000, "bad"); }
+        }
         R.highlight(hole);
         break;
       }
@@ -270,7 +276,10 @@
         const m = G.doc.get(s.id), now = m && m.legs[s.k];
         if (m && s.was && s.was !== now) G.sound.out(m, 1);                 // a probe tip leaves its hole
         if (m && now && now !== s.was) setTimeout(() => G.sound.in(m, 1), s.was ? 110 : 0);
-        if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`); G.commitSoft(); break; }
+        if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`);
+        G.commitSoft();
+        if (m && now !== s.was) G.emit("probe", { id: s.id });
+        break; }
       case "body": G.commitSoft(); break;
     }
   }
@@ -296,6 +305,7 @@
     }
     const part = { type: d.type, legs: s.legs };
     if (d.type === "resistor") part.value = d.value ?? BB.HUD.defaults.resistor;
+    if (d.tag) part.tag = d.tag;
     if (d.type === "led") part.color = d.color ?? BB.HUD.defaults.ledColor;
     if (d.type === "cap") part.value = d.value;
     if (d.type === "pot") part.pos = 0.5;

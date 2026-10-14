@@ -212,7 +212,7 @@
     if (box) {
       bub.classList.add("away");
       const bw = bub.offsetWidth, bh = bub.offsetHeight, w = baseW() * AWAY, h = (w * 160) / 120, gap = 14;
-      const avoid = [grow(box, 12), ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl")].map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
+      const avoid = [grow(box, 12), ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl"), document.querySelector('[data-body="meter"] [data-markbox]')].filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
       const cx = (box.left + box.right) / 2, cy = (box.top + box.bottom) / 2;
       const m = 20;                       // his distance from the target (more than the 12 px it must stay clear)
       const spots = [[cx - w / 2, box.bottom + m], [box.right + m, cy - h / 2], [box.left - m - w, cy - h / 2], [cx - w / 2, box.top - h - m],
@@ -287,7 +287,7 @@
     aside(`Bonus: ${lv.bonus[k].text} ★`, 4000, "good");
     mood("happy", 1600);
   }
-  const hooks = () => ({ say, highlight, ghost, xray, bonus, aside: (t) => aside(t, 4000), beat: () => { refresh(); } });
+  const hooks = () => ({ say, highlight, ghost, xray, bonus, aside: (t) => aside(t, 4000), beat: () => { G.redraw(); refresh(); } });
 
   // A short line under the mentor's own: refusals, failures, the short-circuit guard.
   function aside(text, ms = 6000, kind = "") {
@@ -347,16 +347,17 @@
   function refreshPartCard() {
     const card = $("partcard");
     const part = lv && G.sel && G.doc.get(G.sel);
-    if (!part || ["battery", "meter"].includes(part.type)) { card.hidden = true; partFor = null; return; }
-    const rt = G.sim.rt.get(part.id), dead = !!(rt && rt.destroyed);
+    const rt = part && G.sim.rt.get(part.id), dead = !!(rt && rt.destroyed);
+    if (!part || part.type === "battery" || (part.type === "meter" && !dead)) { card.hidden = true; partFor = null; return; }
     const acts = [];
+    if (part.type === "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["New fuse", "fresh", () => G.replace(part.id)]);
     if (part.type === "led" && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
-    if (dead && G.can({ kind: "replace", id: part.id }).ok) acts.push(["Fresh one", "fresh", () => G.replace(part.id)]);
-    if (G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
+    if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["Fresh one", "fresh", () => G.replace(part.id)]);
+    if (part.type !== "meter" && G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
     const key = JSON.stringify([part.id, dead, acts.map((a) => a[1])]);
     if (key !== partFor) {
       partFor = key;
-      card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ' <span class="pc-dead">burned out</span>' : ""}</p><div class="pc-act"></div>`;
+      card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ` <span class="pc-dead">${part.type === "meter" ? "fuse blown" : "burned out"}</span>` : ""}</p><div class="pc-act"></div>`;
       const box = card.querySelector(".pc-act");
       for (const [lbl, cls, fn] of acts) { const b = document.createElement("button"); b.type = "button"; b.className = `btn pc-${cls}`; b.textContent = lbl; b.addEventListener("click", fn); box.appendChild(b); }
       if (!acts.length) box.innerHTML = '<span class="pc-fixed">Fixed in this level</span>';

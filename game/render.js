@@ -125,10 +125,27 @@
   }
   // World box around a level's open board area and its battery pack.
   function regionBox(region, doc) {
-    const [r0, r1] = region.rows || [1, ROWS], bat = doc.parts.find((p) => p.type === "battery");
-    const x0 = Math.min(xr(r0) - 50, bat ? (bat.bx ?? 40) - 10 : Infinity), x1 = Math.max(xr(r1) + 40, bat ? (bat.bx ?? 40) + 240 : -Infinity);
-    const y0 = bat ? (bat.by ?? -150) - 12 : Y["+T"] - 40, y1 = (region.cols === "a-j" ? Y.j : Y.e) + 34;
+    const [r0, r1] = region.rows || [1, ROWS], bat = doc.parts.find((p) => p.type === "battery"), m = doc.parts.find((p) => p.type === "meter");
+    let x0 = Math.min(xr(r0) - 50, bat ? (bat.bx ?? 40) - 10 : Infinity), x1 = Math.max(xr(r1) + 40, bat ? (bat.bx ?? 40) + 240 : -Infinity);
+    let y0 = bat ? (bat.by ?? -150) - 12 : Y["+T"] - 40, y1 = (region.cols === "a-j" ? Y.j : Y.e) + 34;
+    if (m && m.bx !== undefined) {          // the meter beside the board, with its loose probes above it
+      x0 = Math.min(x0, m.bx - 10); x1 = Math.max(x1, m.bx + meterSize()[0] + 10);
+      y0 = Math.min(y0, m.by - 10); y1 = Math.max(y1, m.by + meterSize()[1] + 75);
+    }
     return [x0, y0, x1, y1];
+  }
+  // The meter body's size in world units (the sprite keeps its picture's shape).
+  function meterSize() {
+    if (!A.has("meter_body")) return [190, 270];
+    const [iw, ih] = A.size("meter_body");
+    return [270, (270 * ih) / iw];
+  }
+  // Which of the meter's dial positions and sockets are locked in this level (set by the game; null: none).
+  let ctlLocked = null;
+  function setCtlLock(fn) { ctlLocked = fn; }
+  function lockCtls(body, part) {
+    if (!ctlLocked) return;
+    for (const t of body.querySelectorAll(".ctl")) if (ctlLocked(part, t.dataset.ctl)) t.classList.add("locked");
   }
   // Show the whole bench: every row of the board and every part, wherever it has been moved.
   // World box around the board and all parts, optionally leaving out one part (the one being dragged).
@@ -401,9 +418,10 @@
     const bx = part.bx ?? 60, by = part.by ?? 560, Wi = 270, [iw, ih] = A.size("meter_body"), Hi = (Wi * ih) / iw, an = A.anchor("meter_body");
     const P_ = (fx, fy) => [bx + fx * Wi, by + fy * Hi];
     const body = el("g", { "data-body": part.id }, g);
-    el("image", { href: A.url("meter_body"), x: bx, y: by, width: Wi, height: Hi, preserveAspectRatio: "none" }, body);
+    el("image", { href: A.url("meter_body"), x: bx, y: by, width: Wi, height: Hi, preserveAspectRatio: "none", "data-markbox": "" }, body);   // its outline, for marks
     // live LCD
     const [l0, t0] = P_(an.lcd[0], an.lcd[1]), [l1, t1] = P_(an.lcd[2], an.lcd[3]);
+    el("rect", { x: l0, y: t0, width: l1 - l0, height: t1 - t0, fill: "transparent", "data-lcd": part.id }, body);   // what Sparky points at
     r.lcd = el("text", { x: l1 - 10, y: t1 - 16, "text-anchor": "end", fill: "#1a2418", "font-family": "IBM Plex Mono, monospace", "font-size": 34, "font-weight": 600 }, body);
     r.lcdUnit = el("text", { x: l0 + 8, y: t0 + 16, fill: "#33452f", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body);
     // rotating knob: a clipped copy of the sprite, turned to the selected mode
@@ -429,6 +447,7 @@
       el("text", { x: sx, y: sy - 17, "text-anchor": "middle", fill: "#d6dade", "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, t).textContent = k === "VO" ? "VΩ" : k;
     }
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
+    lockCtls(body, part);
     el("circle", { cx: from[0][0], cy: from[0][1], r: 5, fill: "#d64545" }, body);
     el("circle", { cx: from[1][0], cy: from[1][1], r: 5, fill: "#1a1a1a" }, body);
     probes(g, part, pts, from, r);
@@ -457,7 +476,7 @@
     el("rect", { x: bx + 4, y: by + 6, width: W, height: H, rx: 18, fill: "rgba(0,0,0,.45)" }, body);
     el("rect", { x: bx, y: by, width: W, height: H, rx: 18, fill: "#e5b622", stroke: "#8a6a0a", "stroke-width": 1.5 }, body);
     el("rect", { x: bx + 10, y: by + 10, width: W - 20, height: H - 20, rx: 12, fill: "#23272b" }, body);
-    el("rect", { x: bx + 22, y: by + 22, width: W - 44, height: 52, rx: 5, fill: "#9db39a" }, body);
+    el("rect", { x: bx + 22, y: by + 22, width: W - 44, height: 52, rx: 5, fill: "#9db39a", "data-lcd": part.id }, body);
     r.lcd = el("text", { x: bx + W - 30, y: by + 60, "text-anchor": "end", fill: "#1a2418", "font-family": "IBM Plex Mono, monospace", "font-size": 26, "font-weight": 600 }, body);
     r.lcdUnit = el("text", { x: bx + 30, y: by + 40, fill: "#33452f", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, body);
     // dial
@@ -480,6 +499,7 @@
       el("circle", { cx: sx, cy: sy, r: 10, fill: "#0d0f11", stroke: k === "COM" ? "#555" : k === "mA" ? "#c9a227" : "#d64545", "stroke-width": 2 }, t);
       el("text", { x: sx, y: sy - 15, "text-anchor": "middle", fill: "#c9ced3", "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, t).textContent = k === "VO" ? "VΩ" : k;
     }
+    lockCtls(body, part);
     // leads and probe tips
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
     probes(g, part, pts.map((p, k) => p || part.loose?.[k] || [bx + 60 + k * 70, by - 40]), from, r);
@@ -571,8 +591,9 @@
       const g = el("g", { "data-t": k }, L.coach);
       for (const h of t.holes || []) { const [x, y] = xy(h); el("circle", { cx: x, cy: y, r: 11, class: "mark" }, g); }
       for (const n of [].concat(t.net || [], t.nets || [])) netMark(n.replace(/^bb:/, ""), g);
-      for (const id of [].concat(t.part || [], t.parts || [])) boxMark(svg.querySelector(`[data-body="${id}"]`) || svg.querySelector(`[data-part="${id}"]`), g);
-      if (t.ctl) boxMark(svg.querySelector(`[data-ctl="${t.ctl}"][data-id="${t.id}"]`), g, 6);
+      for (const id of [].concat(t.part || [], t.parts || [])) boxMark(svg.querySelector(`[data-body="${id}"] [data-markbox]`) || svg.querySelector(`[data-body="${id}"]`) || svg.querySelector(`[data-part="${id}"]`), g);
+      for (const c of [].concat(t.ctl || [])) boxMark(svg.querySelector(`[data-ctl="${c}"][data-id="${t.id}"]`), g, 6);
+      if (t.lcd) boxMark(svg.querySelector(`[data-lcd="${t.lcd}"]`), g, 4);
     });
   }
   function netMark(n, g) {
@@ -625,5 +646,5 @@
     }
   }
 
-  BB.Render = { init, drawParts, region, marks, fitBox, regionBox, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { init, drawParts, region, marks, fitBox, regionBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

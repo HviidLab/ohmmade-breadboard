@@ -34,7 +34,7 @@
   // What to call a part on screen: "Blue LED", "Resistor 4.7 kΩ", "Jumper wire".
   function name(part) {
     if (part.type === "led") return `${COLOR_NAME[part.color] || "Red"} LED`;
-    if (part.type === "resistor") return `Resistor ${fmtR(part.value)}`;
+    if (part.type === "resistor") return part.tag ? `Resistor ${part.tag}` : `Resistor ${fmtR(part.value)}`;   // a tagged one hides its value
     return TYPES[part.type].label;
   }
 
@@ -54,7 +54,7 @@
     wire: {
       label: "Jumper wire", legs: ["a", "b"], kind: "flex",
       build(c, [a, b], part, rt) {
-        if (rt.destroyed) return { read: () => ({ I: 0 }) };
+        if (rt.destroyed || part.broken) return { read: () => ({ I: 0 }) };      // broken inside: looks fine, joins nothing
         const r = c.add(new D.Resistor(a, b, P.wire.r));
         return { read: (S) => ({ I: r.current(S.v) }) };
       },

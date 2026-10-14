@@ -17,8 +17,10 @@
     resistor: "The resistor burned out: it got far too hot.",
     wire: "The wire melted! A short circuit sent a huge current through it.",
     battery: "The batteries overheated and leaked after a long short circuit.",
+    meter: "Pop! The meter's fuse blew: set for mA, the meter is almost a wire. Click the meter to put in a new fuse.",
   };
   const SHORT = "Careful: that would join + straight to − with nothing in between. That is a short circuit, so I undid it.";
+  const METER = "Careful: set for mA, the meter is almost a wire. There it would blow its fuse, so I undid it. More on that soon.";
 
   const noop = () => {};
   const HOOKS = ["say", "highlight", "ghost", "xray", "beat", "bonus", "aside"];
@@ -99,7 +101,7 @@
       if (h.show) this.h.ghost(h.show);
     }
 
-    // Something the player did: "place", "remove", "flip", "set", "replace", "undo", "move", "destroyed".
+    // Something the player did: "place", "remove", "flip", "set", "replace", "undo", "move", "probe", "destroyed".
     emit(type, data = {}) {
       this.count[type] = (this.count[type] || 0) + 1;
       if (type !== "destroyed") this.idle = 0;
@@ -143,5 +145,5 @@
     }
   }
 
-  BB.Coach = { CoachRun, SHORT, PLAIN, HINT_AT };
+  BB.Coach = { CoachRun, SHORT, METER, PLAIN, HINT_AT };
 })(window.BB = window.BB || {});

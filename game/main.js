@@ -47,9 +47,18 @@
     refuse(say) { G.lastRefusal = say; if (G.mode === "level") BB.CoachUI.aside(say, 4000); else H.toast(say, 3000); },
     check(act) { const r = G.can(act); if (!r.ok) G.refuse(r.say); return r.ok; },
     emit(type, data) { if (G.coach) G.coach.emit(type, data); },
-    // In early levels a short circuit is undone at once, with a word from Sparky.
+    // In early levels a short circuit is undone at once, with a word from Sparky. So is a meter set for mA put
+    // where it would blow its fuse, until the level about the fuse.
     guard() {
-      if (!G.rules || !G.rules.guardShorts) return;
+      if (!G.rules) return;
+      if (G.rules.guardMeter && BB.Rules.meterOverload(G.doc, G.sim) && G.doc.undo()) {
+        if (G.sel && !G.doc.get(G.sel)) G.sel = null;
+        G.recompile();
+        BB.CoachUI.aside(BB.Coach.METER, 7000, "bad");
+        BB.trail("guard: meter fuse saved");
+        return;
+      }
+      if (!G.rules.guardShorts) return;
       G.sim.settle();
       const short = G.doc.parts.some((p) => p.type === "battery" && (G.sim.read(p.id) || {}).short);
       if (short && G.doc.undo()) {
@@ -65,7 +74,7 @@
     leaveLevel() {
       if (G.mode !== "level") return;
       G.level = null; G.rules = null; G.coach = null; G.run = null;
-      R.region(null); R.guide(null); R.setInsets(null);
+      R.region(null); R.guide(null); R.setInsets(null); R.setCtlLock(null);
       BB.Flow.xray(false);
       BB.CoachUI.leave();
       document.body.classList.remove("mode-level");
@@ -83,6 +92,7 @@
       G.mode = "level"; G.level = lv; G.paused = false; G.speed = 1;
       document.body.classList.add("mode-level");
       G.rules = new BB.Rules.LevelRules(lv);
+      R.setCtlLock((part, ctl) => part.type === "meter" && !G.can({ kind: "ctl", id: part.id, ctl }).ok);   // dimmed until taught
       G.coach = null;
       G.load(clone(lv.start));
       G.run = new BB.Goals.Run(lv);
@@ -176,7 +186,7 @@
     set(id, key, value, snapshot = false) {
       const part = G.doc.get(id);
       if (!part || part[key] === value) return;
-      if (CTL_KEYS.includes(key) && !G.check({ kind: "ctl", id, ctl: key })) return;
+      if (CTL_KEYS.includes(key) && !G.check({ kind: "ctl", id, ctl: key, value })) return;
       if (key !== "pos" && key !== "lux") BB.trail(`${id} ${key} = ${value}`);
       if (snapshot) G.doc.snapshot();
       part[key] = value;
@@ -215,10 +225,11 @@
       BB.trail(`replace ${id}`);
       const part = G.doc.get(id);
       if (part && part.type === "meter") {      // to change a fuse you take the probes off, so a new fuse does not blow at once
-        const bx = part.bx ?? 0, by = part.by ?? 0;
+        const bx = part.bx ?? 0, by = part.by ?? 0, h = R.meterSize()[1];
         part.legs = [null, null];
-        part.loose = [[bx + 135, by - 55], [bx + 185, by - 55]];
-        H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
+        part.loose = G.mode === "level" ? [[bx + 95, by + h + 40], [bx + 165, by + h + 40]] : [[bx + 135, by - 55], [bx + 185, by - 55]];
+        if (G.mode === "level") BB.CoachUI.aside("New fuse in. The probes are off the board now.", 5000);
+        else H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
       }
       if (part && part.type !== "meter") sound.move(part);
       G.sim.replace(id); H.log(`${BB.Parts.name(G.doc.get(id))} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true);
@@ -386,6 +397,7 @@
       play(st) {
         G.lastRefusal = null;
         const own = (ref) => (G.doc.get(ref) ? ref : ([...G.doc.parts].reverse().find((p) => p.type === ref && G.rules.own(p.id)) || {}).id);
+        const meter = () => (G.doc.parts.find((p) => p.type === "meter") || {}).id;
         if (st.next) G.coach.next();
         else if (st.choose !== undefined) G.coach.choose(st.choose === "right" ? G.coach.beat.predict.answer : st.choose);
         else if (st.wire) G.add({ type: "wire", legs: st.wire.slice(), color: R.C.wires[0] });
@@ -395,6 +407,15 @@
         else if (st.ctl) G.set(st.ctl, "on", G.doc.get(st.ctl).on === false, true);
         else if (st.replace) G.replace(st.replace);
         else if (st.move) { const id = own(st.move); if (G.check({ kind: "move", id })) { G.edit(() => { G.doc.get(id).legs = st.to.slice(); }); G.emit("move", { id }); } }
+        else if (st.dial) G.set(meter(), "mode", st.dial, true);
+        else if (st.socket) G.set(meter(), "socket", st.socket, true);
+        else if (st.probe) {                     // both probe tips at once: [red, black], null = off the board
+          const id = meter();
+          if (G.check({ kind: "probe", id }) && st.probe.every((h) => !h || G.check({ kind: "hole", hole: h }))) {
+            G.doc.snapshot(); const m = G.doc.get(id); m.legs = st.probe.slice(); m.loose = [null, null];
+            G.recompile(); G.commitSoft(); G.emit("probe", { id });
+          }
+        }
         return G.lastRefusal;
       },
     };

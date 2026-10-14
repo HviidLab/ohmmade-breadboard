@@ -399,17 +399,27 @@
 
   // A playable level: the family's fixed facts (id, title, ideas) plus what this variant built.
   function instance(fam, seed = 0) {
-    const V = variant(fam, seed), lv = Object.assign({ id: fam.id, title: fam.title, teaches: fam.teaches, uses: fam.uses, card: fam.card, chapter: 1, seed, layout: V.k }, fam.make(V));
+    const V = variant(fam, seed), lv = Object.assign({ id: fam.id, title: fam.title, teaches: fam.teaches, uses: fam.uses, card: fam.card, chapter: fam.chapter, seed, layout: V.k }, fam.make(V));
     lv.view = lv.region.rows;
     // the battery pack sits centred above the open part of the board, clear of the objective card
     const bat = lv.start.parts.find((p) => p.type === "battery"), [r0, r1] = lv.region.rows;
     if (bat) { bat.bx = Math.round((xr(r0) + xr(r1)) / 2 - 115); bat.by = -150; }
+    // the meter stands to the right of the open part of the board, its probes resting on the bench below it
+    const m = lv.start.parts.find((p) => p.type === "meter");
+    if (m) { const h = BB.Render ? BB.Render.meterSize()[1] : 330; m.bx = xr(r1) + 70; m.by = 100; m.loose = [[m.bx + 95, m.by + h + 40], [m.bx + 165, m.by + h + 40]]; }
     return lv;
   }
-  for (const fam of L) { fam.chapter = 1; fam.instance = (seed) => instance(fam, seed); }
+  // A chapter: its levels become playable families (each builds variants from a seed).
+  function chapter(n, title, fams) {
+    for (const fam of fams) { fam.chapter = n; fam.instance = (seed) => instance(fam, seed); }
+    BB.Levels.chapters.push({ n, title, levels: fams });
+  }
 
   BB.Levels = BB.Levels || {};
-  BB.Levels.chapters = [{ n: 1, title: "First Light", levels: L }];
+  BB.Levels.chapters = [];
+  chapter(1, "First Light", L);
+  // What later chapters build their levels with.
+  BB.Levels.kit = { variant, chapter, start, xr, WIRE_COLORS, COLOR_WORD, lit, safe, part, anyLit, wires, wireHoles, onOff, FINISH };
   BB.Levels.all = () => BB.Levels.chapters.flatMap((c) => c.levels);
   BB.Levels.get = (id) => BB.Levels.all().find((l) => l.id === id) || null;
   // A seed for the next play of a level: 0 the first time, then a different variant from the last one.
