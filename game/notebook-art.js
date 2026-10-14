@@ -243,6 +243,21 @@
         ln(30, 96, 66, 96) + cap(70, 96) + ln(76, 96, 110, 96) + tx(52, 84, "−", { s: 18, c: BLUE }) + tx(96, 84, "+", { s: 18, c: RED }) + burst(132, 96, 12) +
         tx(176, 54, "right", { s: 17 }) + tx(180, 100, "vents!", { s: 17, c: RED });
     },
+    // Chapter 9: the transistor (a circle with the base bar, collector above, emitter below with its arrow)
+    npnSwitch: () => {
+      const x = 148, y = 84;
+      const npn = circ(x, y, 17, "#fffdf6") + ln(x - 8, y - 10, x - 8, y + 10, PEN, 3) + pl([[x - 8, y - 4], [x, y - 11], [x, y - 17]]) +
+        pl([[x - 8, y + 4], [x, y + 11], [x, y + 17]]) + arrow(x - 1, y + 10, 40, PEN) + ln(x - 24, y, x - 8, y);
+      return current([[x, 10], [x, 120]], 9) + current([[46, y], [x - 24, y]], 18) + ln(x, 10, x, 22) + resV(x, 22, 40, 4) + ledV(x, 50) + ln(x, 57, x, y - 17) +
+        ln(x, y + 17, x, 120) + npn + ln(46, y, 62, y) + resH(62, 104, y, 4) + ln(104, y, x - 24, y) +
+        tx(84, y - 14, "tiny", { s: 17, c: "#a3360f" }) + tx(x + 40, 44, "big", { s: 19, c: "#a3360f" }) + tx(34, y + 5, "B", { s: 17 }) +
+        tx(x + 22, y - 12, "C", { s: 15 }) + tx(x + 22, y + 26, "E", { s: 15 });
+    },
+    baseR: () => {
+      const npn = (x, y) => circ(x, y, 15, "#fffdf6") + ln(x - 4, y - 9, x - 4, y + 9, PEN, 3) + ln(x - 4, y - 3, x + 7, y - 11) + ln(x - 4, y + 3, x + 7, y + 11) + ln(x - 19, y, x - 4, y);
+      return ln(20, 44, 40, 44) + resH(40, 70, 44, 4) + ln(70, 44, 86, 44) + npn(105, 44) + tick(150, 44) + tx(56, 26, "10 kΩ", { s: 15 }) +
+        ln(20, 98, 86, 98) + npn(105, 98) + burst(126, 86, 11) + tx(170, 104, "pop!", { s: 18, c: RED }) + tx(52, 120, "straight from +", { s: 15 });
+    },
   };
 
   function diagram(id) {

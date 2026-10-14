@@ -46,6 +46,8 @@
     { id: "capTime", name: "Filling takes time", text: "Filling a capacitor through a resistor takes time: fast at first, then slower and slower as it gets full." },
     { id: "tau", name: "R × C", text: "Resistance × capacitance, in seconds, is the capacitor's time: about two thirds full after R × C. 1 kΩ × 1000 µF = 1 s." },
     { id: "capPolarity", name: "Which way round", text: "An electrolytic capacitor is one-way: + leg to the + side, the striped − leg to the − side. Backwards it swells and vents." },
+    { id: "npnSwitch", name: "The transistor", text: "A tiny current into the base (B) lets a big current flow from the collector (C) to the emitter (E). A transistor is a switch worked by a small current." },
+    { id: "baseR", name: "The base resistor", text: "The base is like an LED inside: straight from + it takes far too much current and burns. A 10 kΩ lets in about half a milliamp, plenty to switch." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };
