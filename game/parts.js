@@ -232,9 +232,9 @@
         : "The transistor overheated and failed as a short from collector to emitter, so the LED is now stuck on. Limit the collector current with a resistor.",
     },
 
-    // Uno-style board, USB powered. part.pins = {D13: "LOW"|"HIGH"|"INPUT", ...}. No legs: other parts plug into its sockets.
+    // The controller board, USB powered. part.pins = {D13: "LOW"|"HIGH"|"INPUT", ...}. No legs: other parts plug into its sockets.
     uno: {
-      label: "Uno-style board", legs: [], kind: "board",
+      label: "Controller board", legs: [], kind: "board",
       build(c, nodes, part, rt) {
         const U = P.uno, br = rt.broken || {}, g = c.node("U.GND");
         c.preferRef(g, 3);
@@ -282,7 +282,7 @@
         const st = rt.stress[key];
         if (key === "poly") return `The board's USB fuse tripped: ${fmtA(st.peak)} was drawn from 5V. It resets when it cools down. Look for a short from 5V or a pin to GND.`;
         const [kind, pin] = key.split(":");
-        if (kind === "pin") return `Pin ${pin} is damaged: it supplied ${fmtA(st.peak)}. An Arduino pin can give about 20 mA safely and 40 mA at most. Put a 220–330 Ω resistor in series with an LED.`;
+        if (kind === "pin") return `Pin ${pin} is damaged: it supplied ${fmtA(st.peak)}. A pin can give about 20 mA safely and 40 mA at most. Put a 220–330 Ω resistor in series with an LED.`;
         return `Pin ${pin} is damaged: more than 5 V (or less than 0 V) was forced into it, and ${fmtA(st.peak)} flowed through its protection diodes. Never connect more than 5 V to a pin, and share GND between circuits.`;
       },
     },

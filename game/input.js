@@ -94,7 +94,7 @@
   function startNew(d, e) {
     BB.Effects.unlock();
     if (d.type === "meter" && G.doc.parts.some((p) => p.type === "meter")) { BB.HUD.toast("There is already a multimeter on the bench."); return; }
-    if (d.type === "uno" && G.doc.parts.some((p) => p.type === "uno")) { BB.HUD.toast("There is already an Uno-style board on the bench."); return; }
+    if (d.type === "uno" && G.doc.parts.some((p) => p.type === "uno")) { BB.HUD.toast("There is already a controller board on the bench."); return; }
     if (G.rules && !G.check(d.type === "wire" ? { kind: "wire" } : Object.assign({ kind: "place" }, d))) return;
     st = { kind: "new", d, legs: null, ok: false, x: e ? e.clientX : 0, y: e ? e.clientY : 0 };
     if (!e) { // keyboard: drop near the middle of the visible board
@@ -129,11 +129,12 @@
         else { part.room = part.lux > 5 ? part.lux : room; G.set(id, "lux", 1, true); st = { kind: "cover", id }; }
       }
       else if (ctl.startsWith("pin:")) G.cyclePin(id, ctl.slice(4));
+      else if (ctl === "program") G.cycleProgram(id);
       capture(e); return;
     }
     if ((n = at("[data-probe]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "probe", id })) return; G.doc.snapshot(); st = { kind: "probe", id, k: +n.dataset.probe, was: (G.doc.get(id).legs || [])[+n.dataset.probe] || null }; capture(e); return; }
     if ((n = at("[data-handle]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "legs", id })) return; st = { kind: "leg", id, k: +n.dataset.handle, legs: null, ok: false }; capture(e); return; }
-    // Uno header sockets: drawing a wire wins over dragging the board
+    // board header sockets: drawing a wire wins over dragging the board
     const sk = at("[data-body]") && holeUnder(e.clientX, e.clientY);
     if (sk && sk.startsWith("U.") && !G.doc.occupancy().has(sk)) { st = { kind: "wire", from: sk, to: null }; G.select(null); capture(e); return; }
     if ((n = at("[data-body]"))) {
@@ -344,7 +345,7 @@
     if (hole) {
       R.highlight(hole);
       const v = G.sim.voltageAt(hole);
-      const n = hole.startsWith("U.") ? `Uno socket ${hole.slice(2).replace(/^GND\d$/, "GND")}` : BBShared.netName(BBShared.net(hole));
+      const n = hole.startsWith("U.") ? `board socket ${BB.Uno.label(hole.slice(2))}` : BBShared.netName(BBShared.net(hole));
       const occ = G.doc.occupancy().get(hole);
       const what = occ ? `\n${BB.Parts.name(G.doc.get(occ.id))} leg` : "";
       BB.HUD.tooltip(`${hole}: ${n}\n${v === null ? "not connected" : `${v.toFixed(2)} V vs ground`}${what}`, e.clientX, e.clientY);

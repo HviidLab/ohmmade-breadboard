@@ -25,7 +25,7 @@
     { type: "npn", label: "NPN transistor", sub: "BC547 · C B E" },
     { type: "ldr", label: "Light sensor", sub: "LDR GL5528" },
     { type: "meter", label: "Multimeter", sub: "V · mA · Ω · beep" },
-    { type: "uno", label: "Uno-style board", sub: "5V · GND · pins D2–D13" },
+    { type: "uno", label: "Controller board", sub: "5V · GND · pins D2–D13" },
   ];
 
   function icon(type, color) {
@@ -83,7 +83,7 @@
     if (rd.note) notes.push(rd.note);
     if (m.socket === "mA" && m.mode !== "mA") notes.push("Careful: the red lead is still in the mA socket. The meter is almost a wire now.");
     if (rd.beep) notes.push("Beep: the probes are connected.");
-    const at = (pt) => (pt.startsWith("U.") ? `Uno ${pt.slice(2)}` : `${pt} (${BBShared.netName(BBShared.net(pt)).replace(/ \(.*\)$/, "")})`);
+    const at = (pt) => (pt.startsWith("U.") ? `board ${BB.Uno.label(pt.slice(2))}` : `${pt} (${BBShared.netName(BBShared.net(pt)).replace(/ \(.*\)$/, "")})`);
     if (m.legs[0] && m.legs[1]) notes.push(`Red in ${at(m.legs[0])}, black in ${at(m.legs[1])}.`);
     if (!rd.fuseOK) notes.push("The mA fuse is blown. Select the meter and replace the fuse.");
     $("lcd-note").textContent = notes.join(" ");
@@ -266,7 +266,7 @@
       `<text x="276" y="66" text-anchor="end" fill="#5f8070" font-size="10" font-family="IBM Plex Mono, monospace">${lo.toPrecision(3)} ${unit}  · 60 s</text>`;
   }
 
-  // Uno pin panel: modes, voltages, currents, digitalRead and analogRead.
+  // controller board pin panel: modes, voltages, currents, digitalRead and analogRead.
   let unoKey = "";
   function uno(G) {
     const panel = $("uno-panel");
@@ -276,7 +276,7 @@
     const rd = G.sim.read(part.id);
     if (unoKey !== part.id) {
       unoKey = part.id;
-      panel.innerHTML = `<h2>Uno-style board</h2><p class="note" id="uno-power"></p>
+      panel.innerHTML = `<h2>Controller board</h2><p class="note" id="uno-power"></p>
         <p class="note">Click a pin to cycle: input → output LOW → output HIGH.</p>
         <div class="pins" id="uno-pins">${BB.Uno.DIGITAL.map((n) => `<button type="button" class="pinbtn" data-pin="${n}"></button>`).join("")}</div>
         <dl class="kv" id="uno-analog"></dl>`;

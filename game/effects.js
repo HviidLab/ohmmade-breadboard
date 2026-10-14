@@ -75,10 +75,7 @@
         r.fill.setAttribute("stroke-dasharray", `${(f * r.fillC).toFixed(1)} ${r.fillC.toFixed(1)}`);
       }
       if (part.type === "wire" && r.glow && !rt.destroyed) r.glow.setAttribute("opacity", Math.max(0, Math.min((Math.abs(rd.I) - 2) / 6, 0.9)));
-      if (part.type === "uno" && r.onLed) {
-        r.onLed.setAttribute("opacity", rd.powered ? 0.95 : 0);
-        r.lLed.setAttribute("opacity", rd.powered && rd.pins.D13.V > 3 ? 0.95 : 0);
-      }
+      if (part.type === "uno") BB.Render.unoLive(part, r, sim);
       if (part.type === "meter" && r.lcd) {
         const [v, u] = fmtLcd(rd);
         r.lcd.textContent = v;

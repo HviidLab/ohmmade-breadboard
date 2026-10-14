@@ -361,17 +361,17 @@
   function refreshPartCard() {
     const card = $("partcard");
     const part = lv && G.sel && G.doc.get(G.sel);
-    const rt = part && G.sim.rt.get(part.id), dead = !!(rt && rt.destroyed);
+    const rt = part && G.sim.rt.get(part.id), dead = !!(rt && (rt.destroyed || (part.type === "uno" && BB.Uno.damaged(rt))));
     if (!part || part.type === "battery" || (part.type === "meter" && !dead)) { card.hidden = true; partFor = null; return; }
     const acts = [];
     if (part.type === "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["New fuse", "fresh", () => G.replace(part.id)]);
     if (part.type === "led" && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
-    if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["Fresh one", "fresh", () => G.replace(part.id)]);
+    if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push([part.type === "uno" ? "Fresh board" : "Fresh one", "fresh", () => G.replace(part.id)]);
     if (part.type !== "meter" && G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
     const key = JSON.stringify([part.id, dead, acts.map((a) => a[1])]);
     if (key !== partFor) {
       partFor = key;
-      card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ` <span class="pc-dead">${part.type === "meter" ? "fuse blown" : "burned out"}</span>` : ""}</p><div class="pc-act"></div>`;
+      card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ` <span class="pc-dead">${part.type === "meter" ? "fuse blown" : part.type === "uno" ? "pin damaged" : "burned out"}</span>` : ""}</p><div class="pc-act"></div>`;
       const box = card.querySelector(".pc-act");
       for (const [lbl, cls, fn] of acts) { const b = document.createElement("button"); b.type = "button"; b.className = `btn pc-${cls}`; b.textContent = lbl; b.addEventListener("click", fn); box.appendChild(b); }
       if (!acts.length) box.innerHTML = '<span class="pc-fixed">Fixed in this level</span>';

@@ -7,7 +7,7 @@
   const STEP = 1e-3;              // transient step (s) when the circuit has capacitors
 
   // Net key for a connection point. Breadboard holes use the shared strip/rail rule;
-  // Uno sockets are "U.<name>"; null means a loose leg or probe.
+  // controller board sockets are "U.<name>"; null means a loose leg or probe.
   function netKey(point, partId, k) {
     if (!point) return `loose:${partId}:${k}`;
     if (point.startsWith("U.")) return BB.Uno ? BB.Uno.netOf(point) : point;
@@ -116,7 +116,17 @@
         }
         this.t += h;
         left -= h;
+        this.runPrograms(h);
       }
+    }
+
+    // A controller board with a program sets its output pin from what it reads, 50 times a second.
+    runPrograms(h) {
+      if (!BB.Uno || !this.doc.parts.some((p) => p.type === "uno" && p.program)) return;
+      this.progT = (this.progT || 0) + h;
+      if (this.progT < 0.02) return;
+      this.progT = 0;
+      if (BB.Uno.tick(this)) this.compile();
     }
 
     // Integrate every stress over h. Returns the earliest failure inside h, if any.

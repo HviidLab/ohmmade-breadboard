@@ -51,6 +51,8 @@
           pin: (n) => (u ? u.rd.pins[n] : null),
           analog: (n) => (u ? u.rd.analog[n] : null),
           floating: (n) => !!u && u.rd.pins[n].mode === "INPUT" && sim.solver.theveninR(u.rd.pins[n].node) > 1e7,
+          read: (n) => (u ? BB.Uno.reading(sim, u.part, n).read : null),        // what the board reads on pin n (a floating pin flickers)
+          mode: (n) => (u ? (u.part.pins || {})[n] || "INPUT" : null),
           damaged: () => !!u && Object.values(u.rd.pins).some((q) => q.damaged),
         };
       })(),

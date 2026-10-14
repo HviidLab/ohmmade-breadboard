@@ -111,7 +111,7 @@
       G.mode = "level"; G.level = lv; G.paused = false; G.speed = 1;
       document.body.classList.add("mode-level");
       G.rules = new BB.Rules.LevelRules(lv);
-      R.setCtlLock((part, ctl) => part.type === "meter" && !G.can({ kind: "ctl", id: part.id, ctl }).ok);   // dimmed until taught
+      R.setCtlLock((part, ctl) => ["meter", "uno"].includes(part.type) && ctl !== "program" && !G.can({ kind: "ctl", id: part.id, ctl }).ok);   // dimmed until taught
       G.coach = null;
       G.load(clone(lv.start));
       G.run = new BB.Goals.Run(lv);
@@ -234,11 +234,22 @@
     cyclePin(id, pin) {
       const p = G.doc.get(id);
       if (!p) return;
-      if (!G.check({ kind: "ctl", id, ctl: "pin" })) return;
-      const order = ["INPUT", "LOW", "HIGH"], cur = (p.pins && p.pins[pin]) || "INPUT";
+      if (!G.check({ kind: "ctl", id, ctl: `pin:${pin}` })) return;
+      const order = G.rules ? G.rules.pinModes(G, id, pin) : ["INPUT", "LOW", "HIGH"], cur = (p.pins && p.pins[pin]) || "INPUT";
       G.doc.snapshot();
-      p.pins = Object.assign({}, p.pins, { [pin]: order[(order.indexOf(cur) + 1) % 3] });
+      p.pins = Object.assign({}, p.pins, { [pin]: order[(order.indexOf(cur) + 1) % order.length] });
       G.recompile(); G.commitSoft();
+      G.emit("set", { id, key: "pins", pin });
+    },
+    // The next of the level's programs on the board's screen.
+    cycleProgram(id) {
+      const p = G.doc.get(id), list = (p && p.programs) || [];
+      if (!p || !list.length || !G.check({ kind: "ctl", id, ctl: "program" })) return;
+      const k = list.findIndex((q) => q.rule === (p.program || {}).rule);
+      G.doc.snapshot();
+      p.program = Object.assign({}, list[(k + 1) % list.length]);
+      G.recompile(); G.commitSoft();
+      G.emit("set", { id, key: "program" });
     },
     replace(id) {
       if (!G.check({ kind: "replace", id })) return;
@@ -436,6 +447,8 @@
         else if (st.cells) G.set(st.cells, "cells", (G.doc.get(st.cells).cells || 4) === 4 ? 2 : 4, true);
         else if (st.knob) { G.set(own(st.knob), "pos", st.pos); G.commitSoft(); }
         else if (st.cover) G.set(own(st.cover), "lux", st.on === false ? 200 : 1, true);
+        else if (st.program) { const id = G.doc.parts.find((p) => p.type === "uno").id; for (let k = 0; k < 4 && (G.doc.get(id).program || {}).rule !== st.program; k++) G.cycleProgram(id); }
+        else if (st.pin) { const id = G.doc.parts.find((p) => p.type === "uno").id; for (let k = 0; k < 3 && ((G.doc.get(id).pins || {})[st.pin] || "INPUT") !== st.mode; k++) G.cyclePin(id, st.pin); }
         else if (st.press) { const id = own(st.press), b = G.doc.get(id); G.set(id, "pressed", st.on ?? !b.pressed, true); }
         else if (st.replace) G.replace(st.replace);
         else if (st.move) { const id = own(st.move); if (G.check({ kind: "move", id })) { G.edit(() => { G.doc.get(id).legs = st.to.slice(); }); G.emit("move", { id }); } }

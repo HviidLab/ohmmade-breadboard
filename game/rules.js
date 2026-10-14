@@ -4,7 +4,9 @@
 // level.rules = {
 //   tray: [{type: "wire", n: 1}, {type: "resistor", value: 330, n: 1}, {type: "led", color: "green", n: 1}],
 //   allow: {move, legs, remove, flip, ctl, replace, probe: [ids] or "*", place: false, wire: false,
-//           dial: ["off", "V", …], socket: ["VO", "mA"]},    // which meter dial positions and red-lead sockets may be used
+//           dial: ["off", "V", …], socket: ["VO", "mA"],     // which meter dial positions and red-lead sockets may be used
+//           pins: {D13: ["LOW", "HIGH"]},                     // the controller board's pins the player may set, and to what
+//           program: false},                                  // a board with `programs` (a list to choose from): no choosing now
 //   guardShorts: true,       // undo any move that joins + straight to −, and explain
 //   guardMeter: true,        // undo any move that would blow the meter's fuse, and explain
 // }
@@ -54,6 +56,13 @@
     // May the meter's dial go to this position (or its red lead into this socket)? Unlisted means any.
     dialOK(G, mode) { const d = this.allow(G).dial; return !d || d.includes(mode); }
     socketOK(G, socket) { const s = this.allow(G).socket; return !s || s.includes(socket); }
+    // The modes a controller board pin may be set to here (none: the pin is locked, or the board's program sets it).
+    pinModes(G, id, pin) {
+      const part = G.doc.get(id), p = this.allow(G).pins;
+      if (!part || (part.program && part.program.out === pin)) return [];
+      if (p) return p[pin] || [];
+      return this.own(id) || listed(this.allow(G).ctl, id) ? ["INPUT", "LOW", "HIGH"] : [];
+    }
 
     // How many parts of this kind are left in the tray: what the level gives, plus level parts taken off the board,
     // minus what the player has put on the board. Counted from the board, so Undo keeps it right.
@@ -100,11 +109,17 @@
           const [key, val] = act.ctl.includes(":") ? act.ctl.split(":") : [act.ctl, act.value];
           if (key === "mode" && val !== undefined && !this.dialOK(G, val)) return no("Sparky has not shown you that one yet.");
           if (key === "socket" && val !== undefined && !this.socketOK(G, val)) return no("Leave the red lead where it is for now.");
+          if (key === "program") return (G.doc.get(act.id) || {}).programs && this.allow(G).program !== false ? OK : no("The board's program stays as it is here.");
+          if (key === "pin" && val !== undefined) {
+            if (this.pinModes(G, act.id, val).length) return OK;
+            const part = G.doc.get(act.id);
+            return no(part && part.program && part.program.out === val ? "The board's program sets that pin, not you." : "Leave that pin alone for now.");
+          }
         }
         // falls through
         case "replace":
           // a part that burned out can always be replaced, so no level can get stuck on a broken part
-          if (act.kind === "replace" && G && G.sim && (G.sim.rt.get(act.id) || {}).destroyed) return OK;
+          if (act.kind === "replace" && G && G.sim && ((G.sim.rt.get(act.id) || {}).destroyed || (BB.Uno && BB.Uno.damaged(G.sim.rt.get(act.id))))) return OK;
         // falls through
         case "move": case "legs": case "remove": case "flip": case "probe":
           if (this.own(act.id) || listed(allow[act.kind], act.id)) return OK;

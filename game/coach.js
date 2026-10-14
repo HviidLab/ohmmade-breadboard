@@ -18,6 +18,7 @@
     wire: "The wire melted! A short circuit sent a huge current through it.",
     battery: "The batteries overheated and leaked after a long short circuit.",
     meter: "Pop! The meter's fuse blew: set for mA, the meter is almost a wire. Click the meter to put in a new fuse.",
+    uno: "A pin gave far too much current and is damaged. Click the board for a fresh one.",
   };
   const SHORT = "Careful: that would join + straight to − with nothing in between. That is a short circuit, so I undid it.";
   const METER = "Careful: set for mA, the meter is almost a wire. There it would blow its fuse, so I undid it. More on that soon.";

@@ -275,6 +275,43 @@
         ln(x, y + 15, x, 122) + ln(70, 12, 70, 24) + resV(70, 24, 60, 5) + ln(70, 60, 70, y) + ln(70, y, x - 7 - 15, y) + circ(70, 100, 11, "#fffdf6") + resV(70, 92, 108, 3) +
         ln(70, y, 70, 89) + ln(70, 111, 70, 122) + tx(40, 46, "100 kΩ", { s: 14 }) + tx(36, 104, "sensor", { s: 14 }) + tx(196, 50, "on in", { s: 15, c: "#a3360f" }) + tx(196, 66, "the dark", { s: 15, c: "#a3360f" });
     },
+    // a board pin set HIGH: a switch inside the board joins it to 5 V, and the LED on it lights
+    pinOut: () => `<rect x="10" y="14" width="76" height="106" rx="8" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` + tx(48, 32, "board", { s: 15 }) +
+      circ(36, 52, 3.5, RED, RED) + tx(30, 57, "5V", { s: 13, c: RED, a: "end" }) + circ(36, 88, 3.5, BLUE, BLUE) + tx(30, 93, "0V", { s: 13, c: BLUE, a: "end" }) +
+      ln(62, 70, 39, 54) + circ(62, 70, 3.5, PEN, PEN) + ln(62, 70, 86, 70) + tx(72, 62, "D13", { s: 12 }) + pl([[86, 108], [36, 108], [36, 92]], BLUE) + tx(64, 104, "GND", { s: 11 }) +
+      current([[86, 70], [102, 70]]) + ln(86, 70, 102, 70) + resH(102, 138, 70) + current([[138, 70], [176, 70], [176, 82]]) + ln(138, 70, 176, 70) + ln(176, 70, 176, 85) +
+      ledV(176, 92) + ln(176, 99, 176, 108) + current([[176, 100], [176, 108], [92, 108]]) + ln(176, 108, 86, 108) +
+      tx(150, 32, "HIGH: lit", { s: 16, c: "#a3360f" }) + tx(150, 48, "LOW: dark", { s: 16 }),
+    // no resistor: the pin gives too much and is damaged; with 330 Ω about 9 mA
+    pinLimit: () => tx(56, 20, "no resistor", { s: 15 }) + tx(16, 46, "D13", { s: 12 }) + ln(40, 42, 60, 42) + ln(60, 42, 60, 58) + ledV(60, 65) + ln(60, 72, 60, 104) +
+      tx(60, 120, "GND", { s: 12, c: BLUE }) + burst(42, 42, 10) + tx(80, 92, "64 mA", { s: 16, c: RED, a: "start" }) +
+      `<line x1="112" y1="14" x2="112" y2="120" stroke="${GREY}" stroke-width="1.6" stroke-dasharray="4 5"/>` +
+      tx(166, 20, "with 330 Ω", { s: 15 }) + tx(130, 46, "D13", { s: 12 }) + ln(142, 42, 150, 42) + resH(150, 184, 42) + ln(184, 42, 196, 42) + ln(196, 42, 196, 58) +
+      ledV(196, 65) + ln(196, 72, 196, 104) + tx(196, 120, "GND", { s: 12, c: BLUE }) + tx(152, 92, "9 mA", { s: 16, c: "#a3360f" }) + tick(154, 104),
+    // a knob's middle leg into A0: the push becomes a number
+    analogRead: () => tx(46, 18, "5 V", { s: 14, c: RED }) + ln(46, 22, 46, 32) + resV(46, 32, 100) + ln(46, 100, 46, 110) + tx(46, 126, "0 V", { s: 14, c: BLUE }) +
+      arrow(56, 66, 180, PEN) + ln(56, 66, 114, 66) + tx(84, 60, "A0", { s: 14 }) +
+      `<rect x="114" y="34" width="94" height="60" rx="8" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` +
+      `<rect x="124" y="48" width="74" height="30" rx="5" fill="rgba(120, 200, 160, .25)" stroke="${PEN}" stroke-width="1.6"/>` + tx(161, 70, "512", { s: 20, c: "#a3360f" }) +
+      tx(161, 112, "0 V → 0", { s: 14 }) + tx(161, 127, "5 V → 1023", { s: 14 }),
+    // what a pin set to IN reads, for each push
+    pinIn: () => `<rect x="40" y="14" width="30" height="42" fill="rgba(200, 54, 46, .18)"/><rect x="40" y="56" width="30" height="32" fill="rgba(141, 138, 128, .18)"/>` +
+      `<rect x="40" y="88" width="30" height="32" fill="rgba(47, 99, 200, .18)"/><rect x="40" y="14" width="30" height="106" fill="none" stroke="${PEN}" stroke-width="2.2"/>` +
+      tx(34, 20, "5 V", { s: 13, a: "end" }) + tx(34, 60, "3 V", { s: 13, a: "end" }) + tx(34, 92, "1.5 V", { s: 13, a: "end" }) + tx(34, 124, "0 V", { s: 13, a: "end" }) +
+      tx(96, 40, "HIGH", { s: 17, c: RED }) + tx(96, 77, "?", { s: 19, c: GREY }) + tx(96, 110, "LOW", { s: 17, c: BLUE }) +
+      tx(168, 52, "a pin set to IN", { s: 15 }) + tx(168, 70, "reads the push;", { s: 15 }) + tx(168, 88, "it does not push", { s: 15 }),
+    // a button from 5 V into D2, and the pull-down from D2 to GND
+    pullDown: () => ln(18, 14, 110, 14, RED, 2.2) + tx(124, 19, "5 V", { s: 14, c: RED }) + ln(60, 14, 60, 28) + circ(60, 28, 2.6, PEN, PEN) + ln(60, 28, 72, 42) +
+      circ(60, 46, 2.6, PEN, PEN) + tx(88, 36, "button", { s: 14, a: "start" }) + ln(60, 46, 60, 66) + circ(60, 66, 3.5, PEN, PEN) + ln(60, 66, 140, 66) +
+      `<rect x="140" y="50" width="66" height="32" rx="6" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` + tx(173, 72, "D2: IN", { s: 15 }) +
+      ln(60, 66, 60, 76) + resV(60, 76, 106) + ln(60, 106, 60, 120) + ln(18, 120, 110, 120, BLUE, 2.2) + tx(124, 124, "GND", { s: 14, c: BLUE }) +
+      tx(30, 96, "10 kΩ", { s: 14 }) + tx(173, 102, "holds it LOW", { s: 14, c: "#a3360f" }) + tx(173, 117, "till pressed", { s: 14, c: "#a3360f" }),
+    // the board's program joins what it reads to what it sets
+    program: () => `<rect x="58" y="22" width="104" height="86" rx="8" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` +
+      `<rect x="68" y="30" width="84" height="26" rx="5" fill="rgba(120, 200, 160, .25)" stroke="${PEN}" stroke-width="1.6"/>` + tx(110, 49, "D13 = D2", { s: 15 }) +
+      tx(72, 96, "D2", { s: 13 }) + tx(146, 96, "D13", { s: 13 }) + `<path d="M80 86 C 96 66, 124 66, 138 84" fill="none" stroke="${DOT}" stroke-width="2.4" stroke-dasharray="5 4"/>` + arrow(138, 84, 55) +
+      ln(20, 82, 32, 82) + circ(32, 82, 2.6, PEN, PEN) + ln(32, 82, 44, 72) + circ(48, 82, 2.6, PEN, PEN) + ln(48, 82, 58, 82) + tx(36, 66, "button", { s: 13 }) +
+      ln(162, 82, 190, 82) + ln(190, 82, 190, 96) + ledV(190, 103) + ln(190, 110, 190, 120) + tx(110, 124, "the program decides", { s: 15, c: "#a3360f" }),
   };
 
   function diagram(id) {

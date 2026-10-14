@@ -126,6 +126,10 @@
     let x0 = Math.min(xr(r0) - 50, bat ? (bat.bx ?? 40) - 10 : Infinity), x1 = Math.max(xr(r1) + 40, bat ? (bat.bx ?? 40) + 240 : -Infinity);
     let y0 = bat ? (bat.by ?? -150) - 12 : Y["+T"] - 40, y1 = (region.rails === "all" ? Y["-B"] : region.cols === "a-j" ? Y.j : Y.e) + 34;
     for (const b of doc.parts.filter((p) => p.type === "battery" && p !== bat && p.by !== undefined)) y1 = Math.max(y1, b.by + 150);   // a second pack below the board
+    const u = doc.parts.find((p) => p.type === "uno");
+    if (u && u.bx !== undefined) {          // the controller board above the breadboard, its USB cable to the left
+      x0 = Math.min(x0, u.bx - 130); x1 = Math.max(x1, u.bx + BB.Uno.W + 12); y0 = Math.min(y0, u.by - 12);
+    }
     if (m && m.bx !== undefined) {          // the meter beside the board, with its loose probes above it
       x0 = Math.min(x0, m.bx - 10); x1 = Math.max(x1, m.bx + meterSize()[0] + 10);
       y0 = Math.min(y0, m.by - 10); y1 = Math.max(y1, m.by + meterSize()[1] + 75);
@@ -453,34 +457,81 @@
     probes(g, part, pts.map((p, k) => p || part.loose?.[k] || [bx + 60 + k * 70, by - 40]), from, r);
   }
 
+  // The controller board: a generic board in style 1. One row of sockets along its bottom edge, a click-badge above each
+  // pin D2–D13 (H = HIGH, L = LOW, IN = reads), and a screen that shows what the board reads and its program.
   function drawUno(g, part, r) {
-    const U = BB.Uno, bx = part.bx ?? U.pos.bx, by = part.by ?? U.pos.by;
+    const U = BB.Uno, bx = part.bx ?? U.pos.bx, by = part.by ?? U.pos.by, { W, H } = U, SY = by + H - 18;
     U.pos.bx = bx; U.pos.by = by;
-    const body = el("g", { "data-body": part.id }, g);
-    if (!A.has("uno_board")) el("rect", { x: bx + 6, y: by + 10, width: U.W, height: U.H, rx: 14, fill: "rgba(0,0,0,.45)" }, body);
-    if (A.has("uno_board")) el("image", { href: A.url("uno_board"), x: bx, y: by, width: U.W, height: U.H, preserveAspectRatio: "none" }, body);
-    else el("rect", { x: bx, y: by, width: U.W, height: U.H, rx: 14, fill: "#1d5fa8", stroke: "#0d3466" }, body);
-    const rd = BB.Game && BB.Game.sim ? BB.Game.sim.read(part.id) : null;
-    // on-board LEDs: ON (power) and L (pin 13)
-    r.onLed = el("circle", { cx: bx + 0.848 * U.W, cy: by + 0.288 * U.H, r: 9, fill: "url(#glowGreen)", opacity: 0 }, body);
-    r.lLed = el("circle", { cx: bx + 0.45 * U.W, cy: by + 0.405 * U.H, r: 9, fill: "url(#glowAmber)", opacity: 0 }, body);
+    const body = el("g", { "data-body": part.id }, g), mono = "IBM Plex Mono, monospace";
+    // the USB cable, which powers it
+    el("path", { d: `M${bx - 120} ${by + 34} C${bx - 70} ${by + 34} ${bx - 60} ${by + 60} ${bx - 16} ${by + 60}`, stroke: "#2b3644", "stroke-width": 10, fill: "none", "stroke-linecap": "round" }, body);
+    el("rect", { x: bx - 20, y: by + 47, width: 28, height: 26, rx: 4, fill: "#c9d3dd", stroke: "#7b8794", "stroke-width": 1.5 }, body);
+    el("rect", { x: bx + 5, y: by + 8, width: W, height: H, rx: 22, fill: "rgba(4, 10, 20, .4)" }, body);
+    el("rect", { x: bx, y: by, width: W, height: H, rx: 22, fill: "#1b6b5c", stroke: "#0d4038", "stroke-width": 2.5, "data-markbox": "" }, body);
+    el("rect", { x: bx + 8, y: by + 6, width: W - 16, height: 9, rx: 4.5, fill: "#fff", opacity: 0.22 }, body);
+    // the chip
+    for (let k = 0; k < 6; k++) for (const sx of [bx + 22, bx + 112]) el("rect", { x: sx, y: by + 32 + k * 11, width: 10, height: 5, rx: 1.5, fill: "#b8c2cc" }, body);
+    el("rect", { x: bx + 30, y: by + 24, width: 84, height: 76, rx: 9, fill: "#161c24", stroke: "#0a0e13", "stroke-width": 1.5 }, body);
+    el("circle", { cx: bx + 42, cy: by + 36, r: 4, fill: "#2b3644" }, body);
+    // the screen
+    const scr = el("g", part.programs ? { class: "ctl", "data-ctl": "program", "data-id": part.id } : {}, body);    // click it to choose the next program
+    el("rect", { x: bx + 146, y: by + 18, width: 338, height: 92, rx: 12, fill: "#0e2620", stroke: "#2c5a4b", "stroke-width": 1.5, "data-lcd": part.id }, scr);
+    r.screen = [0, 1, 2].map((k) => el("text", { x: bx + 162, y: by + 46 + k * 26, fill: "#9dffc8", "font-family": mono, "font-size": 17, "font-weight": 600, style: "filter: drop-shadow(0 0 4px rgba(120, 255, 190, .5))" }, scr));
+    // the power light, and what the badges mean
+    r.onLed = el("circle", { cx: bx + W - 40, cy: by + 36, r: 11, fill: "url(#glowGreen)", opacity: 0 }, body);
+    el("circle", { cx: bx + W - 40, cy: by + 36, r: 4.5, fill: "#3ddc6e", stroke: "#0d4038" }, body);
+    el("text", { x: bx + W - 58, y: by + 41, "text-anchor": "end", fill: "#d8efe9", "font-family": mono, "font-size": 12, "font-weight": 600 }, body).textContent = "ON";
+    [["H", "HIGH: 5 V", "#ff5a5a"], ["L", "LOW: 0 V", "#4d8dff"], ["IN", "reads", "#0e2620"]].forEach(([b, t, c], k) => {
+      const y = by + 62 + k * 22;
+      el("rect", { x: bx + 504, y: y - 13, width: 24, height: 18, rx: 5, fill: c, stroke: k === 2 ? "#9dffc8" : "#0d1418", "stroke-width": 1.2 }, body);
+      el("text", { x: bx + 516, y: y + 0.5, "text-anchor": "middle", fill: "#f4f7f9", "font-family": mono, "font-size": 10, "font-weight": 700 }, body).textContent = b;
+      el("text", { x: bx + 536, y: y + 0.5, fill: "#d8efe9", "font-family": mono, "font-size": 11.5, "font-weight": 600 }, body).textContent = t;
+    });
+    // the header: a dark strip per group, the sockets, and their names
+    const groups = [["3V3", "GND1"], ["D2", "D13"], ["A0", "A5"]].map(([a, z]) => [U.SOCKETS.find((q) => q.name === a), U.SOCKETS.find((q) => q.name === z)]);
+    for (const [a, z] of groups) el("rect", { x: bx + a.x - 13, y: SY - 13, width: z.x - a.x + 26, height: 26, rx: 6, fill: "#10161d" }, body);
+    el("text", { x: bx + 506 + 65, y: SY - 40, "text-anchor": "middle", fill: "#bfe3da", "font-family": mono, "font-size": 11, "font-weight": 600 }, body).textContent = "analog in";
+    r.badges = {};
     for (const sk of U.SOCKETS) {
-      const [sx, sy] = [bx + sk.fx * U.W, by + sk.fy * U.H], name = sk.name, usable = U.usable(`U.${name}`);
-      el("rect", { x: sx - 5, y: sy - 5, width: 10, height: 10, fill: "#0b0c0d", stroke: "#2a2d30" }, body);
-      const lbl = name.replace(/^GND\d$/, "GND").replace("3V3", "3.3V");
-      el("text", { x: sx, y: sk.top ? sy + 20 : sy - 12, "text-anchor": "middle", fill: usable ? "#f1f3f5" : "#8fa6c2", "font-family": "IBM Plex Mono, monospace", "font-size": 9, "font-weight": 600, transform: `rotate(-90 ${sx} ${sk.top ? sy + 20 : sy - 12})`, "dominant-baseline": "middle", "text-anchor": sk.top ? "end" : "start" }, body).textContent = lbl;
+      const sx = bx + sk.x, name = sk.name;
+      el("rect", { x: sx - 5.5, y: SY - 5.5, width: 11, height: 11, rx: 2, fill: "#030507", stroke: "#3a4652" }, body);
+      const col = name === "5V" ? "#ff8a8a" : /^GND/.test(name) ? "#8fb3ff" : name === "3V3" ? "#9fb0bf" : "#f1f3f5";
+      el("text", { x: sx, y: SY - 19, "text-anchor": "middle", fill: col, "font-family": mono, "font-size": name.length > 3 ? 9 : 10.5, "font-weight": 700 }, body).textContent = U.label(name);
       if (U.DIGITAL.includes(name)) {
-        const pin = rd && rd.pins[name], mode = (part.pins && part.pins[name]) || "INPUT";
         const t = el("g", { class: "ctl", "data-ctl": `pin:${name}`, "data-id": part.id }, body);
-        const col = pin && pin.damaged ? "#7a1f1f" : mode === "HIGH" ? "#d64545" : mode === "LOW" ? "#3b4a5c" : "#1d2a36";
-        el("rect", { x: sx - 9, y: sy + 46, width: 18, height: 14, rx: 4, fill: col, stroke: "#0b0c0d" }, t);
-        el("text", { x: sx, y: sy + 56, "text-anchor": "middle", fill: "#f1f3f5", "font-family": "IBM Plex Mono, monospace", "font-size": 8.5, "font-weight": 600 }, t).textContent = pin && pin.damaged ? "✗" : mode === "HIGH" ? "H" : mode === "LOW" ? "L" : "in";
+        const rect = el("rect", { x: sx - 11.5, y: SY - 58, width: 23, height: 20, rx: 5, "stroke-width": 1.2 }, t);
+        const txt = el("text", { x: sx, y: SY - 44, "text-anchor": "middle", fill: "#f4f7f9", "font-family": mono, "font-size": 10, "font-weight": 700 }, t);
+        r.badges[name] = { rect, txt };
       }
-      if (rd && rd.pins[name] && rd.pins[name].damaged) el("path", { d: `M${sx - 6} ${sy - 6}l12 12m0 -12l-12 12`, stroke: "#ff6b6b", "stroke-width": 2 }, body);
     }
-    el("text", { x: bx + 18, y: by + U.H - 14, fill: "#dbe7f5", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, body).textContent = "Uno-style board · USB 5 V";
+    unoLive(part, r, BB.Game && BB.Game.sim);
+    lockCtls(body, part);
   }
-
+  // The parts of the board that change while it runs: the badges, the screen and the power light.
+  function unoLive(part, r, sim) {
+    const rd = sim && sim.read(part.id), U = BB.Uno;
+    if (r.onLed) r.onLed.setAttribute("opacity", rd && rd.powered ? 0.95 : 0);
+    for (const [name, b] of Object.entries(r.badges || {})) {
+      const mode = (part.pins && part.pins[name]) || "INPUT", bad = rd && rd.pins && rd.pins[name] && rd.pins[name].damaged;
+      const prog = part.program && part.program.out === name;
+      b.rect.setAttribute("fill", bad ? "#5a1414" : mode === "HIGH" ? "#ff5a5a" : mode === "LOW" ? "#4d8dff" : "#0e2620");
+      b.rect.setAttribute("stroke", prog ? "#ffc43d" : mode === "INPUT" && !bad ? "#9dffc8" : "#0d1418");
+      b.rect.setAttribute("stroke-width", prog ? 2.4 : 1.2);
+      b.txt.textContent = bad ? "✗" : mode === "HIGH" ? "H" : mode === "LOW" ? "L" : "IN";
+    }
+    if (!r.screen) return;
+    const lines = [];
+    if (rd && !rd.powered) lines.push("USB fuse tripped:", "the board is off");
+    else if (sim && rd) {
+      if (part.program) lines.push(`▶ ${U.programText(part.program)}`);
+      for (const n of part.watch || []) {
+        if (n[0] === "A") lines.push(`${n} reads ${rd.pins[n] && rd.pins[n].damaged ? "--" : rd.analog[n]}`);
+        else { const q = U.reading(sim, part, n); lines.push(`${n} reads ${q.damaged ? "--" : q.read}`); }
+      }
+      if (!lines.length) lines.push("ready · 5 V");
+    }
+    r.screen.forEach((t, k) => { t.textContent = lines[k] || ""; });
+  }
   function partPoints(part) {
     return part.legs.map((pt) => (pt ? (pt.startsWith("U.") ? BB.Uno.socketXY(pt) : xy(pt)) : null));
   }
@@ -599,5 +650,5 @@
     }
   }
 
-  BB.Render = { init, drawParts, region, marks, fitBox, regionBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { init, drawParts, unoLive, region, marks, fitBox, regionBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

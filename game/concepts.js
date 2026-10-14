@@ -51,6 +51,12 @@
     { id: "ldr", name: "The light sensor", text: "A light sensor (LDR) is a resistor that reacts to light: about 2 kΩ in room light, 75 kΩ or more in the dark." },
     { id: "ldrDivider", name: "A light meter", text: "Put a light sensor in a divider and its middle point follows the light: light becomes a push you can measure." },
     { id: "nightLight", name: "The night light", text: "Feed a transistor's base from a divider with a light sensor: in the dark the base gets current and the LED comes on." },
+    { id: "pinOut", name: "A pin you switch", text: "A controller board's pin is a switch you set: HIGH joins it to 5 V, LOW joins it to 0 V (GND)." },
+    { id: "pinLimit", name: "A pin's limit", text: "A pin gives about 20 mA safely and is damaged above about 40 mA. An LED on a pin always needs its resistor." },
+    { id: "analogRead", name: "Reading a push", text: "An analog pin (A0–A5) measures its push, 0 to 5 V, as a number from 0 to 1023. Half the push reads about 512." },
+    { id: "pinIn", name: "A pin that reads", text: "A pin set to IN does not push: it reads. Above 3 V it reads HIGH, below 1.5 V it reads LOW." },
+    { id: "pullDown", name: "The pull-down", text: "An input joined to nothing floats and reads HIGH or LOW at random. A resistor to GND holds it LOW until a button pulls it HIGH." },
+    { id: "program", name: "A program", text: "A controller runs a program: rules such as \"D13 copies D2\". The same wires do something new when the program changes." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };
