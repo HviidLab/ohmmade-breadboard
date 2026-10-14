@@ -3,7 +3,7 @@ const Bench = (() => {
   const SVGNS = "http://www.w3.org/2000/svg";
 
   const PAGES = [
-    ["index.html", "Start"],
+    ["course.html", "Start"],
     ["primer.html", "Primer"],
     ["ohms-law.html", "Ohm's law"],
     ["series-parallel.html", "Series & parallel"],
@@ -14,10 +14,10 @@ const Bench = (() => {
   ];
 
   function nav() {
-    const here = location.pathname.split("/").pop() || "index.html";
+    const here = location.pathname.split("/").pop() || "course.html";
     const bar = document.createElement("header");
     bar.className = "topbar";
-    bar.innerHTML = `<a class="brand" href="index.html">Ohmmade Breadboard</a><nav aria-label="Pages"></nav>`;
+    bar.innerHTML = `<a class="brand" href="course.html">Ohmmade Breadboard</a><nav aria-label="Pages"></nav>`;
     const n = bar.querySelector("nav");
     for (const [href, label] of PAGES.slice(1)) {
       const a = document.createElement("a");

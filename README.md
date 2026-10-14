@@ -1,8 +1,8 @@
 # Ohmmade Breadboard
 
-A short self-study course in basic electronics, for before you buy an Arduino starter kit:
-a primer, a breadboard workbook (experiments E0–E9), interactive labs, a narrated video,
-and a breadboard game that simulates what your circuit would do, including the smoke.
+A game about real electronics: learn by building circuits on a simulated breadboard,
+with Sparky as your guide. The simulator shows what your circuit would really do,
+including the smoke.
 
 Open `index.html` in a browser, or use the GitHub Pages link of this repository.
 Nothing to install. The game needs a desktop screen.
