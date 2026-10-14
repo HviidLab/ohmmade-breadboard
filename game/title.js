@@ -16,8 +16,8 @@
     const hasBench = !!G.hasSavedSandbox();
     const host = $("title-screen");
     host.innerHTML = `<div class="ts-inner">
-      <p class="ts-brand">Ohmmade Breadboard</p>
-      <h1>Breadboard <span>Game</span></h1>
+      <p class="ts-brand">A game about real electronics</p>
+      <h1>Ohmmade <span>Breadboard</span></h1>
       <p class="ts-lede">Learn electronics by building it. Light an LED, watch the current flow, and find out what happens when you leave out the resistor. No experience needed.</p>
       <div class="ts-actions">
         ${next ? `<button type="button" class="ts-go" id="ts-go"><span class="ts-k">${fresh ? "Start" : "Continue"}</span><span class="ts-m">${next.id} · ${next.title}</span></button>`

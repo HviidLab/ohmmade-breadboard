@@ -1,5 +1,5 @@
 // Saved progress (localStorage "bbgame.v2"). No DOM.
-// {levels: {"1-1": {done, stars, bonus}}, notebook: [concept ids], settings: {sound}, sandbox, classic: {E0: {...}}, telemetry}
+// {levels: {"1-1": {done, stars, bonus}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook], settings: {sound}, sandbox, classic: {E0: {...}}, telemetry}
 // The first time, the old "bbgame.v1" save (sandbox and classic missions) is carried over.
 (function (BB) {
   "use strict";

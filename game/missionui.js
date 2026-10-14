@@ -5,7 +5,9 @@
   const M = BB.Missions.list;
   let G, guideOn = false, hintsShown = 0, lastRender = "";
 
-  function art(name) { return BB.Art && BB.Art.has(name) ? BB.Art.url(name) : null; }
+  // Each mission's card shows its main part, drawn like the bench (art style 1), with the mission's number glowing.
+  const PART = { E0: "meter", E1: "meter", E2: "resistor", E3: "led", E3x: "led", E4s: "resistor", E4p: "resistor", E5: "pot", E6: "button", E7: "cap", E8: "npn", E9: "ldr" };
+  const face = (m) => `<span class="ms-ph">${BB.HUD.icon(PART[m.id] || (m.id[0] === "A" ? "uno" : "battery"))}<b>${m.id}</b></span>`;
   const stars = (n, of = 3) => "★".repeat(n) + "☆".repeat(of - n);
 
   function init(game) {
@@ -21,9 +23,8 @@
     host.innerHTML = `<div class="ms-inner"><div class="ms-head"><h2>Missions</h2><p>The workbook experiments, checked by the simulator. Build anywhere on the board: the goals test what flows, not which holes you use.</p>
       <button type="button" class="btn" id="ms-close">Back to the bench</button></div><ol class="ms-grid">${M.map((m, k) => {
         const p = prog[m.id] || {};
-        const img = art(m.art);
         return `<li><button type="button" class="ms-card${p.done ? " done" : ""}" data-k="${k}">
-          ${img ? `<img src="${img}" alt="" loading="lazy">` : `<span class="ms-ph">${m.id}</span>`}
+          ${face(m)}
           <span class="ms-id">${m.id}</span><span class="ms-title">${m.title}</span>
           <span class="ms-stars" aria-label="${p.stars || 0} of 3 stars">${stars(p.stars || 0)}</span>${p.badge ? '<span class="ms-badge">Lesson learned</span>' : ""}</button></li>`;
       }).join("")}</ol></div>`;

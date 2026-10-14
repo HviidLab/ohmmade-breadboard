@@ -77,7 +77,8 @@
       <p class="cc-kicker">Level ${lv.id} complete</p><h1 id="cc-h">${esc(lv.title)}</h1>
       <p class="cc-stars" aria-label="${res.stars} of 3 stars">${[0, 1, 2].map((k) => `<span class="${k < res.stars ? "on" : ""}" style="animation-delay:${0.15 + k * 0.18}s">★</span>`).join("")}</p>
       <ul class="cc-bonus"><li class="got">★ Level done</li>${(lv.bonus || []).map((b, k) => `<li class="${res.bonus[k] ? "got" : ""}">${res.bonus[k] ? "★" : "☆"} ${esc(b.text)}</li>`).join("")}</ul>
-      ${concept ? `<div class="cc-learned"><p class="cc-lh">What you learned</p><h2>${esc(concept.name)}</h2><p>${esc(concept.text)}</p>${lv.teaches.length ? '<p class="cc-nb">Added to your Notebook.</p>' : ""}</div>` : ""}
+      ${concept ? `<div class="cc-learned"><p class="cc-lh">What you learned</p>${lv.teaches.length ? `<span class="nb-art">${BB.NotebookArt.diagram(lv.teaches[0])}</span>` : ""}
+        <h2>${esc(concept.name)}</h2><p>${esc(concept.text)}</p>${lv.teaches.length ? '<p class="cc-nb">Added to your Notebook</p><span class="cc-stamp">New!</span>' : ""}</div>` : ""}
       ${lastOfChapter ? `<p class="cc-chapter">Chapter ${lv.chapter} complete!</p>` : ""}
       <div class="scr-row">${next && !lastOfChapter ? '<button type="button" class="btn primary" id="cc-next">Next level →</button>' : '<button type="button" class="btn primary" id="cc-map">Level map</button>'}
       <button type="button" class="btn" id="cc-again">Play again</button>${next && !lastOfChapter ? '<button type="button" class="btn" id="cc-map">Level map</button>' : ""}</div></div>`, "#cc-next, #cc-map");
@@ -110,15 +111,40 @@
     on(host, "#pz-title", () => { hideAll(); BB.Title.show(); });
   }
 
+  // ---------- the Notebook: an inventor's notebook on graph paper (art style 2) ----------
+  // A page per chapter; each idea is a taped card with its drawing. Ideas not learned yet are pencil outlines that say
+  // where you will learn them. Cards learned since the last visit carry a "New!" stamp. Click a card to see it large.
+  const teacher = (id) => BB.Levels.all().find((l) => l.teaches.includes(id));
+  function ideaCard(c, isNew) {
+    return `${isNew ? '<span class="nb-new">New!</span>' : ""}<span class="nb-art">${BB.NotebookArt.diagram(c.id)}</span>
+      <h2>${esc(c.name)}</h2><p>${esc(c.text)}</p>`;
+  }
   function notebook(from) {
-    const learned = BB.Store.get().notebook || [];
-    const host = show("notebook", `<div class="scr-inner"><div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Notebook</h1>
-      <p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div>
-      <ol class="nb-grid">${BB.Concepts.LIST.map((c) => learned.includes(c.id)
-        ? `<li class="nb-card"><h2>${esc(c.name)}</h2><p>${esc(c.text)}</p></li>`
-        : '<li class="nb-card locked"><h2>?</h2><p>Not learned yet.</p></li>').join("")}</ol>
-      <div class="scr-row"><button type="button" class="btn primary" id="nb-back">Back</button></div></div>`, "#nb-back");
+    const st = BB.Store.get(), learned = st.notebook || [], seen = st.nbSeen || [];
+    const card = (c) => {
+      if (!learned.includes(c.id)) { const lv = teacher(c.id); return `<li><div class="nb-card locked"><span class="nb-q">?</span><p>You will learn this in level ${lv ? lv.id : "…"}.</p></div></li>`; }
+      return `<li><button type="button" class="nb-card" data-id="${c.id}" aria-label="${esc(c.name)}: open it large">${ideaCard(c, !seen.includes(c.id))}</button></li>`;
+    };
+    const pages = BB.Levels.chapters.map((ch) => `<section class="nb-page"><h2 class="nb-ch">Chapter ${ch.n} · ${esc(ch.title)}</h2>
+      <ol class="nb-grid">${ch.levels.flatMap((l) => l.teaches).map((id) => card(BB.Concepts.get(id))).join("")}</ol></section>`).join("");
+    const host = show("notebook", `<div class="nb-book"><div class="nb-head"><h1>My Notebook</h1>
+      <p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div>${pages}
+      <div class="scr-row"><button type="button" class="btn primary" id="nb-back">Back</button></div></div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
     on(host, "#nb-back", () => (from === "pause" ? pause() : from === "map" ? showMap() : (hideAll(), BB.Title.show())));
+    host.querySelectorAll(".nb-card[data-id]").forEach((b) => b.addEventListener("click", () => zoom(host, b.dataset.id)));
+    BB.Store.update((s) => { s.nbSeen = learned.slice(); });          // seen now: the stamps go next time
+  }
+  // One card, large, with a way back into the level that taught it.
+  function zoom(host, id) {
+    const z = host.querySelector("#nb-zoom"), c = BB.Concepts.get(id), lv = teacher(id);
+    z.innerHTML = `<div class="nb-card big" role="dialog" aria-label="${esc(c.name)}">${ideaCard(c, false)}
+      <div class="scr-row">${lv ? `<button type="button" class="btn primary" id="nb-play">Play ${lv.id} · ${esc(lv.title)}</button>` : ""}<button type="button" class="btn" id="nb-close">Close</button></div></div>`;
+    z.hidden = false;
+    const shut = () => { z.hidden = true; z.replaceChildren(); };
+    on(z, "#nb-close", shut);
+    on(z, "#nb-play", () => play(BB.Levels.get(lv.id)));
+    z.addEventListener("click", (e) => { if (e.target === z) shut(); });
+    const f = z.querySelector("#nb-close"); if (f) f.focus({ preventScroll: true });
   }
 
   // ---------- playtest data ----------

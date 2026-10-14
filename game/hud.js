@@ -29,18 +29,18 @@
   ];
 
   function icon(type, color) {
-    const s = {
-      battery: '<rect x="4" y="6" width="36" height="16" rx="3" fill="#24282c"/><rect x="8" y="9" width="28" height="4" rx="2" fill="#c1661c"/><rect x="8" y="15" width="28" height="4" rx="2" fill="#1e1e1e"/>',
-      resistor: '<line x1="2" y1="14" x2="42" y2="14" stroke="#c7ccd1" stroke-width="2"/><rect x="12" y="8" width="20" height="12" rx="5" fill="#dcc293"/><rect x="16" y="8" width="2.5" height="12" fill="#f08c00"/><rect x="21" y="8" width="2.5" height="12" fill="#f08c00"/><rect x="26" y="8" width="2.5" height="12" fill="#8b4513"/>',
-      wire: '<path d="M4 22 Q22 0 40 22" stroke="#2fae5a" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-      led: `<line x1="16" y1="24" x2="16" y2="16" stroke="#c7ccd1" stroke-width="2"/><line x1="28" y1="24" x2="28" y2="16" stroke="#c7ccd1" stroke-width="2"/><circle cx="22" cy="12" r="9" fill="${color || "#d81e28"}"/>`,
-      cap: '<circle cx="22" cy="14" r="10" fill="#2f4fa3"/><circle cx="27" cy="14" r="3.5" fill="#c9d4ee"/>',
-      pot: '<rect x="8" y="4" width="28" height="20" rx="3" fill="#2a6fc2"/><circle cx="22" cy="14" r="7" fill="#e9ecef"/><line x1="22" y1="14" x2="26" y2="9" stroke="#333" stroke-width="2"/>',
-      button: '<rect x="11" y="3" width="22" height="22" rx="3" fill="#3b4046"/><circle cx="22" cy="14" r="7" fill="#9aa3a8"/>',
-      npn: '<path d="M10 6H34V14Q22 30 10 14Z" fill="#202326"/>',
-      ldr: '<circle cx="22" cy="14" r="9" fill="#e9c46a"/><path d="M15 12h3v5h3v-5h3v5h3v-5h3" stroke="#8b3a1a" stroke-width="1.3" fill="none"/>',
-      uno: '<rect x="4" y="3" width="36" height="22" rx="3" fill="#1d5fa8"/><rect x="14" y="4" width="22" height="3" fill="#0b0c0d"/><rect x="18" y="21" width="18" height="3" fill="#0b0c0d"/><rect x="2" y="9" width="8" height="7" fill="#c9ced3"/>',
-      meter: '<rect x="12" y="1" width="20" height="26" rx="4" fill="#e5b622"/><rect x="15" y="4" width="14" height="6" fill="#9db39a"/><circle cx="22" cy="18" r="5" fill="#15181b"/>',
+    const s = {        // small drawings in the bench's style (art style 1)
+      battery: '<rect x="3" y="4" width="38" height="20" rx="6" fill="#1a2433" stroke="#2e3e54"/><rect x="7" y="7" width="6" height="14" rx="3" fill="#ee9a3c"/><rect x="15" y="7" width="6" height="14" rx="3" fill="#2b313a"/><rect x="23" y="7" width="6" height="14" rx="3" fill="#ee9a3c"/><rect x="31" y="9" width="7" height="5" rx="2.5" fill="#22a65a"/>',
+      resistor: '<line x1="2" y1="14" x2="42" y2="14" stroke="#c7ccd1" stroke-width="2"/><rect x="11" y="8" width="22" height="12" rx="6" fill="#ecd3a4" stroke="#a8834c"/><rect x="15" y="8" width="2.6" height="12" fill="#ff7a1a"/><rect x="20" y="8" width="2.6" height="12" fill="#ff7a1a"/><rect x="25" y="8" width="2.6" height="12" fill="#7a4520"/>',
+      wire: '<path d="M4 22 Q22 0 40 22" stroke="rgba(10,16,24,.55)" stroke-width="5.5" fill="none" stroke-linecap="round"/><path d="M4 22 Q22 0 40 22" stroke="#36c46b" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+      led: `<line x1="17" y1="26" x2="17" y2="16" stroke="#c7ccd1" stroke-width="2"/><line x1="27" y1="26" x2="27" y2="16" stroke="#c7ccd1" stroke-width="2"/><circle cx="22" cy="12" r="10" fill="${color || "#d81e28"}" stroke="rgba(0,0,0,.35)"/><ellipse cx="18.5" cy="8.5" rx="2.4" ry="3.6" fill="#fff" opacity=".55"/>`,
+      cap: '<circle cx="22" cy="14" r="11" fill="#3a63d6" stroke="#1c3474"/><circle cx="28" cy="14" r="3.8" fill="#c9d6f6"/>',
+      pot: '<rect x="8" y="3" width="28" height="22" rx="6" fill="#2f6fd0" stroke="#173a75"/><circle cx="22" cy="14" r="7.5" fill="#eef1f4"/><line x1="22" y1="14" x2="26" y2="9" stroke="#26303a" stroke-width="2.2" stroke-linecap="round"/>',
+      button: '<rect x="10" y="2" width="24" height="24" rx="6" fill="#2b3038"/><circle cx="22" cy="14" r="7" fill="#ff5a5a" stroke="#7a1d1d"/>',
+      npn: '<path d="M10 6H34V14Q22 30 10 14Z" fill="#2b3038" stroke="#0c0e11"/>',
+      ldr: '<circle cx="22" cy="14" r="10" fill="#f0c85c" stroke="#a67c2a"/><path d="M15 12h3v5h3v-5h3v5h3v-5h3" stroke="#8b3a1a" stroke-width="1.4" fill="none"/>',
+      uno: '<rect x="4" y="3" width="36" height="22" rx="4" fill="#1d5fa8"/><rect x="14" y="4" width="22" height="3" fill="#0b0c0d"/><rect x="18" y="21" width="18" height="3" fill="#0b0c0d"/><rect x="2" y="9" width="8" height="7" fill="#c9ced3"/>',
+      meter: '<rect x="11" y="1" width="22" height="26" rx="6" fill="#ffc43d" stroke="#b9800f"/><rect x="14" y="4" width="16" height="20" rx="4" fill="#1c2633"/><rect x="16" y="6" width="12" height="5" rx="1.5" fill="#0e2620"/><circle cx="22" cy="17" r="4" fill="#2b3644"/>',
     };
     return `<svg viewBox="0 0 44 28" aria-hidden="true">${s[type] || ""}</svg>`;
   }
