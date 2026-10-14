@@ -158,6 +158,20 @@
       tx(66, 86, "33 Ω: about 1 W", { s: 16, c: RED }) + tx(66, 104, "too hot!", { s: 17, c: RED }) +
       ln(146, 56, 158, 56) + resH(158, 196, 56, 6) + ln(196, 56, 208, 56) + tx(178, 86, "1 kΩ: 0.036 W", { s: 15 }) + tick(178, 100) +
       tx(110, 126, "power = push × current", { s: 17 }),
+    // Chapter 4: LED maths
+    ledDrop: () => current(loopPath) + loopWires({ resAt: true }) + battery(X0, YM) + ledV(X1, YM) +
+      tx(108, 50, "the rest", { s: 17, c: "#a3360f" }) + tx(150, 82, "2 V", { s: 19, c: "#a3360f" }) + tx(110, 124, "the LED keeps about 2 V", { s: 16 }),
+    ledCurrent: () => tx(110, 34, "(battery − LED) ÷ resistor", { s: 21 }) + ln(28, 44, 192, 44, HL, 7) +
+      tx(110, 76, "(6 − 2) V ÷ 0.22 kΩ", { s: 20 }) + tx(110, 106, "≈ 18 mA", { s: 22, c: "#a3360f" }),
+    chooseR: () => ln(30, 58, 46, 58) + resH(46, 92, 58, 6) + ln(92, 58, 112, 58) + `<g transform="rotate(-90 132 58)">${ledV(132, 58)}</g>` + ln(140, 58, 190, 58) +
+      tx(69, 38, "?", { s: 26, c: RED }) + tx(110, 96, "(6 − 2) V ÷ 10 mA = 400 Ω", { s: 18 }) + tx(110, 120, "nearest: 390 Ω", { s: 18, c: "#a3360f" }),
+    ledColours: () => {
+      const one = (x, fill, v) => `<path d="M${x - 12} 40 L${x + 12} 40 L${x} 58 Z" fill="${fill}" stroke="${PEN}" stroke-width="2.2" stroke-linejoin="round"/>` +
+        ln(x - 12, 58, x + 12, 58, PEN, 2.6) + ln(x, 24, x, 40) + ln(x, 58, x, 74) + tx(x, 98, v, { s: 20, c: "#a3360f" });
+      return one(44, "#ff6b5a", "2 V") + one(96, "#ffd84a", "2.1 V") + one(148, "#5fd47a", "2.2 V") + one(196, "#6f8cff", "3 V") + tx(110, 124, "each colour its own push", { s: 16 });
+    },
+    ledMax: () => `<g transform="rotate(-90 70 60)">${ledV(70, 60)}</g>` + tx(70, 100, "under 20 mA", { s: 17 }) + tick(70, 114) +
+      burst(160, 58, 18) + tx(160, 100, "80 mA: pop!", { s: 17, c: RED }) + tx(110, 22, "smallest: (6 − 2) V ÷ 20 mA = 200 Ω", { s: 15 }),
   };
 
   function diagram(id) {

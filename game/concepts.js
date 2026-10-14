@@ -25,6 +25,11 @@
     { id: "ohmsLaw", name: "Ohm's law", text: "Current = push ÷ resistance. A handy form: volts ÷ kΩ = mA. So 6 V across 2 kΩ makes 3 mA." },
     { id: "findR", name: "Finding a resistance", text: "Turn the rule round: resistance = push ÷ current. 6 V pushing 4 mA means 1.5 kΩ. Know two of the three, work out the third." },
     { id: "power", name: "Power and heat", text: "A resistor turns push into heat. Power = push × current, in watts. A small resistor handles ¼ W: 6 V × 6 mA = 0.036 W is fine, 1 W burns it." },
+    { id: "ledDrop", name: "The LED's share", text: "An LED keeps about the same push whatever the current: about 2 V for red. The resistor takes the rest of the battery's volts." },
+    { id: "ledCurrent", name: "Working out the LED's current", text: "LED current = (battery − LED) ÷ resistor. With 6 V, a red LED (2 V) and 220 Ω: 4 V ÷ 0.22 kΩ ≈ 18 mA." },
+    { id: "chooseR", name: "Choosing a resistor", text: "For the current you want: resistor = (battery − LED) ÷ current. 4 V ÷ 10 mA = 400 Ω, so take the nearest size, 390 Ω." },
+    { id: "ledColours", name: "LED colours", text: "Each colour takes its own push: red about 2 V, yellow and green a little more, blue and white about 3 V. So they need different resistors." },
+    { id: "ledMax", name: "The 20 mA limit", text: "A small LED is made for 20 mA at most. Far above that it pops. The smallest safe resistor is (battery − LED) ÷ 20 mA." },
   ];
   const byId = new Map(LIST.map((c) => [c.id, c]));
   BB.Concepts = { LIST, get: (id) => byId.get(id) };
