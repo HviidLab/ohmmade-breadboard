@@ -78,6 +78,12 @@
       const beats = C.tele.concat(C.beat ? [{ id: C.beat.id || String(C.i), t: +C.beatT.toFixed(1), hints: C.hint }] : []);
       return { id: G.level.id, beat: C.beat ? C.beat.id || String(C.i) : "finish", t: +C.t.toFixed(1), beats };
     },
+    // After the playtest data was reset: the level being played counts as a new attempt from now on.
+    restartAttempt() {
+      if (G.mode !== "level" || !G.coach) return;
+      G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0;
+      St.update((s) => { s.telemetry[G.level.id] = { attempts: 1, seed: G.level.seed }; });
+    },
     // An attempt left without finishing (Restart, the map, another level, closing the page) is kept: that is where a player got stuck.
     keepUnfinished() {
       const a = G.attempt();

@@ -159,13 +159,22 @@
       ${playtestTable()}
       <textarea class="pt-text" readonly rows="8" aria-label="Playtest data as text">${esc(playtestText())}</textarea>
       <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><button type="button" class="btn" id="pt-back">Back</button>
-      <span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
+      <button type="button" class="btn" id="pt-reset">Reset</button><span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
     on(host, "#pt-copy", async () => {
       const ta = host.querySelector(".pt-text"), say = (t) => { host.querySelector("#pt-ok").textContent = t; };
       try { await navigator.clipboard.writeText(ta.value); say("Copied. Paste it into your message."); }
       catch (e) { ta.focus(); ta.select(); say(document.execCommand && document.execCommand("copy") ? "Copied. Paste it into your message." : "Select the text above and copy it."); }
     });
     on(host, "#pt-back", () => (from === "pause" ? pause() : showMap()));
+    // Reset asks once more before it erases (only the playtest data: progress, stars and the Notebook stay).
+    on(host, "#pt-reset", (e) => {
+      const b = e.currentTarget;
+      if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Click again to erase it"; b.classList.add("danger"); return; }
+      BB.Store.update((s) => { s.telemetry = {}; });
+      G.restartAttempt();                        // a level being played starts counting again from now
+      playtest(from);
+      host.querySelector("#pt-ok").textContent = "Playtest data erased. Your progress and stars are kept.";
+    });
   }
 
   // Esc closes the pause menu and the Notebook.

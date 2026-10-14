@@ -347,8 +347,8 @@
           hint: "The resistor and the LED's + leg are in different strips." },
       ],
       make: (V) => {
-        const P = V.predict(["Across the LED", "Across the gap", "Nowhere: nothing flows"], 1), seen = {};
-        const gap = [V.n("bb:L7"), "bb:-T"];
+        const P = V.predict(["Across the LED", "Across the break", "Nowhere: nothing flows"], 1), seen = {};
+        const gap = [V.n("bb:L7"), "bb:-T"], brk = V.hs("e7", "-T7");          // the break: the two holes the wire's ends were in
         const lit2 = (S) => lit(part(S, "led2"));
         return {
           region: REGION(V),
@@ -356,24 +356,24 @@
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ dial: ["V", "mA", "ohm"], move: ["wire2", "led2"], legs: ["wire2", "led2"] }) },
           ui: { xray: true },
           beats: [
-            { id: "what", say: "A break is a place where the loop is cut, so no current gets across: a missing wire, a leg in the wrong strip, a broken wire.",
-              waitFor: NEXT },
-            { id: "pull", say: "Make a break you can see: take this wire out, and watch the dots.", highlight: { part: "wire1" }, allow: { remove: ["wire1"] },
+            { id: "make", say: "A break is a place where the loop is cut, so current can't get through. A missing wire is one. Make one: take this wire out.",
+              highlight: { part: "wire1" }, allow: { remove: ["wire1"] },
               hints: [{ say: "Click the wire and press Remove, or drag it onto the parts tray." }], waitFor: { event: "remove", id: "wire1" } },
-            { id: "p", say: "The dots stopped everywhere. Where will the meter find the battery's push now?", predict: P, waitFor: { predict: true } },
-            { id: "measure", say: "Measure both, with the meter on V: across the LED, and across the gap the wire left.",
-              hints: [RING(V.hs("d6", "d7"), "Across the LED: try the rings."), RING(V.hs("b7", "-T9"), "Across the gap: one probe where the wire was, one on the − rail.")],
-              waitFor: { when: (S, m) => {
-                if (across(S, "led1") && Math.abs(volts(S)) < 0.3) m.l = true;
-                if (on(S, ...gap) && Math.abs(volts(S) || 0) > 2.5) { m.g = true; seen.gap = volts(S); }
-                return m.l && m.g;
-              } } },
-            { id: "find", say: (C) => `${C.right("p") ? "Right: " : ""}${fmtV(seen.gap || 4.6)} across the gap, 0 V across the LED. The ${K.COLOR_WORD[V.c2]} LED has a hidden break. Find it.`,
+            { id: "p", say: "The dots stopped: the break is where the wire was. With the meter on V, where will you read most of the push?",
+              highlight: { holes: brk }, predict: P, waitFor: { predict: true } },
+            { id: "led", say: "Find out. First measure across the LED: one probe on each side of it.",
+              hints: [RING(V.hs("d6", "d7"))],
+              waitFor: { when: (S) => { const ok = across(S, "led1") && Math.abs(volts(S)) < 0.3; if (ok) seen.led = volts(S); return ok; } } },
+            { id: "brk", say: () => `${fmtV(seen.led || 0)} across the LED. Now measure across the break: one probe in each hole where the wire's ends were.`,
+              highlight: { holes: brk }, hints: [RING(brk)],
+              waitFor: { when: (S) => { const ok = on(S, ...gap) && Math.abs(volts(S) || 0) > 2.5; if (ok) seen.gap = volts(S); return ok; } } },
+            { id: "find", say: (C) => `${C.right("p") ? "Right: " : ""}${fmtV(seen.gap || 4.6)} across the break. The ${K.COLOR_WORD[V.c2]} LED has a hidden break: find it and close it.`,
               highlight: { part: "led2" },
-              hints: [RING(V.hs(...V.L.find), "Try here. Most of the push across two points means the break is between them."),
-                { say: `${V.L.hint} One wire there closes the loop.` }, { show: [V.WIRE("h", ...V.hs(...V.L.fix))] }],
+              hints: [{ say: "Follow its loop from + to −. Measure across each place where one part should join the next. Most of the push there: the break." },
+                RING(V.hs(...V.L.find), "Try here: probes in the rings."),
+                { say: `${V.L.hint} One wire there closes the loop.`, show: [V.WIRE("h", ...V.hs(...V.L.fix))] }],
               waitFor: { when: lit2 } },
-            FINISH("No current, so the parts use no push: it all sits at the break. Measure across each join until you find it."),
+            FINISH("No current, so the parts use no push: it all sits at the break. Measure where parts should join, until you find it."),
           ],
           goals: [{ text: `Light the ${K.COLOR_WORD[V.c2]} LED`, when: lit2, hold: 0.6 }],
           bonus: [
@@ -384,7 +384,7 @@
               return !!m.found && lit2(S);
             } },
           ],
-          solution: [{ next: 1 }, { remove: "wire1" }, { choose: "right" }, { probe: V.hs("d6", "d7") }, { probe: V.hs("b7", "-T9") }, { wait: 0.4 },
+          solution: [{ remove: "wire1" }, { choose: "right" }, { probe: V.hs("d6", "d7") }, { probe: brk }, { wait: 0.4 },
             { probe: V.hs(...V.L.find) }, { wait: 0.6 }, { wire: V.hs(...V.L.fix) }, { wait: 1 }, { next: 1 }],
         };
       },

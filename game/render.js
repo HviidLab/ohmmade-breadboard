@@ -656,7 +656,7 @@
       const pts = part.legs.map((l) => (l ? xy(l) : null));
       if (!pts.every(Boolean)) continue;
       drawBody(el("g", {}, g), part, pts, false);
-      pts.forEach((p) => el("circle", { cx: p[0], cy: p[1], r: 6, fill: "none", stroke: "#ffb547", "stroke-width": 2, "stroke-dasharray": "3 2" }, g));
+      pts.forEach((p) => el("circle", { cx: p[0], cy: p[1], r: 6, fill: "none", stroke: "#ff3dc8", "stroke-width": 2, "stroke-dasharray": "3 2" }, g));   // the mark colour (game.css --mark)
     }
   }
 
