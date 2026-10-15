@@ -37,10 +37,7 @@
             Object.assign(FINISH("The capacitor filled up while the battery was on, then emptied through the LED: a short glow."), { reply: "p" }),
           ],
           goals: [{ text: "Watch the LED fade with the battery off", when: faded }],
-          bonus: [
-            { text: "Predict what the LED does", final: (C) => C.right("p") },
-            { text: "Fill it and let it glow out twice", when: (S, m) => { const on = onOff(S); if (m.prev === true && !on) m.n = (m.n || 0) + 1; m.prev = on; return (m.n || 0) >= 2; } },
-          ],
+          challenge: { text: "Fill it and let it glow out twice", when: (S, m) => { const on = onOff(S); if (m.prev === true && !on) m.n = (m.n || 0) + 1; m.prev = on; return (m.n || 0) >= 2; } },
           solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 2.5 }, { ctl: "bat" }, { wait: 1.2 }, { ctl: "bat" }, { wait: 2.5 }, { next: 1 }],
         };
       },
@@ -69,11 +66,13 @@
             Object.assign(FINISH("Fast at first, slower as it fills: its own push grows, so less is left across the resistor, and less current flows in."), { reply: "p2" }),
           ],
           goals: [{ text: "Fill the capacitor above 5 V", when: full }],
-          bonus: [
-            { text: "Predict how it fills", final: (C) => C.right("p1") },
-            { text: "Predict when it is fastest", final: (C) => C.right("p2") },
-          ],
-          solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 9.5 }, { choose: "right" }, { next: 1 }],
+          challenge: { text: "Switch off, and see it hold its push for 2 seconds", when: (S, m) => {
+              const v = vc(S, "c1");
+              if (onOff(S) || v < 1) { m.t0 = undefined; return false; }
+              if (m.t0 === undefined) { m.t0 = S.t; m.v0 = v; }
+              return S.t - m.t0 >= 2 && Math.abs(v - m.v0) < 0.2;
+            } },
+          solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 9.5 }, { choose: "right" }, { ctl: "bat" }, { wait: 2.5 }, { next: 1 }],
         };
       },
     },
@@ -101,10 +100,7 @@
             FINISH("R × C, in seconds, is the capacitor's time: in that time it fills about two thirds of the way. Bigger R or C, slower."),
           ],
           goals: [{ text: "Watch left and middle win the race", pre: "Watch the race", when: race }],
-          bonus: [
-            { text: "Predict the pair", final: (C) => C.right("p") },
-            { text: "Wait until the right one passes half full", when: (S) => vc(S, "cC") > 3 },
-          ],
+          challenge: { text: "Wait until the right one passes half full", when: (S) => vc(S, "cC") > 3 },
           solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 2.2 }, { next: 1 }, { wait: 6 }, { next: 1 }],
         };
       },
@@ -121,23 +117,20 @@
           region: REGION(V),
           start: start(off(V, V.BAT("+T3", "-T4")), CAP(V, "c1", "-T8", "+T8", 1e-3)),
           rules: { tray: [], allow: allow({ ctl: ["bat"], flip: ["c1"], legs: ["c1"], move: ["c1"] }), banner: true },
-          allowDamage: true, simText: { cap: null },
+          demo: { cap: 1 }, simText: { cap: null },
           ui: { xray: true },
           beats: [
             { id: "p", say: "This capacitor is in backwards: its + leg is on the − rail. The stripe marks the − leg. What happens when you switch on?",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
             { id: "on", say: "Find out: switch the battery on, and watch.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: vented, hold: 0.05 } },
             { id: "fix", reply: "p", say: "It swelled and vented. Turn it the right way round, + leg to the + rail, and take a fresh one.",
-              hints: [{ say: "Click the capacitor: press Flip (or the R key), then Fresh one." }], waitFor: { when: right, hold: 0.5 } },
+              hints: [{ say: "Switch the battery off first. Then click the capacitor: Flip (or the R key), then Fresh one." }], waitFor: { when: right, hold: 0.5 } },
             Object.assign(FINISH("An electrolytic capacitor is one-way, like an LED: + leg to the + side, stripe to the − side."),
               { note: "a backwards electrolytic capacitor can burst and spray hot liquid. Check the stripe before you switch on, and keep your face away." }),
           ],
           goals: [{ text: "A capacitor charged the right way round", when: right, hold: 0.5 }],
-          bonus: [
-            { text: "Predict what happens", final: (C) => C.right("p") },
-            { text: "Vent only one", final: (C) => (C.count.destroyed || 0) <= 1 },
-          ],
-          solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 4 }, { flip: "c1" }, { replace: "c1" }, { wait: 1 }, { next: 1 }],
+          challenge: { text: "Switch the battery off before you fix it", when: (S, m, C) => { if (C.count.replace && m.off === undefined) m.off = !onOff(S); return m.off === true; } },
+          solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 4 }, { ctl: "bat" }, { flip: "c1" }, { replace: "c1" }, { wait: 0.3 }, { ctl: "bat" }, { wait: 1.5 }, { next: 1 }],
         };
       },
     },
@@ -159,7 +152,6 @@
           start: start(V.BAT("+T3", "-T4"), { id: "b1", type: "button", legs: ["e6", "f6", "e8", "f8"], pairs: "across", pressed: false }, V.WIRE("w0", "+T6", "a6")),
           rules: { tray: [{ type: "cap", value: 1e-4, n: 1 }, { type: "cap", value: 1e-3, n: 1 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 470, n: 1 },
             { type: "led", color: "red", n: 1 }, { type: "wire", n: 2 }], allow: allow({ ctl: ["b1"] }), banner: true },
-          allowDamage: true,
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -174,10 +166,7 @@
             FINISH("Your own fading light: the capacitor fills while you press, and empties slowly through the LED. Chapter 8 done!"),
           ],
           goals: [{ text: "The LED glows on for a second after you let go", when: glow, hold: 0.05 }],      // a moment, then it fades: reaching one second is the goal
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "Use the capacitor the right way round the first time", final: (C) => !C.broken.has("cap") && (C.count.flip || 0) === 0 },
-          ],
+          challenge: { text: "Use the capacitor the right way round the first time", final: (C) => !C.broken.has("cap") && (C.count.flip || 0) === 0 },
           solution: [{ next: 1 }, { place: { type: "resistor", value: 100 }, at: ["a8", "a10"] }, { place: { type: "cap", value: 1e-3 }, at: ["c10", "c11"] }, { wire: ["e11", "-T11"] },
             { place: { type: "resistor", value: 470 }, at: ["d10", "d14"] }, { place: { type: "led", color: "red" }, at: ["c14", "c15"] }, { wire: ["e15", "-T15"] },
             { press: "b1", on: true }, { wait: 2 }, { press: "b1", on: false }, { wait: 1.6 }, { next: 1 }],

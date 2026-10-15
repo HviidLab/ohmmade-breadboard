@@ -37,10 +37,7 @@
               { reply: "p", note: "a real light sensor reads about 2 kΩ in room light, tens of kΩ under your hand, and up to 1 MΩ in total darkness." }),
           ],
           goals: [{ text: "Measure it in the dark", when: darkR }],
-          bonus: [
-            { text: "Predict which way it goes", final: (C) => C.right("p") },
-            { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (reading(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
-          ],
+          challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (reading(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
           solution: [{ choose: "right" }, { probe: V.hs("b10", "b13") }, { wait: 0.5 }, { cover: "s1" }, { wait: 0.5 }, { cover: "s1", on: false }, { wait: 0.5 }, { next: 1 }],
         };
       },
@@ -69,10 +66,7 @@
             Object.assign(FINISH(() => `${fmtV(seen.light || 5)} in light, ${fmtV(seen.dark || 0.7)} in the dark. Light becomes a push you can measure.`), { reply: "p" }),
           ],
           goals: [{ text: "Measure the middle point in the dark", when: low }],
-          bonus: [
-            { text: "Predict which way it goes", final: (C) => C.right("p") },
-            { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (vMid(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
-          ],
+          challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (vMid(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
           solution: [{ choose: "right" }, { probe: V.hs("d6", "-T12") }, { wait: 0.5 }, { cover: "s1" }, { wait: 0.5 }, { cover: "s1", on: false }, { wait: 0.5 }, { next: 1 }],
         };
       },
@@ -100,10 +94,7 @@
             FINISH("Only about 0.04 mA gets into B, × 200 ≈ 9 mA: on, but not fully. A night light: the sensor decides, the transistor switches."),
           ],
           goals: [{ text: "The LED on in the dark", pre: "Cover the sensor", when: works }],
-          bonus: [
-            { text: "Predict what the night light does", final: (C) => C.right("p") },
-            { text: "And off again in the light", when: (S, m) => { if (works(S)) m.on = true; return !!m.on && !dark(S, "s1") && !lit(part(S, "led1"), 0.0005); } },
-          ],
+          challenge: { text: "And off again in the light", when: (S, m) => { if (works(S)) m.on = true; return !!m.on && !dark(S, "s1") && !lit(part(S, "led1"), 0.0005); } },
           solution: [{ choose: "right" }, { cover: "s1" }, { wait: 0.8 }, { next: 1 }, { cover: "s1", on: false }, { wait: 0.6 }, { next: 1 }],
         };
       },
@@ -127,7 +118,6 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "npn", n: 1 }, { type: "ldr", n: 1 }, { type: "resistor", value: 100000, n: 1 }, { type: "resistor", value: 330, n: 1 },
             { type: "led", color: "yellow", n: 1 }, { type: "wire", n: 4 }], banner: true },
-          allowDamage: true,
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -141,10 +131,7 @@
             FINISH("Your own night light. Chapter 10 done!"),
           ],
           goals: [{ text: "Off in the light, on in the dark", when: tested }],
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "Use at most three wires", final: () => !seen.more, when: (S) => { if (S.parts("wire").length > 3) seen.more = true; return false; } },
-          ],
+          challenge: { text: "Use at most three wires", final: () => !seen.more, when: (S) => { if (S.parts("wire").length > 3) seen.more = true; return false; } },
           solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "yellow" }, at: ["c6", "c7"] }, { wire: ["e7", "e12"] },
             { place: { type: "npn" }, at: ["c12", "c13", "c14"] }, { wire: ["a14", "-T15"] }, { place: { type: "resistor", value: 100000 }, at: ["+T13", "a13"] },
             { wire: ["b13", "b18"] }, { place: { type: "ldr", lux: 200 }, at: ["a18", "-T18"] }, { wait: 0.6 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],

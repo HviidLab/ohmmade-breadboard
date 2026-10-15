@@ -1,5 +1,5 @@
 // Saved progress (localStorage "bbgame.v2"). No DOM.
-// {levels: {"1-1": {done, stars, bonus}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook], settings: {sound}, sandbox, telemetry}
+// {levels: {"1-1": {done, stars, clean, challenge}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook], settings: {sound}, sandbox, telemetry}
 // The first time, the sandbox from the old "bbgame.v1" save is carried over.
 (function (BB) {
   "use strict";
@@ -21,7 +21,7 @@
     for (const k of ["levels", "settings", "telemetry"]) if (!obj(s[k])) s[k] = {};
     for (const k of ["notebook", "nbSeen"]) if (s[k] !== undefined && !Array.isArray(s[k])) s[k] = [];
     if (s.variants !== undefined && !obj(s.variants)) delete s.variants;
-    for (const [id, l] of Object.entries(s.levels)) if (!obj(l)) delete s.levels[id];
+    for (const [id, l] of Object.entries(s.levels)) { if (!obj(l)) delete s.levels[id]; else delete l.bonus; }    // bonus: the old bonus objectives, now replaced
     for (const [id, t] of Object.entries(s.telemetry)) if (!obj(t)) delete s.telemetry[id];
     if (s.sandbox != null) { try { if (!obj(JSON.parse(s.sandbox))) s.sandbox = null; } catch (e) { s.sandbox = null; } }
     return s;

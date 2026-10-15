@@ -26,7 +26,7 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 1000), V.WIRE("w1", "c6", "c10"), METER("mA", "mA", V.hs("b10", "-T12"))),
-          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ remove: ["w1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
+          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }], allow: allow({ remove: ["w1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -40,11 +40,8 @@
             Object.assign(FINISH("3 kΩ in all, so 6 V ÷ 3 kΩ = 2 mA. Resistors in series add up."), { reply: "p2" }),
           ],
           goals: [{ text: "Two 1 kΩ resistors in a row", when: two }],
-          bonus: [
-            { text: "Predict two in a row", final: (C) => C.right("p1") },
-            { text: "Work out 1 kΩ + 2 kΩ in your head", final: (C) => C.right("p2") },
-          ],
-          solution: [{ choose: "right" }, { remove: "w1" }, { place: { type: "resistor", value: 1000 }, at: V.hs("c6", "c10") }, { wait: 0.8 }, { choose: "right" }, { next: 1 }],
+          challenge: { text: "Then build 1 kΩ + 2 kΩ and read the 2 mA you worked out", when: (S) => resWith(S, 1000).length === 1 && resWith(S, 2000).length === 1 && near(reads(S), 0.0019, 0.0021) },
+          solution: [{ choose: "right" }, { remove: "w1" }, { place: { type: "resistor", value: 1000 }, at: V.hs("c6", "c10") }, { wait: 0.8 }, { choose: "right" }, { remove: "resistor" }, { place: { type: "resistor", value: 2000 }, at: V.hs("c6", "c10") }, { wait: 0.6 }, { next: 1 }],
         };
       },
     },
@@ -77,12 +74,13 @@
             Object.assign(FINISH("In series, the resistors share out the push, the bigger one taking the bigger share. The shares add up to the battery."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure across the second 1 kΩ", when: half }],
-          bonus: [
-            { text: "Guess which takes more push", final: (C) => C.right("p1") },
-            { text: "Predict the shares with two 1 kΩ", final: (C) => C.right("p2") },
-          ],
+          challenge: { text: "With two 1 kΩ, measure both shares: 3 V each", when: (S, m) => {
+              if (half(S)) m.b = true;
+              if (swapped(S) && acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 2.7 && Math.abs(volts(S)) < 3.3) m.a = true;
+              return !!m.a && !!m.b;
+            } },
           solution: [{ choose: "right" }, { probe: V.hs("+T8", "b6") }, { probe: V.hs("d6", "d10") }, { wait: 0.5 }, { choose: "right" }, { remove: "r2" },
-            { place: { type: "resistor", value: 1000 }, at: V.hs("c6", "c10") }, { probe: V.hs("d6", "d10") }, { wait: 0.6 }, { next: 1 }],
+            { place: { type: "resistor", value: 1000 }, at: V.hs("c6", "c10") }, { probe: V.hs("d6", "d10") }, { wait: 0.6 }, { probe: V.hs("+T8", "b6") }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -95,7 +93,7 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "-T10", 1000), V.RES("r2", "+T14", "-T16", 2000), METER("V")),
-          rules: { tray: [], allow: allow({ dial: ["V"], socket: ["VO"] }) },
+          rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"], move: ["r2"], legs: ["r2"] }) },
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -116,11 +114,9 @@
             if (acrossQ(S, part(S, "r2")) && Math.abs(volts(S)) > 5.5) m.b = true;
             return m.a && m.b;
           } }],
-          bonus: [
-            { text: "Predict the push on each", final: (C) => C.right("p1") },
-            { text: "Predict the 2 kΩ's current", final: (C) => C.right("p2") },
-          ],
-          solution: [{ choose: "right" }, { probe: V.hs("+T9", "-T9") }, { probe: V.hs("+T15", "-T15") }, { wait: 0.5 }, { choose: "right" }, { next: 1 }],
+          challenge: { text: "Then measure the 2 kΩ branch's current: 3 mA", when: (S) => { const q = part(S, "r2"); return !!q && S.readsCurrentOf(q, 0.0027, 0.0033); } },
+          solution: [{ choose: "right" }, { probe: V.hs("+T9", "-T9") }, { probe: V.hs("+T15", "-T15") }, { wait: 0.5 }, { choose: "right" },
+            { move: "r2", to: V.hs("+T14", "a16") }, { probe: V.hs("b16", "-T18") }, { dial: "mA" }, { socket: "mA" }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -151,12 +147,9 @@
             Object.assign(FINISH("In parallel, the currents add up: the battery supplies every branch at once."), { reply: "p2" }),
           ],
           goals: [{ text: "Three branches: about 15 mA in all", when: fifteen }],
-          bonus: [
-            { text: "Predict two branches", final: (C) => C.right("p1") },
-            { text: "Predict three branches", final: (C) => C.right("p2") },
-          ],
+          challenge: { text: "Reach 15 mA, then take a branch away and watch the total drop", when: (S, m) => { if (fifteen(S)) m.f = true; return !!m.f && nBranches(S) === 2 && reads(S) !== null && reads(S) < 0.0135; } },
           solution: [{ choose: "right" }, { place: { type: "resistor", value: 2000 }, at: V.hs("+T14", "-T16") }, { wait: 0.6 }, { choose: "right" },
-            { place: { type: "resistor", value: 1000 }, at: V.hs("+T17", "-T19") }, { wait: 0.8 }, { next: 1 }],
+            { place: { type: "resistor", value: 1000 }, at: V.hs("+T17", "-T19") }, { wait: 0.8 }, { remove: "resistor" }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -173,7 +166,6 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 330), V.LED("led1", "c6", "c7", "red"), V.WIRE("w1", "e7", "-T7")),
           rules: { tray: [{ type: "led", color: "blue", n: 1 }, { type: "resistor", value: 270, n: 1 }, { type: "wire", n: 1 }], banner: true },
-          allowDamage: true,
           ui: { xray: true },
           beats: [
             { id: "p", say: "Put a blue LED side by side with the red one, in the same two strips, sharing the resistor. Which one will light?",
@@ -188,10 +180,7 @@
             FINISH("Each LED gets its own resistor. Side by side on one, the LED that needs the least push takes almost all the current."),
           ],
           goals: [{ text: "Both LEDs lit, each with its own resistor", when: both, hold: 0.6 }],
-          bonus: [
-            { text: "Predict which one lights", final: (C) => C.right("p") },
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-          ],
+          challenge: { text: "Both LEDs within 3 mA of each other", when: (S) => { const ls = S.parts("led").filter((q) => lit(q, 0.005)); return both(S) && ls.length === 2 && Math.abs(ls[0].rd.I - ls[1].rd.I) <= 0.003; } },
           solution: [{ choose: "right" }, { place: { type: "led", color: "blue" }, at: V.hs("d6", "d7") }, { wait: 1 }, { move: "led", to: V.hs("c12", "c13") },
             { place: { type: "resistor", value: 270 }, at: V.hs("+T12", "a12") }, { wire: V.hs("e13", "-T13") }, { wait: 1 }, { next: 1 }],
         };
@@ -208,7 +197,6 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "led", color: "red", n: 2 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 390, n: 1 },
             { type: "wire", n: 2 }], banner: true },
-          allowDamage: true,
           ui: { xray: true },
           beats: [
             { id: "brief", say: V.say("Christmas lights: two red LEDs in a row, with one resistor, each at 8 to 11 mA.",
@@ -220,10 +208,7 @@
             FINISH("LEDs in a row add up their pushes, so the resistor gets less. Chapter 5 done!"),
           ],
           goals: [{ text: "Two red LEDs in a row, each 8 to 11 mA, one resistor", when: two, hold: 0.8 }],
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "Use only one wire", when: (S) => two(S) && S.parts("wire").length <= 1 },
-          ],
+          challenge: { text: "Use only one wire", when: (S) => two(S) && S.parts("wire").length <= 1 },
           solution: [{ next: 1 }, { place: { type: "resistor", value: 220 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] },
             { place: { type: "led", color: "red" }, at: ["d7", "d8"] }, { wire: ["e8", "-T8"] }, { wait: 1.2 }, { next: 1 }],
         };

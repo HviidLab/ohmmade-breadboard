@@ -60,21 +60,17 @@
     return S;
   }
 
-  // Tracks one level attempt: goal latching, timers for stars.
+  // Tracks one level attempt: goal latching. (The stars are settled by the coach.)
   class Run {
     constructor(level) {
       this.m = level;
       this.state = level.goals.map(() => ({ held: 0, done: false, mem: {} }));
-      this.shortT = 0; this.stressT = 0; this.destroyed = new Set(); this.complete = false; this.t0 = null;
+      this.complete = false; this.t0 = null;
     }
     step(G, dt) {
       const S = query(G);
       if (this.t0 === null) this.t0 = S.t;
       S.since = S.t - this.t0;
-      if (S.shortNow()) this.shortT += dt;
-      if (S.all.some((q) => q.ok && (q.rt.level || 0) >= 1 && q.type !== "meter")) this.stressT += dt;
-      for (const q of S.all) if (!q.ok) this.destroyed.add(q.id);
-      if (S.uno.damaged()) this.destroyed.add("uno-pin");
       if (this.goalsOn !== false) this.m.goals.forEach((g, k) => {     // levels switch goals off while the coach is still teaching
         const st = this.state[k];
         if (st.done) return;
@@ -83,15 +79,8 @@
         st.held = ok ? st.held + dt : 0;
         if (st.held >= (g.hold ?? 0.5)) st.done = true;
       });
-      if (!this.complete && this.state.every((s) => s.done)) { this.complete = true; this.stars = this.score(); }
+      if (!this.complete && this.state.every((s) => s.done)) this.complete = true;
       return S;
-    }
-    score() {
-      let s = 1;
-      const destroyedOK = this.m.allowDamage;
-      if (destroyedOK || this.destroyed.size === 0) s = 2;
-      if (s === 2 && this.shortT <= 0.5 && (destroyedOK || this.stressT <= 1)) s = 3;
-      return s;
     }
     nextOpen() { return this.state.findIndex((s) => !s.done); }
   }

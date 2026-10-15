@@ -269,6 +269,7 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .mentor-text .reply.no { color: #a8431a; }
 .bench-note { display: block; margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: #dcebfb; color: #14335a; font-size: 15.5px; }
 .bench-note::before { content: "Real bench · "; font-weight: 700; }
+.ob-bonus li.lost { opacity: .6; text-decoration: line-through; }
 .hint-line { display: block; margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: #fde6bd; color: #4a3108; font-size: 16px; }
 .hint-line::before { content: "Hint · "; font-weight: 600; }
 .aside { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #e8e1d1; color: #3a3a32; font-size: 15px; }

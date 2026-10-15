@@ -86,10 +86,7 @@
             FINISH(V.say("Light! The dots show the current: out of +, through every part, back to −. A closed loop.", "It glows! Follow the dots: out of +, through every part, and back to −. A closed loop.")),
           ],
           goals: [LIT],
-          bonus: [
-            { text: "Light it from a second hole in the same group", when: (S, m) => { m.h = m.h || new Set(); if (anyLit(S)) wireHoles(S, V.n(`bb:L${g1}`)).forEach((h) => m.h.add(h)); return m.h.size >= 2; } },
-            { text: "Pull the wire out again and watch the dots stop", when: (S, m) => { if (anyLit(S)) m.lit = true; return !!m.lit && wires(S).length === 0; } },
-          ],
+          challenge: { text: "Light it again with the wire in a different pair of holes", when: (S, m) => { m.p = m.p || new Set(); if (anyLit(S)) wires(S).forEach((q) => m.p.add(q.legs.slice().sort().join())); return m.p.size >= 2; } },
           solution: [{ next: 1 }, { next: 1 }, { wire: V.hs(`e${g1}`, `e${g2}`) }, { wait: 1 }, { remove: "wire" }, { wait: 0.5 }, { wire: V.hs(`d${g1}`, `d${g2}`) }, { wait: 1 }, { next: 1 }],
         };
       },
@@ -122,10 +119,7 @@
             FINISH("That is all a switch does: it opens and closes the loop."),
           ],
           goals: [Object.assign({}, LIT, { text: "Get the LED lit again" })],
-          bonus: [
-            { text: "Predict what happens", final: (C) => C.right("p") },
-            { text: "Close the loop with the wire in different holes", when: (S, m, C) => { const [a, b] = V.hs(`e${w1}`, `e${w2}`); return !!C.count.remove && anyLit(S) && wires(S).some((q) => !(q.legs.includes(a) && q.legs.includes(b))); } },
-          ],
+          challenge: { text: "Close the loop with the wire in different holes", when: (S, m, C) => { const [a, b] = V.hs(`e${w1}`, `e${w2}`); return !!C.count.remove && anyLit(S) && wires(S).some((q) => !(q.legs.includes(a) && q.legs.includes(b))); } },
           solution: [{ ctl: "bat" }, { wait: 0.5 }, { ctl: "bat" }, { wait: 0.5 }, { choose: "right" }, { remove: "wire1" }, { wire: V.hs(`d${w1}`, `d${w2}`) }, { wait: 1 }, { next: 1 }],
         };
       },
@@ -158,10 +152,7 @@
             FINISH(V.say("Lit, with no extra wire: the strips did the joining. Try other holes in the same strips.", "No wire needed: the strips joined the legs for you. Try other holes in the same strips.")),
           ],
           goals: [LIT],
-          bonus: [
-            { text: "Predict whether it lights", final: (C) => C.right("p") },
-            { text: "Light it from two different pairs of holes", when: (S, m) => { m.h = m.h || new Set(); S.parts("led").forEach((q) => { if (lit(q)) m.h.add(q.legs[0]); }); return m.h.size >= 2; } },
-          ],
+          challenge: { text: "Light it from two different pairs of holes", when: (S, m) => { m.h = m.h || new Set(); S.parts("led").forEach((q) => { if (lit(q)) m.h.add(q.legs[0]); }); return m.h.size >= 2; } },
           solution: [{ next: 1 }, { choose: "right" }, { place: { type: "led", color: V.c1 }, at: V.hs(`c${t1}`, `c${t2}`) }, { wait: 0.6 }, { move: "led", to: V.hs(`e${t1}`, `e${t2}`) }, { wait: 0.6 }, { next: 1 }],
         };
       },
@@ -194,10 +185,7 @@
             FINISH("The rails bring + and − to wherever you need them along the board."),
           ],
           goals: [LIT],
-          bonus: [
-            { text: "Predict whether the far end works", final: (C) => C.right("p") },
-            { text: "Use a rail hole 20 or more rows from the battery", when: (S) => anyLit(S) && wireHoles(S, `bb:${Lt.rail}`).some((h) => BBShared.parse(h).row >= V.r(near + 20)) },
-          ],
+          challenge: { text: "Use a rail hole 20 or more columns from the battery", when: (S) => anyLit(S) && wireHoles(S, `bb:${Lt.rail}`).some((h) => BBShared.parse(h).row >= V.r(near + 20)) },
           solution: [{ next: 1 }, { next: 1 }, { choose: "right" }, { wire: V.hs(...Lt.sol) }, { wait: 1 }, { next: 1 }],
         };
       },
@@ -207,9 +195,9 @@
       // what sits on the wrong side of the centre gap: the wire's end, or the resistor's leg
       layouts: [
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.WIRE("wire1", "g7", "-T7", "#f08c2a")], id: "wire1", row: 7, wrong: "g7",
-          what: "The wire is in the wrong one.", fix: "drag the wire's end", hint: "Click the orange wire, then drag its round end", bridge: ["e7", "f7"] },
+          what: "The wire is in the wrong one.", fix: "drag the wire's end", hint: "Click the orange wire, then drag its round end", bridge: ["e7", "f7"], moved: ["e7", "-T7"] },
         { parts: (V) => [V.RES("res1", "+T6", "f6"), V.LED("led1", "c6", "c7"), V.WIRE("wire1", "e7", "-T7")], id: "res1", row: 6, wrong: "f6",
-          what: "One of the resistor's legs is in the wrong one.", fix: "drag the resistor's leg", hint: "Click the resistor, then drag its round end", bridge: ["d6", "g6"] },
+          what: "One of the resistor's legs is in the wrong one.", fix: "drag the resistor's leg", hint: "Click the resistor, then drag its round end", bridge: ["d6", "g6"], moved: ["+T6", "d6"] },
       ],
       make: (V) => {
         const Lt = V.L, P = V.predict(["The LED is broken", "Something is not really connected", "The battery is flat"], 1,
@@ -231,11 +219,8 @@
             FINISH("Remember the gap: the top and bottom halves of a column are not connected."),
           ],
           goals: [LIT],
-          bonus: [
-            { text: "Find out why it is dark", final: (C) => C.right("p") },
-            { text: "Fix it by bridging the gap with a new wire", when: (S) => anyLit(S) && !!part(S, Lt.id) && part(S, Lt.id).legs.includes(V.h(Lt.wrong)) },
-          ],
-          solution: [{ choose: "right" }, { next: 1 }, { wire: V.hs(...Lt.bridge) }, { wait: 1 }, { next: 1 }],
+          challenge: { text: "Fix it by moving the misplaced end, with no new wire", when: (S) => anyLit(S) && !!part(S, Lt.id) && !part(S, Lt.id).legs.includes(V.h(Lt.wrong)) && wires(S).length === 1 },
+          solution: [{ choose: "right" }, { next: 1 }, { move: Lt.id, to: V.hs(...Lt.moved) }, { wait: 1 }, { next: 1 }],
         };
       },
     },
@@ -266,10 +251,7 @@
             FINISH("One-way parts must all face along the loop, from + to −."),
           ],
           goals: [{ text: "Light both LEDs", when: on, hold: 0.6 }],
-          bonus: [
-            { text: both ? "Predict what one flip does" : "Spot the backwards LED", final: (C) => C.right("p") },
-            { text: `Use no more than ${flips} flip${flips > 1 ? "s" : ""}`, final: (C) => (C.count.flip || 0) <= flips },
-          ],
+          challenge: { text: `Use no more than ${flips} flip${flips > 1 ? "s" : ""}`, final: (C) => (C.count.flip || 0) <= flips },
           solution: [{ next: 1 }, { next: 1 }, { choose: "right" }, ...(b1 ? [{ flip: "led1" }] : []), ...(b2 ? [{ flip: "led2" }] : []), { wait: 1 }, { next: 1 }],
         };
       },
@@ -278,17 +260,25 @@
       id: "1-7", title: "Why the resistor?", teaches: ["resistor"], uses: ["loop", "strip", "rail", "polarity"], shifts: [0, 4, 8, 12],
       // the resistor on the + side (from the red rail) or on the − side (to the blue rail)
       layouts: [
-        { parts: (V) => [V.RES("res1", "+T6", "a6", 330), V.LED("led1", "c6", "c7"), V.WIRE("wire1", "e7", "-T7")], bridge: ["+T6", "a6"], back: ["+T6", "a6"] },
-        { parts: (V) => [V.WIRE("wire1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7", 330)], bridge: ["e7", "-T7"], back: ["-T7", "a7"] },
+        { parts: (V) => [V.RES("res1", "+T6", "a6", 330), V.LED("led1", "c6", "c7"), V.WIRE("wire1", "e7", "-T7")], bridge: ["+T6", "a6"], back: ["+T6", "a6"], other: "-",
+          swap: [{ remove: "wire1" }, { move: "resistor", to: ["a7", "-T7"] }, { wire: ["+T6", "a6"] }] },
+        { parts: (V) => [V.WIRE("wire1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7", 330)], bridge: ["e7", "-T7"], back: ["-T7", "a7"], other: "+",
+          swap: [{ remove: "wire1" }, { move: "resistor", to: ["+T6", "a6"] }, { wire: ["e7", "-T7"] }] },
       ],
       make: (V) => {
+        // which side of the LED the resistor is on: "+" (between the + rail and the LED) or "-" (between the LED and the − rail)
+        const side = (S) => {
+          const l = part(S, "led1"), r = S.parts("resistor").find((q) => q.ok);
+          if (!l || !r || !lit(l)) return null;
+          return r.nets.includes("bb:+T") && r.nets.includes(l.nets[0]) ? "+" : r.nets.includes("bb:-T") && r.nets.includes(l.nets[1]) ? "-" : null;
+        };
         const Lt = V.L, P = V.predict(["glow brighter", "stay the same", "burn out"], 2,
           ["brighter for a moment, yes. But nothing holds the current down, so it climbs until the LED burns out.", "the resistor is what holds the current down. Without it, far more flows.", null]);
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
           rules: { tray: [{ type: "wire", n: 1 }], allow: { place: false, replace: ["led1"] }, guardShorts: true },
-          allowDamage: true, simText: { led: null },
+          demo: { led: 1 }, simText: { led: null },
           ui: { xray: true },
           beats: [
             { id: "what", say: V.say("This striped part is a resistor. What is it doing here?", "See the part with coloured stripes? That is a resistor. Why is it here?"), highlight: { part: "res1" }, waitFor: { next: true } },
@@ -300,19 +290,18 @@
               hints: [{ say: "Draw a wire between the two holes where the resistor's legs were." }, { show: [V.WIRE("h", ...Lt.bridge)] }],
               waitFor: { when: (S) => S.destroyed("led") } },
             { id: "fix", reply: "p", say: "Pop! Nothing held the current back. Fix it: wire out, resistor back, and a fresh LED.",
-              allow: { place: true, remove: ["res1"] },
+              allow: { place: true, remove: ["res1", "wire1"], move: ["wire1"], legs: ["wire1"] },
               hints: [{ say: "Take the new wire off. Drop the resistor on the rail where it was. Then click the LED and press Fresh one." }, { show: [V.RES("h", ...Lt.back, 330)] }],
               waitFor: { when: (S) => lit(part(S, "led1")) && S.parts("resistor").length > 0 } },
             Object.assign(FINISH("That is the resistor's job: it holds the current down to a safe amount. It works on either side of the LED."),
-              { note: "an LED with no resistor gets hot and can crack. Always fit the resistor before you connect the battery." }),
+              { note: "an LED with no resistor gets hot and can crack. Always fit the resistor before you connect the battery.",
+                allow: { place: true, remove: ["res1", "wire1"], move: ["wire1"], legs: ["wire1"] } }),
           ],
           goals: [{ text: "Light the LED safely, with a resistor", when: (S) => safe(part(S, "led1")) && S.parts("resistor").length > 0, hold: 0.6 }],
-          bonus: [
-            { text: "Predict what happens", final: (C) => C.right("p") },
-            { text: "Fix it with only one fresh LED", final: (C) => (C.count.replace || 0) <= 1 },
-          ],
+          challenge: { text: "Then move the resistor to the other side of the LED, still lit", when: (S) => side(S) === Lt.other },
           solution: [{ next: 1 }, { choose: "right" }, { remove: "res1" }, { wire: V.hs(...Lt.bridge) }, { wait: 0.5 }, { remove: "wire" },
-            { place: { type: "resistor", value: 330 }, at: V.hs(...Lt.back) }, { replace: "led1" }, { wait: 1 }, { next: 1 }],
+            { place: { type: "resistor", value: 330 }, at: V.hs(...Lt.back) }, { replace: "led1" }, { wait: 1 },
+            ...Lt.swap.map((st) => (st.to ? Object.assign({}, st, { to: V.hs(...st.to) }) : st.wire ? { wire: V.hs(...st.wire) } : st)), { wait: 1 }, { next: 1 }],
         };
       },
     },
@@ -330,7 +319,7 @@
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V)),
           rules: { tray: [{ type: "wire", n: 1 }], guardShorts: false, banner: true },
-          allowDamage: true, simText: { wire: null },
+          demo: { short: true }, simText: { wire: null },
           ui: { xray: true },
           beats: [
             { id: "p", say: V.say("What happens if a wire joins the red + rail straight to the blue − rail?", "Suppose a wire went straight from the red + rail to the blue − rail. What happens?"), predict: P, waitFor: { predict: true } },
@@ -344,10 +333,10 @@
             { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and some batteries can catch fire." }),
           ],
           goals: [{ text: "Light the LED, with no short circuit", when: (S) => anyLit(S) && !S.shortNow(), hold: 0.6 }],
-          bonus: [
-            { text: "Predict what a short does", final: (C) => C.right("p") },
-            { text: "Pull the short out before the batteries overheat", final: (C) => !C.broken.has("battery") },
-          ],
+          challenge: { text: "Pull the short out before the batteries get hot (3 seconds)", when: (S, m) => {
+              if (S.shortNow()) { if (m.t0 === undefined) m.t0 = S.t; m.long = m.long || S.t - m.t0 >= 3; } else m.t0 = undefined;
+              return false;
+            }, final: (C, m) => !m.long && !C.broken.has("battery") },
           solution: [{ choose: "right" }, { wire: V.hs("+T12", "-T12") }, { wait: 0.4 }, { remove: "wire" }, { wait: 1 }, { next: 1 }],
         };
       },
@@ -360,7 +349,6 @@
         region: { rows: [1, 30], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
         rules: { tray: [{ type: "resistor", value: V.ohms, n: 1 }, { type: "led", color: V.c1, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
-        allowDamage: true,
         ui: { xray: true },
         beats: [
           { id: "brief", say: V.say("Your turn. Light the LED safely from the rails. You have a resistor, an LED and three wires.",
@@ -372,10 +360,7 @@
           FINISH("You built it from nothing. That is the circuit behind every little indicator light."),
         ],
         goals: [{ text: "Light the LED safely", when: (S) => S.parts("led").some(safe), hold: 0.6 }],
-        bonus: [
-          { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-          { text: "Use at most one wire", when: (S) => S.parts("led").some(safe) && wires(S).length <= 1 },
-        ],
+        challenge: { text: "Use at most one wire", when: (S) => S.parts("led").some(safe) && wires(S).length <= 1 },
         solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T10", "a10"] }, { place: { type: "led", color: V.c1 }, at: ["c10", "c11"] },
           { wire: ["e11", "-T11"] }, { wait: 1 }, { next: 1 }],
       }),
@@ -388,7 +373,6 @@
         region: { rows: [1, 40], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
         rules: { tray: [{ type: "resistor", value: V.ohms, n: 2 }, { type: "led", color: V.c1, n: 1 }, { type: "led", color: V.c2, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
-        allowDamage: true,
         ui: { xray: true },
         beats: [
           { id: "brief", say: V.say("Last one: light both LEDs at the same time, each with its own resistor.", "Final test: both LEDs lit at once, and each one gets its own resistor."), waitFor: { next: true, label: "Start" } },
@@ -399,10 +383,7 @@
           FINISH("Two lights, one battery. That is Chapter 1 done!"),
         ],
         goals: [{ text: "Light both LEDs safely", when: (S) => S.parts("led").filter(safe).length >= 2, hold: 0.6 }],
-        bonus: [
-          { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-          { text: "Use at most one wire", when: (S) => S.parts("led").filter(safe).length >= 2 && wires(S).length <= 1 },
-        ],
+        challenge: { text: "Use at most one wire", when: (S) => S.parts("led").filter(safe).length >= 2 && wires(S).length <= 1 },
         solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T8", "a8"] }, { place: { type: "led", color: V.c1 }, at: ["c8", "c9"] },
           { place: { type: "led", color: V.c2 }, at: ["c16", "-T16"] }, { place: { type: "resistor", value: V.ohms }, at: ["+T16", "a16"] }, { wire: ["e9", "-T9"] },
           { wait: 1 }, { next: 1 }],

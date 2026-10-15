@@ -34,7 +34,6 @@
           start: start(V.BAT("+T3", "-T4"), RES(V, 1000), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "resistor", value: 3900, n: 1 }, { type: "resistor", value: 10000, n: 1 }],
             allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"], replace: ["meter"] }) },
-          allowDamage: true,
           ui: { xray: true },
           goalsFrom: 3,
           beats: [
@@ -48,10 +47,7 @@
             FINISH("Double the resistance and the current halves. They go opposite ways, in step."),
           ],
           goals: [{ text: "Make about 1.5 mA flow", when: goal }],
-          bonus: [
-            { text: "Predict the current with 2 kΩ", final: (C) => C.right("p") },
-            { text: "Pick the 1.5 mA resistor on the first try", final: (C) => (C.count.place || 0) <= 2 },
-          ],
+          challenge: { text: "Pick the 1.5 mA resistor on the first try", final: (C) => (C.count.place || 0) <= 2 },
           solution: [{ choose: "right" }, { remove: "res1" }, PLACE(V, 2000), { wait: 0.6 }, { next: 1 }, { remove: "resistor" }, PLACE(V, 3900), { wait: 1 }, { next: 1 }],
         };
       },
@@ -82,11 +78,8 @@
             Object.assign(FINISH("More push, more current. More resistance, less current. The next level puts both in one rule."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the current with 6 V and 2 kΩ", when: goal }],
-          bonus: [
-            { text: "Predict the current with twice the push", final: (C) => C.right("p1") },
-            { text: "Predict the current with 6 V and 2 kΩ", final: (C) => C.right("p2") },
-          ],
-          solution: [{ choose: "right" }, { cells: "bat" }, { wait: 0.6 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2000), { wait: 0.8 }, { next: 1 }],
+          challenge: { text: "Then make 1.5 mA with the 2 kΩ: take two cells out", when: (S) => cells(S) === 2 && only(S, 2000) && between(S, 0.0014, 0.0016) },
+          solution: [{ choose: "right" }, { cells: "bat" }, { wait: 0.6 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2000), { wait: 0.8 }, { cells: "bat" }, { wait: 0.6 }, { next: 1 }],
         };
       },
     },
@@ -100,7 +93,7 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 1000), LOOP_METER(V)),
-          rules: { tray: [{ type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
+          rules: { tray: [{ type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
           ui: { xray: true },
           goalsFrom: 4,
           beats: [
@@ -112,11 +105,8 @@
             Object.assign(FINISH("Current = push ÷ resistance. Engineers call it Ohm's law."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the current with 4.7 kΩ", when: (S) => only(S, 4700) }],
-          bonus: [
-            { text: "Predict the current with 2.2 kΩ", final: (C) => C.right("p1") },
-            { text: "Predict the current with 4.7 kΩ", final: (C) => C.right("p2") },
-          ],
-          solution: [{ next: 1 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2200), { wait: 0.6 }, { choose: "right" }, { remove: "resistor" }, PLACE(V, 4700), { wait: 0.8 }, { next: 1 }],
+          challenge: { text: "Then make about 0.6 mA with a resistor from the tray", when: (S) => between(S, 0.00055, 0.00065) },
+          solution: [{ next: 1 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2200), { wait: 0.6 }, { choose: "right" }, { remove: "resistor" }, PLACE(V, 4700), { wait: 0.8 }, { remove: "resistor" }, PLACE(V, 10000), { wait: 0.6 }, { next: 1 }],
         };
       },
     },
@@ -135,7 +125,7 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), Object.assign(V.RES("resX", "+T6", "a6", R), { tag: "X" }), LOOP_METER(V)),
-          rules: { tray: [], allow: allow({ ctl: ["meter", "bat"], dial: ["V", "mA", "ohm"], socket: ["VO", "mA"] }) },
+          rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["meter", "bat"], dial: ["V", "mA", "ohm"], socket: ["VO", "mA"] }) },
           ui: { xray: true },
           goalsFrom: 2,
           beats: [
@@ -149,11 +139,8 @@
             Object.assign(FINISH(`6 V ÷ ${I2} mA = ${R2} kΩ. Know two of push, current and resistance, and you can work out the third.`), { reply: "p2" }),
           ],
           goals: [{ text: "Check the resistor with Ω", when: checked }],
-          bonus: [
-            { text: "Work out the mystery resistor", final: (C) => C.right("p") },
-            { text: "Work out the second one in your head", final: (C) => C.right("p2") },
-          ],
-          solution: [{ next: 1 }, { choose: "right" }, { ctl: "bat" }, { socket: "VO" }, { dial: "ohm" }, { probe: V.hs("+T8", "b6") }, { wait: 0.6 }, { choose: "right" }, { next: 1 }],
+          challenge: { text: "Then close the loop with a wire and measure the push across it", when: (S) => { const q = part(S, "resX"); return !!q && mode(S, "V") && S.across(q) && Math.abs(M(S).value || 0) > 5.5; } },
+          solution: [{ next: 1 }, { choose: "right" }, { ctl: "bat" }, { socket: "VO" }, { dial: "ohm" }, { probe: V.hs("+T8", "b6") }, { wait: 0.6 }, { choose: "right" }, { ctl: "bat" }, { wire: V.hs("c6", "-T10") }, { dial: "V" }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -171,7 +158,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "resistor", value: 33, n: 1 }, { type: "resistor", value: 1000, n: 1 }], banner: true },
-          allowDamage: true, simText: { resistor: null },
+          simText: { resistor: null },
           ui: { xray: true },
           beats: [
             { id: "p", say: "A resistor turns electrical energy into heat. Which one gets hot, straight across the 6 V rails: the 1 kΩ or the 33 Ω?", predict: P, waitFor: { predict: true } },
@@ -187,11 +174,9 @@
               { note: "an overloaded resistor gets hot enough to burn fingers, and smokes. Unplug first, and let it cool before you touch it." }),
           ],
           goals: [{ text: "A resistor across the rails that stays cool", when: cool, hold: 1 }],
-          bonus: [
-            { text: "Predict which one gets hot", final: (C) => C.right("p") },
-            { text: "Pull the 33 Ω out before it burns", final: (C) => !C.broken.has("resistor") },
-          ],
-          solution: [{ choose: "right" }, { place: { type: "resistor", value: 33 }, at: V.hs("+T10", "-T13") }, { wait: 2 }, { remove: "resistor" }, { wait: 0.4 }, { next: 1 },
+          challenge: { text: "Pull the 33 Ω out before it smokes", when: (S, m) => { if (S.parts("resistor").some((q) => q.part.value === 33 && (q.rt.level || 0) >= 2)) m.smoke = true; return false; },
+            final: (C, m) => !m.smoke && !C.broken.has("resistor") },
+          solution: [{ choose: "right" }, { place: { type: "resistor", value: 33 }, at: V.hs("+T10", "-T13"), wait: 1.5 }, { remove: "resistor" }, { wait: 0.4 }, { next: 1 },
             { place: { type: "resistor", value: 1000 }, at: V.hs("+T10", "-T13") }, { wait: 1.6 }, { next: 1 }],
         };
       },
@@ -207,7 +192,6 @@
           start: start(Object.assign(V.BAT("+T3", "-T4"), { cellSwap: true }), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }],
             allow: allow({ ctl: ["meter", "bat"], replace: ["meter"] }), banner: true },
-          allowDamage: true,
           ui: { xray: true },
           beats: [
             { id: "brief", say: V.say("Make exactly 3 mA flow through the meter. There is more than one way to do it.",
@@ -218,10 +202,7 @@
             FINISH("Two ways to the same current: choose the resistance, or choose the push."),
           ],
           goals: [{ text: "Make exactly 3 mA flow", when: three, hold: 0.6 }],
-          bonus: [
-            { text: "Find both ways", when: (S, m) => { if (three(S)) m[cells(S)] = true; return !!m[2] && !!m[4]; } },
-            { text: "Nothing breaks, no fuse blown", final: (C) => C.broken.size === 0 },
-          ],
+          challenge: { text: "Find both ways", when: (S, m) => { if (three(S)) m[cells(S)] = true; return !!m[2] && !!m[4]; } },
           solution: [{ next: 1 }, PLACE(V, 2000), { wait: 1 }, { remove: "resistor" }, { cells: "bat" }, PLACE(V, 1000), { wait: 1 }, { next: 1 }],
         };
       },

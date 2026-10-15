@@ -148,8 +148,8 @@
       const lv = G.level, res = G.coach.finish();
       St.update((s) => {
         const old = s.levels[lv.id] || {};
-        const bonus = res.bonus.map((b, k) => b || !!(old.bonus && old.bonus[k]));
-        s.levels[lv.id] = { done: true, stars: Math.max(old.stars || 0, res.stars, 1 + bonus.filter(Boolean).length), bonus };
+        const clean = res.clean || !!old.clean, challenge = res.challenge || !!old.challenge;     // each star, once earned, stays
+        s.levels[lv.id] = { done: true, stars: Math.max(old.stars || 0, 1 + clean + challenge), clean, challenge };
         for (const c of lv.teaches) if (!s.notebook.includes(c)) s.notebook.push(c);
         const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 1 };
         t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele };
@@ -436,7 +436,7 @@
       state: () => ({
         parts: G.doc.parts.map((p) => ({ id: p.id, type: p.type, legs: p.legs, destroyed: !!(G.sim.rt.get(p.id) || {}).destroyed, read: G.sim.read(p.id) })),
         events: G.sim.events.map((e) => e.text), t: G.sim.t, simMs: G.simMs, mode: G.mode,
-        goals: G.run ? G.run.state.map((q) => q.done) : null, complete: G.run ? G.run.complete : null, stars: G.run ? G.run.stars : null,
+        goals: G.run ? G.run.state.map((q) => q.done) : null, complete: G.run ? G.run.complete : null, stars: G.coach ? G.coach.stars : null,
       }),
       // Does Sparky (or his bubble) cover the open bench: the board's open rows, the battery or the meter?
       sparkyOnBench: () => {
@@ -446,7 +446,7 @@
         return ["mentor-avatar", "mentor"].filter((id) => meets(document.getElementById(id).getBoundingClientRect()));
       },
       level: () => (G.level ? { id: G.level.id, seed: G.level.seed, layout: G.level.layout, beat: G.coach.beat && G.coach.beat.id, done: G.coach.done, finished: G.coach.finished, stars: G.coach.stars,
-        bonus: G.coach.bonus, complete: G.run.complete, hint: G.coach.hint } : null),
+        challenge: G.coach.challenge, clean: G.coach.clean, complete: G.run.complete, hint: G.coach.hint } : null),
       // One step of a level's scripted solution, done through the same actions the player's clicks use.
       play(st) {
         G.lastRefusal = null;

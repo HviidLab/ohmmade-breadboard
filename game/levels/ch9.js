@@ -37,10 +37,7 @@
             FINISH("It passes up to about 200 × the base current, far more than the LED needs. So it is fully on, a closed switch: the 330 Ω sets the current."),
           ],
           goals: [{ text: "Light the LED through the transistor", when: on }],
-          bonus: [
-            { text: "Predict what the base current does", final: (C) => C.right("p") },
-            { text: "Switch it off again by taking the wire away", when: (S, m) => { if (lit(part(S, "led1"))) m.on = true; return !!m.on && !S.parts("wire").some((q) => !["w1", "w2"].includes(q.id)); } },
-          ],
+          challenge: { text: "Switch it off again by taking the wire away", when: (S, m) => { if (lit(part(S, "led1"))) m.on = true; return !!m.on && !S.parts("wire").some((q) => !["w1", "w2"].includes(q.id)); } },
           solution: [{ choose: "right" }, { wire: V.hs("+T17", "a17") }, { wait: 0.8 }, { next: 1 }, { remove: "wire" }, { wait: 0.5 }, { next: 1 }],
         };
       },
@@ -57,7 +54,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...LOOP(V)),
           rules: { tray: [{ type: "wire", n: 1 }, { type: "resistor", value: 10000, n: 1 }], banner: true },
-          allowDamage: true, simText: { npn: null },
+          demo: { npn: 1 }, simText: { npn: null },
           ui: { xray: true },
           beats: [
             { id: "p", say: "Last time a 10 kΩ fed the base. What if a wire runs straight from the + rail into B, with no resistor?", highlight: { part: "q1" },
@@ -71,10 +68,7 @@
               { note: "a burned transistor gets hot enough to burn you. Always give the base its own resistor." }),
           ],
           goals: [{ text: "Light the LED with a 10 kΩ on the base", when: fixed, hold: 0.6 }],
-          bonus: [
-            { text: "Predict what a bare base does", final: (C) => C.right("p") },
-            { text: "Burn only one transistor", final: (C) => (C.count.destroyed || 0) <= 1 },
-          ],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
           solution: [{ choose: "right" }, { wire: V.hs("+T13", "a13") }, { wait: 0.5 }, { remove: "wire" }, { place: { type: "resistor", value: 10000 }, at: V.hs("+T13", "a13") },
             { replace: "q1" }, { wait: 1 }, { next: 1 }],
         };
@@ -98,7 +92,6 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "npn", n: 1 }, { type: "button", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 330, n: 1 },
             { type: "led", color: "green", n: 1 }, { type: "wire", n: 4 }], latchButtons: true, banner: true },
-          allowDamage: true,
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -113,10 +106,7 @@
             FINISH("A push of a tiny button, a big current in the LED. Chapter 9 done!"),
           ],
           goals: [{ text: "LED off with the button up, on with it down", when: tested }],
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "Keep the base current under 2 mA", final: () => !seen.big },
-          ],
+          challenge: { text: "Keep the base current under 2 mA", final: () => !seen.big },
           solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "green" }, at: ["c6", "c7"] }, { wire: ["e7", "e12"] },
             { place: { type: "npn" }, at: ["c12", "c13", "c14"] }, { wire: ["a14", "-T14"] }, { wire: ["+T17", "a17"] },
             { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: ["e17", "f17", "e19", "f19"] }, { place: { type: "resistor", value: 10000 }, at: ["a19", "b13"] },

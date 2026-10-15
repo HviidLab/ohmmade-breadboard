@@ -6,7 +6,7 @@
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, part, FINISH } = K;
-  const { M, volts, across, fmtV, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { M, on, volts, across, fmtV, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
   const LOOP_METER = (V) => METER("mA", "mA", V.hs("b7", "-T9"));      // closes the loop from the LED's − strip to the − rail
@@ -52,12 +52,9 @@
             Object.assign(FINISH("The LED keeps about the same push, whatever the current. The resistor takes the rest of the battery's 6 V."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the resistor's share with 1 kΩ", when: resShare }],
-          bonus: [
-            { text: "Predict the LED's volts", final: (C) => C.right("p1") },
-            { text: "Predict the resistor's share", final: (C) => C.right("p2") },
-          ],
+          challenge: { text: "Measure the battery too: its 6 V is the two shares added", when: (S) => on(S, "bb:+T", "bb:-T") && Math.abs(volts(S) || 0) > 5.5 },
           solution: [{ probe: V.hs("d6", "d7") }, { choose: "right" }, { remove: "res1" }, PLACE_R(V, 1000), { probe: V.hs("d6", "d7") }, { wait: 0.6 }, { choose: "right" },
-            { probe: V.hs("+T8", "b6") }, { wait: 0.6 }, { next: 1 }],
+            { probe: V.hs("+T8", "b6") }, { wait: 0.6 }, { probe: V.hs("+T10", "-T10") }, { wait: 0.4 }, { next: 1 }],
         };
       },
     },
@@ -85,11 +82,8 @@
             Object.assign(FINISH("(6 − 2.2) V ÷ 0.22 kΩ ≈ 17 mA. LED current = (battery − LED) ÷ resistor."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the green LED's current", when: m2 }],
-          bonus: [
-            { text: "Predict the current with 220 Ω", final: (C) => C.right("p1") },
-            { text: "Predict the green LED's current", final: (C) => C.right("p2") },
-          ],
-          solution: [{ next: 1 }, { choose: "right" }, { remove: "res1" }, PLACE_R(V, 220), { wait: 0.6 }, { choose: "right" }, { remove: "led1" }, PLACE_L(V, "green"), { wait: 0.8 }, { next: 1 }],
+          challenge: { text: "Then get the green LED under 10 mA, with a resistor from the tray", when: (S) => { const q = theLed(S); return !!q && q.part.color === "green" && near(current(S), 0.003, 0.0099); } },
+          solution: [{ next: 1 }, { choose: "right" }, { remove: "res1" }, PLACE_R(V, 220), { wait: 0.6 }, { choose: "right" }, { remove: "led1" }, PLACE_L(V, "green"), { wait: 0.8 }, { remove: "resistor" }, PLACE_R(V, 470), { wait: 0.6 }, { next: 1 }],
         };
       },
     },
@@ -105,7 +99,6 @@
           start: start(V.BAT("+T3", "-T4"), LED(V, "red"), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "resistor", value: 1000, n: 1 }],
             allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"] }), banner: true },
-          allowDamage: true,
           ui: { xray: true },
           beats: [
             { id: "p", say: "This red LED needs a resistor, and we want 10 mA. Resistor = (6 − 2) V ÷ 10 mA = …", highlight: { part: "led1" }, predict: P, waitFor: { predict: true } },
@@ -115,10 +108,7 @@
             FINISH("Work out the resistor, then round up to the next real size. That is how every LED circuit is designed."),
           ],
           goals: [{ text: "8 to 10 mA through the LED", when: ten, hold: 0.6 }],
-          bonus: [
-            { text: "Work out the resistor", final: (C) => C.right("p") },
-            { text: "Right on the first try", final: (C) => (C.count.place || 0) <= 1 },
-          ],
+          challenge: { text: "Right on the first try", final: (C) => (C.count.place || 0) <= 1 },
           solution: [{ choose: "right" }, PLACE_R(V, 470), { wait: 1 }, { next: 1 }],
         };
       },
@@ -136,7 +126,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 390), LED(V, "red"), V.WIRE("wire1", "e7", "-T7"), METER("V")),
           rules: { tray: [{ type: "led", color: "blue", n: 1 }, { type: "resistor", value: 270, n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "resistor", value: 470, n: 1 }],
-            allow: allow({ remove: ["res1", "led1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
+            allow: allow({ remove: ["res1", "led1", "wire1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
           ui: { xray: true },
           goalsFrom: 4,
           beats: [
@@ -151,12 +141,9 @@
             FINISH("Each colour takes its own push: red about 2 V, yellow and green a little more, blue and white about 3 V."),
           ],
           goals: [{ text: "The blue LED at 8 to 10 mA", when: ten }],
-          bonus: [
-            { text: "Choose the blue LED's resistor", final: (C) => C.right("p") },
-            { text: "Keep the blue LED's long leg on the + side the first time", final: (C) => (C.count.flip || 0) === 0 && (C.count.place || 0) <= 2 },
-          ],
+          challenge: { text: "Measure the blue LED's current with the meter", when: (S) => !!blue(S) && lit(blue(S), 0.005) && S.readsCurrentOf(blue(S), 0.005, 0.02) },
           solution: [{ probe: V.hs("d6", "d7") }, { wait: 0.4 }, { remove: "led1" }, PLACE_L(V, "blue"), { probe: V.hs("d6", "d7") }, { wait: 0.6 }, { next: 1 }, { choose: "right" },
-            { remove: "res1" }, PLACE_R(V, 330), { wait: 1 }, { next: 1 }],
+            { remove: "res1" }, PLACE_R(V, 330), { wait: 1 }, { dial: "mA" }, { probe: [null, null] }, { socket: "mA" }, { remove: "wire1" }, { probe: V.hs("b7", "-T9") }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -171,7 +158,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 330), LED(V, "red"), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 47, n: 1 }, { type: "resistor", value: 220, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }), banner: true },
-          allowDamage: true, simText: { led: null },
+          demo: { led: 1 }, simText: { led: null },
           ui: { xray: true },
           beats: [
             { id: "p", say: "A small LED is made for 20 mA at most. The smallest safe resistor for this red one: (6 − 2) V ÷ 20 mA = …", predict: P, waitFor: { predict: true } },
@@ -183,10 +170,7 @@
               { note: "an LED far over 20 mA gets hot and can crack. Work out the resistor before you switch on." }),
           ],
           goals: [{ text: "The LED just under 20 mA, safely", when: safeNow }],
-          bonus: [
-            { text: "Work out the smallest safe resistor", final: (C) => C.right("p") },
-            { text: "Pop only one LED", final: (C) => (C.count.destroyed || 0) <= 1 },
-          ],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
           solution: [{ choose: "right" }, { remove: "res1" }, PLACE_R(V, 47), { wait: 0.6 }, { remove: "resistor" }, PLACE_R(V, 220), { replace: "led1" }, { wait: 1 }, { next: 1 }],
         };
       },
@@ -205,7 +189,6 @@
           rules: { tray: [{ type: "led", color: "red", n: 1 }, { type: "led", color: "yellow", n: 1 }, { type: "led", color: "green", n: 1 },
             { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 330, n: 2 }, { type: "resistor", value: 390, n: 2 }, { type: "resistor", value: 470, n: 1 },
             { type: "wire", n: 3 }], allow: allow({ replace: ["meter"] }), banner: true },
-          allowDamage: true,
           ui: { xray: true },
           beats: [
             { id: "brief", say: V.say("A traffic light of your own: a red, a yellow and a green LED, each with between 8 and 12 mA.",
@@ -219,11 +202,8 @@
             FINISH("Three colours, three resistors, one battery. LED maths done!"),
           ],
           goals: [{ text: "Red, yellow and green, each 8 to 12 mA", when: all, hold: 0.8 }],
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "No LED above 12 mA at any moment", final: () => !seen.over,
+          challenge: { text: "No LED above 12 mA at any moment", final: () => !seen.over,
               when: (S) => { if (S.parts("led").some((q) => q.ok && q.rd.I > 0.0125)) seen.over = true; return false; } },
-          ],
           solution: [{ next: 1 },
             { place: { type: "resistor", value: 470 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] }, { wire: ["e7", "-T7"] },
             { place: { type: "resistor", value: 390 }, at: ["+T12", "a12"] }, { place: { type: "led", color: "yellow" }, at: ["c12", "c13"] }, { wire: ["e13", "-T13"] },

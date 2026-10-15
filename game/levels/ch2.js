@@ -69,10 +69,7 @@
               { note: "a new pack of 4 AA cells reads about 6.3 V, a used one less. Rechargeable cells give only about 4.8 V." }),
           ],
           goals: [{ text: "Make the bottom LED as bright as the top one", when: bright, hold: 0.6 }],
-          bonus: [
-            { text: "Guess why it is dimmer", final: (C) => C.right("q") },
-            { text: "Do it by moving just two wire ends", final: (C) => (C.count.move || 0) <= 2 && !C.count.place },
-          ],
+          challenge: { text: "Do it by moving just two wire ends", final: (C) => (C.count.move || 0) <= 2 && !C.count.place },
           solution: [{ choose: "right" }, { dial: "V" }, { probe: V.hs("+T10", "-T10") }, { probe: V.hs("+B10", "-B10") }, { wait: 0.6 },
             { move: "wa", to: V.hs("+T14", "j5") }, { move: "wb", to: V.hs("f9", "-T14") }, { wait: 1 }, { next: 1 }],
         };
@@ -118,12 +115,9 @@
             Object.assign(FINISH("The shares always add up to the battery's push. The LED takes its share, the resistor the rest."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the resistor's share with the blue LED", when: blueRes }],
-          bonus: [
-            { text: "Guess which part uses the most push", final: (C) => C.right("p1") },
-            { text: "Predict the resistor's share with the blue LED", final: (C) => C.right("p2") },
-          ],
+          challenge: { text: "Measure the blue LED's share too", when: (S) => { const q = S.parts("led").find((x) => x.part.color === "blue" && lit(x)); return !!q && S.across(q) && volts(S) !== null && Math.abs(volts(S)) > 2.5; } },
           solution: [{ choose: "right" }, { probe: V.hs(...V.L.res) }, { probe: V.hs(...V.L.led) }, { probe: V.hs(...V.L.wire) }, { choose: "right" },
-            { remove: "led1" }, { place: { type: "led", color: "blue" }, at: V.hs("c6", "c7") }, { probe: V.hs(...V.L.res) }, { wait: 0.6 }, { next: 1 }],
+            { remove: "led1" }, { place: { type: "led", color: "blue" }, at: V.hs("c6", "c7") }, { probe: V.hs(...V.L.res) }, { wait: 0.6 }, { probe: V.hs(...V.L.led) }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -160,10 +154,7 @@
             Object.assign(FINISH("The meter is part of the loop now. Pull a probe out and see the dots stop everywhere."), { reply: "p" }),
           ],
           goals: [{ text: "Measure the LED's current", when: reads }],
-          bonus: [
-            { text: "Predict what happens if a probe comes out", final: (C) => C.right("p") },
-            { text: "Read the current with no minus sign", when: (S) => reads(S) && M(S).value > 0 },
-          ],
+          challenge: { text: "Read the current with no minus sign", when: (S) => reads(S) && M(S).value > 0 },
           solution: [{ dial: "mA" }, { socket: "mA" }, { remove: "wire1" }, { probe: V.hs(...V.L.at) }, { wait: 1 }, { choose: "right" }, { next: 1 }],
         };
       },
@@ -204,10 +195,7 @@
             FINISH("The same current flows all the way round: out of +, through every part, back into −. So a resistor protects an LED from either side."),
           ],
           goals: [{ text: "Measure the current in three places", when: (S, m) => { for (const w of ["w1", "w2", "w3"]) if (reads(S, w)) m[w] = true; return m.w1 && m.w2 && m.w3; } }],
-          bonus: [
-            { text: "Guess whether the LED uses up current", final: (C) => C.right("p") },
-            { text: "Every reading without a minus sign", final: () => !seen.neg },
-          ],
+          challenge: { text: "Every reading without a minus sign", final: () => !seen.neg },
           solution: [{ choose: "right" }, { remove: "w2" }, { probe: V.hs(...AT.w2) }, { wait: 0.6 }, { probe: [null, null] }, { wire: V.hs("c9", "c11") },
             { remove: "w3" }, { probe: V.hs(...AT.w3) }, { wait: 0.6 }, { next: 1 }, { probe: [null, null] }, { wire: V.hs("e12", "-T12") },
             { remove: "w1" }, { probe: V.hs(...AT.w1) }, { wait: 0.6 }, { next: 1 }],
@@ -230,7 +218,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("mA", "mA")),
           rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"], replace: ["meter"] }), banner: true },
-          allowDamage: true, simText: { meter: null },
+          demo: { meter: 1, short: true }, simText: { meter: null },
           ui: { xray: true },
           beats: [
             { id: "p", say: "Set for mA, the meter is almost a wire. What happens if you put it across the battery?", highlight: { part: "meter" }, predict: P, waitFor: { predict: true } },
@@ -245,11 +233,8 @@
               { note: "a blown meter fuse must be replaced with the same kind. Set the dial and the red lead before the probes touch anything." }),
           ],
           goals: [{ text: "Measure the LED's current", when: reads }],
-          bonus: [
-            { text: "Predict what happens", final: (C) => C.right("p") },
-            { text: "Blow only one fuse", final: (C) => (C.count.destroyed || 0) <= 1 },
-          ],
-          solution: [{ choose: "right" }, { probe: V.hs("+T12", "-T12") }, { wait: 0.6 }, { probe: [null, null] }, { replace: "meter" }, { probe: V.hs(...V.L.at) }, { wait: 1 }, { next: 1 }],
+          challenge: { text: "Then measure the battery's push, with the meter set right", when: (S) => mode(S, "V") && M(S).socket === "VO" && on(S, "bb:+T", "bb:-T") && Math.abs(volts(S) || 0) > 5.5 },
+          solution: [{ choose: "right" }, { probe: V.hs("+T12", "-T12") }, { wait: 0.6 }, { probe: [null, null] }, { replace: "meter" }, { probe: V.hs(...V.L.at) }, { wait: 1 }, { dial: "V" }, { socket: "VO" }, { probe: V.hs("+T12", "-T12") }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -288,11 +273,8 @@
             FINISH("Choosing the resistor sets the current. That is how you make an LED just as bright as you want."),
           ],
           goals: [{ text: "The brightest LED under 15 mA", when: pick }],
-          bonus: [
-            { text: "Guess what a bigger resistor does", final: (C) => C.right("p") },
-            { text: "Pick it on the first try", final: (C) => (C.count.place || 0) <= 3,
-              when: (S) => { rec(220)(S); return false; } },          // also notes the 220 Ω reading for Sparky
-          ],
+          challenge: { text: "Pick it on the first try", final: (C) => (C.count.place || 0) <= 3,
+              when: (S) => { rec(220)(S); return false; } },
           solution: [{ choose: "right" }, { remove: "res1" }, RES(470), { wait: 0.6 }, { remove: "resistor" }, RES(1000), { wait: 0.6 }, { next: 1 },
             { remove: "resistor" }, RES(330), { wait: 1 }, { next: 1 }],
         };
@@ -313,8 +295,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "-T7"),
             Object.assign(V.RES("resA", "b12", "b15", R.A), { tag: "A" }), Object.assign(V.RES("resB", "g12", "g15", R.B), { tag: "B" }), METER("V")),
-          rules: { tray: [], allow: allow({ dial: ["V", "mA", "ohm"], move: ["resA", "resB"], legs: ["resA", "resB"], remove: ["resA", "resB"], replace: ["led1"] }) },
-          allowDamage: true,
+          rules: { tray: [], allow: allow({ ctl: ["meter", "bat"], dial: ["V", "mA", "ohm"], move: ["resA", "resB"], legs: ["resA", "resB"], remove: ["resA", "resB"], replace: ["led1"] }) },
           ui: { xray: true },
           beats: [
             { id: "lost", say: "These two resistors lost their labels. One keeps the LED safe, the other would burn it out. Which is which?",
@@ -332,12 +313,12 @@
             FINISH("Ohms tell a resistor's size. Measure with the power off, or the part on its own: a battery's push confuses the meter."),
           ],
           goals: [{ text: "Light the LED safely", when: ok, hold: 0.6 }],
-          bonus: [
-            { text: "Choose the safe one from your readings", final: (C) => C.right("p") },
-            { text: "Nothing burns out", final: (C) => C.broken.size === 0 },
-          ],
+          challenge: { text: "Check your resistor with Ω where it sits, battery off", when: (S) => {
+              const q = part(S, ID[V.L.safe]), b = S.battery();
+              return !!q && !!b && b.part.on === false && q.nets.includes("bb:+T") && S.across(q) && ohms(S) !== null && S.near(ohms(S), R[V.L.safe], 0.05);
+            } },
           solution: [{ next: 1 }, { dial: "ohm" }, { probe: V.hs("c12", "c15") }, { probe: V.hs("h12", "h15") }, { choose: "right" },
-            { move: ID[V.L.safe], to: V.hs("+T6", "a6") }, { wait: 1 }, { next: 1 }],
+            { move: ID[V.L.safe], to: V.hs("+T6", "a6") }, { wait: 1 }, { ctl: "bat" }, { probe: V.hs("+T8", "b6") }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -385,14 +366,11 @@
             FINISH("That's break hunting: with no current, no push drops across the parts, so most of the push shows up at the break."),
           ],
           goals: [{ text: `Light the ${K.COLOR_WORD[V.c2]} LED`, when: lit2, hold: 0.6 }],
-          bonus: [
-            { text: "Predict where the push goes", final: (C) => C.right("p") },
-            { text: "Find the break with the meter before you fix it", when: (S, m) => {
+          challenge: { text: "Find the break with the meter before you fix it", when: (S, m) => {
               const row = (h) => BBShared.parse(h).row;
               if (!lit2(S) && Math.abs(volts(S) || 0) > 2.5 && !on(S, "bb:+T", "bb:-T") && probes(S) && [M(S).red, M(S).com].some((h) => row(h) >= V.r(12))) m.found = true;
               return !!m.found && lit2(S);
             } },
-          ],
           solution: [{ remove: "wire1" }, { choose: "right" }, { probe: V.hs("d6", "d7") }, { probe: brk }, { wait: 0.4 },
             { probe: V.hs(...V.L.find) }, { wait: 0.6 }, { wire: V.hs(...V.L.fix) }, { wait: 1 }, { next: 1 }],
         };
@@ -435,11 +413,8 @@
             FINISH("A wire can look fine and still be broken inside. The beep tells you the truth."),
           ],
           goals: [{ text: "Light the LED", when: (S) => anyLit(S), hold: 0.6 }],
-          bonus: [
-            { text: "Predict: does it beep across the centre gap?", final: (C) => C.right("p") },
-            { text: "Find the broken wire without pulling out a good one", final: () => !seen.pulled,
+          challenge: { text: "Find the broken wire without pulling out a good one", final: () => !seen.pulled,
               when: (S) => { if (WIRES.some((id) => id !== V.L.broken && !part(S, id))) seen.pulled = true; return false; } },
-          ],
           solution: [{ dial: "cont" }, { probe: V.hs("a16", "d16") }, { probe: V.hs("a16", "a17") }, { choose: "right" }, { probe: V.hs(...PROBE[V.L.broken]) }, { wait: 0.5 },
             { remove: V.L.broken }, { wire: V.hs(...ENDS[V.L.broken]) }, { ctl: "bat" }, { wait: 1 }, { next: 1 }],
         };
@@ -467,7 +442,6 @@
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("V")),
           rules: { tray: [{ type: "wire", n: 1 }, { type: "led", color: V.c1, n: 1 }],
             allow: allow({ move: ["led1", "wire1"], legs: ["led1", "wire1"], flip: ["led1"], remove: ["led1", "wire1"], replace: ["led1", "meter"] }), banner: true },
-          allowDamage: true,
           beats: [
             { id: "case", say: V.say("This one should light, but it doesn't. Use the meter to find out why, then fix it.",
               "A dark LED, and no idea why. Find the fault with the meter, then fix it."),
@@ -476,14 +450,11 @@
             FINISH("Case closed. Measure first, then change things: that is how you fix any circuit."),
           ],
           goals: [{ text: "Light the LED", when: ok, hold: 0.6 }],
-          bonus: [
-            { text: "Find the fault with the meter before you change anything", when: (S, m, C) => {
+          challenge: { text: "Find the fault with the meter, then fix it with one change", when: (S, m, C) => {
               const quiet = mode(S, "cont") && !M(S).beep && on(S, ...show);
               if (!changes(C) && ((on(S, ...show) && Math.abs(volts(S) || 0) > 2.5) || quiet)) m.found = true;
-              return !!m.found && ok(S);
+              return !!m.found && ok(S) && changes(C) <= 1;
             } },
-            { text: "Fix it with one change", final: (C) => changes(C) <= 1 },
-          ],
           solution: [{ probe: V.hs(...V.L.show) }, { wait: 0.6 }, fix, { wait: 1 }, { next: 1 }],
         };
       },

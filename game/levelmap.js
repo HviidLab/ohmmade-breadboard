@@ -76,7 +76,8 @@
     const host = show("complete", `<div class="cc-card" role="dialog" aria-labelledby="cc-h">
       <p class="cc-kicker">Level ${lv.id} complete</p><h1 id="cc-h">${esc(lv.title)}</h1>
       <p class="cc-stars" aria-label="${res.stars} of 3 stars">${[0, 1, 2].map((k) => `<span class="${k < res.stars ? "on" : ""}" style="animation-delay:${0.15 + k * 0.18}s">★</span>`).join("")}</p>
-      <ul class="cc-bonus"><li class="got">★ Level done</li>${(lv.bonus || []).map((b, k) => `<li class="${res.bonus[k] ? "got" : ""}">${res.bonus[k] ? "★" : "☆"} ${esc(b.text)}</li>`).join("")}</ul>
+      <ul class="cc-bonus"><li class="got">★ Level done</li><li class="${res.clean ? "got" : ""}">${res.clean ? "★" : "☆"} ${esc(BB.Coach.cleanText(lv))}</li>
+        ${lv.challenge ? `<li class="${res.challenge ? "got" : ""}">${res.challenge ? "★" : "☆"} ${esc(lv.challenge.text)}</li>` : ""}</ul>
       ${concept ? `<div class="cc-learned"><p class="cc-lh">What you learned</p>${lv.teaches.length ? `<span class="nb-art">${BB.NotebookArt.diagram(lv.teaches[0])}</span>` : ""}
         <h2>${esc(concept.name)}</h2><p>${esc(concept.text)}</p>${lv.teaches.length ? '<p class="cc-nb">Added to your Notebook</p><span class="cc-stamp">New!</span>' : ""}</div>` : ""}
       ${lastOfChapter ? `<p class="cc-chapter">Chapter ${lv.chapter} complete!</p>` : ""}

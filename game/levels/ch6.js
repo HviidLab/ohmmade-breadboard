@@ -26,7 +26,7 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 10000), V.RES("r2", "c6", "c10", 10000), V.WIRE("w1", "e10", "-T10"), METER("V")),
-          rules: { tray: [{ type: "resistor", value: 22000, n: 1 }], allow: allow({ remove: ["r2"], dial: ["V"], socket: ["VO"] }) },
+          rules: { tray: [{ type: "resistor", value: 22000, n: 1 }], allow: allow({ remove: ["r2", "r1"], dial: ["V"], socket: ["VO"] }) },
           ui: { xray: true },
           goalsFrom: 3,
           beats: [
@@ -42,12 +42,10 @@
             Object.assign(FINISH("6 V × 22 ÷ (10 + 22) ≈ 4.1 V: the − side's share. Two resistors like this are called a voltage divider."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the middle point with 22 kΩ on the − side", when: m2 }],
-          bonus: [
-            { text: "Predict the middle point", final: (C) => C.right("p1") },
-            { text: "Predict which way it moves", final: (C) => C.right("p2") },
-          ],
+          challenge: { text: "Then swap sides: 22 kΩ on the + side, the middle point below 2 V", when: (S) => S.parts("resistor").some((q) => q.part.value === 22000 && q.nets.includes("bb:+T")) && between(vAt(S, mid), 1.6, 1.99) },
           solution: [{ choose: "right" }, { probe: V.hs("d6", "-T12") }, { wait: 0.5 }, { choose: "right" }, { remove: "r2" }, { place: { type: "resistor", value: 22000 }, at: V.hs("c6", "c10") },
-            { probe: V.hs("d6", "-T12") }, { wait: 0.6 }, { next: 1 }],
+            { probe: V.hs("d6", "-T12") }, { wait: 0.6 }, { remove: "r1" }, { remove: "resistor" }, { place: { type: "resistor", value: 22000 }, at: V.hs("+T6", "a6") },
+            { place: { type: "resistor", value: 10000 }, at: V.hs("c6", "c10") }, { wait: 0.6 }, { next: 1 }],
         };
       },
     },
@@ -77,10 +75,7 @@
             FINISH("A potentiometer is a middle point you can move: any push from 0 V to the full 6 V."),
           ],
           goals: [{ text: "Turn the wiper above 5 V", when: (S) => between(vAt(S, w), 5.01, 6.1) }],
-          bonus: [
-            { text: "Predict how far the knob reaches", final: (C) => C.right("p") },
-            { text: "Set the wiper back to 3 V (±0.1 V) before you finish", when: (S, m, C) => C.beat && C.beat.id === "end" && between(vAt(S, w), 2.9, 3.1) },
-          ],
+          challenge: { text: "Set the wiper back to 3 V (±0.1 V) before you finish", when: (S, m, C) => C.beat && C.beat.id === "end" && between(vAt(S, w), 2.9, 3.1) },
           solution: [{ next: 1 }, { probe: V.hs("e13", "-T16") }, { wait: 0.4 }, { choose: "right" }, { knob: "pot", pos: 0.9 }, { wait: 0.6 }, { knob: "pot", pos: 0.1 }, { wait: 0.6 },
             { knob: "pot", pos: 0.5 }, { wait: 0.6 }, { next: 1 }],
         };
@@ -100,7 +95,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 220), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "e12"), POT(V, 0.5), V.WIRE("w2", "a13", "-T13")),
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["pot"], remove: ["r1"] }), banner: true },
-          allowDamage: true, simText: { led: null, pot: null },
+          demo: { led: 1, pot: 1 }, simText: { led: null, pot: null },
           ui: { xray: true },
           beats: [
             { id: "turn", say: "Here only one end and the wiper are used: the knob is a resistor you can turn, 0 to 10 kΩ. Turn it both ways; watch the LED.", highlight: { ctl: "knob", id: "pot" },
@@ -114,10 +109,7 @@
             FINISH("A knob in the loop makes a dimmer. Keep a fixed resistor in the loop too, for when the knob is turned right down."),
           ],
           goals: [{ text: "The dimmer working again, safely", when: fixed, hold: 0.6 }],
-          bonus: [
-            { text: "Predict why the 220 Ω is there", final: (C) => C.right("p") },
-            { text: "Break only one part", final: (C) => (C.count.destroyed || 0) <= 1 },
-          ],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
           solution: [{ knob: "pot", pos: 0 }, { wait: 0.4 }, { knob: "pot", pos: 1 }, { wait: 0.4 }, { choose: "right" }, { remove: "r1" }, { wire: V.hs("+T6", "a6") },
             { knob: "pot", pos: 0 }, { wait: 0.6 }, { remove: "wire" }, { place: { type: "resistor", value: 220 }, at: V.hs("+T6", "a6") }, { replace: "led1" }, { wait: 1 }, { next: 1 }],
         };
@@ -136,7 +128,6 @@
           start: start(V.BAT("+T3", "-T4"), METER("V")),
           rules: { tray: [{ type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 22000, n: 1 },
             { type: "pot", n: 1 }, { type: "wire", n: 3 }], allow: allow({}), banner: true },
-          allowDamage: true,
           ui: { xray: true },
           beats: [
             { id: "brief", say: V.say("Make exactly 2 V on a strip (between 1.85 and 2.15 V against the − rail). Resistors or the knob: your choice.",
@@ -149,10 +140,7 @@
             FINISH("A middle point at any push you like: two resistors for a fixed one, a knob for one you can change."),
           ],
           goals: [{ text: "A strip at 2 V", when: two, hold: 0.6 }],
-          bonus: [
-            { text: "Do it both ways: resistors and the knob", when: (S, m) => { if (two(S)) { if (byKnob(S)) m.k = true; else m.r = true; } return !!m.k && !!m.r; } },
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-          ],
+          challenge: { text: "Do it both ways: resistors and the knob", when: (S, m) => { if (two(S)) { if (byKnob(S)) m.k = true; else m.r = true; } return !!m.k && !!m.r; } },
           solution: [{ next: 1 },
             { place: { type: "resistor", value: 22000 }, at: ["+T6", "a6"] }, { place: { type: "resistor", value: 10000 }, at: ["c6", "c10"] }, { wire: ["e10", "-T10"] },
             { probe: ["d6", "-T12"] }, { wait: 1 },

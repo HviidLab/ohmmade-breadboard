@@ -38,10 +38,7 @@
             Object.assign(FINISH("A push button closes the loop only while you press it. Let go and it springs back: the loop opens again."), { reply: "p" }),
           ],
           goals: [{ text: "Light the LED with the button", when: (S, m) => { if (down(S, "b1") && lit(led(S))) m.on = true; return !!m.on; } }],
-          bonus: [
-            { text: "Predict what the button does", final: (C) => C.right("p") },
-            { text: "Flash the LED three times", when: (S, m) => { const on = lit(led(S)); if (on && !m.was) m.n = (m.n || 0) + 1; m.was = on; return (m.n || 0) >= 3; } },
-          ],
+          challenge: { text: "Flash the LED three times", when: (S, m) => { const on = lit(led(S)); if (on && !m.was) m.n = (m.n || 0) + 1; m.was = on; return (m.n || 0) >= 3; } },
           solution: [{ choose: "right" }, { press: "b1", on: true }, { wait: 0.6 }, { press: "b1", on: false }, { wait: 0.5 }, { press: "b1", on: true }, { wait: 0.3 }, { press: "b1", on: false },
             { wait: 0.3 }, { press: "b1", on: true }, { wait: 0.3 }, { press: "b1", on: false }, { wait: 0.5 }, { next: 1 }],
         };
@@ -76,10 +73,7 @@
             Object.assign(FINISH("Each joined pair sits on its own column, one leg each side of the gap; pressing joins the two columns. So a button sits across the gap."), { reply: "p2" }),
           ],
           goals: [{ text: "Hear the beep through the pressed button", when: pressed }],
-          bonus: [
-            { text: "Predict which legs are joined", final: (C) => C.right("p1") },
-            { text: "Predict what pressing does", final: (C) => C.right("p2") },
-          ],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
           solution: [{ choose: "right" }, { probe: V.hs("a10", "j10") }, { wait: 0.4 }, { choose: "right" }, { probe: V.hs("a10", "a12") }, { press: "b1", on: true }, { wait: 0.5 }, { next: 1 }],
         };
       },
@@ -110,10 +104,7 @@
             Object.assign(FINISH("In a row, the current must pass both buttons, so both must be down. This one AND that one."), { reply: "p" }),
           ],
           goals: [{ text: "Light the LED with both buttons down", when: (S) => down(S, "b1") && down(S, "b2") && lit(led(S)) }],
-          bonus: [
-            { text: "Predict when it lights", final: (C) => C.right("p") },
-            { text: "End with both buttons up again", when: (S, m, C) => !!C.beat && C.beat.id === "end" && !down(S, "b1") && !down(S, "b2") },
-          ],
+          challenge: { text: "End with both buttons up again", when: (S, m, C) => !!C.beat && C.beat.id === "end" && !down(S, "b1") && !down(S, "b2") },
           solution: [{ choose: "right" }, { press: "b1" }, { wait: 0.5 }, { press: "b2" }, { wait: 0.8 }, { press: "b1" }, { press: "b2" }, { wait: 0.5 }, { next: 1 }],
         };
       },
@@ -142,14 +133,19 @@
             { id: "p", say: "Now the two buttons sit side by side. When will the LED light?", highlight: { parts: ["b1", "b2"] },
               predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: try each button on its own.", hints: [LATCH_HINT], waitFor: { when: tried } },
-            Object.assign(FINISH("Side by side, each button has its own path, and either will do. This one OR that one. A doorbell with two buttons works like this."), { reply: "p" }),
+            Object.assign(FINISH("Side by side, each button has its own path, and either will do. This one OR that one. A doorbell with two buttons works like this."),
+              { reply: "p", allow: { remove: ["w1", "w2", "w3"], move: ["w1", "w2", "w3"], legs: ["w1", "w2", "w3"] } }),
           ],
           goals: [{ text: "Light the LED with each button on its own", when: tried }],
-          bonus: [
-            { text: "Predict when it lights", final: (C) => C.right("p") },
-            { text: "End with both buttons up again", when: (S, m, C) => !!C.beat && C.beat.id === "end" && !down(S, "b1") && !down(S, "b2") },
-          ],
-          solution: [{ choose: "right" }, { press: "b1" }, { wait: 0.6 }, { press: "b1" }, { press: "b2" }, { wait: 0.6 }, { press: "b2" }, { wait: 0.4 }, { next: 1 }],
+          challenge: { text: "Then turn it back into AND by moving wires: both buttons needed", when: (S, m, C) => {
+              if (!C.beat || C.beat.id !== "end") return false;
+              const a = down(S, "b1"), b = down(S, "b2"), on = lit(led(S));
+              if (a !== b && !on) m.one = true;
+              if (a && b && on) m.both = true;
+              return !!m.one && !!m.both;
+            } },
+          solution: [{ choose: "right" }, { press: "b1" }, { wait: 0.6 }, { press: "b1" }, { press: "b2" }, { wait: 0.6 }, { press: "b2" }, { wait: 0.4 },
+            { remove: "w2" }, { move: "w1", to: V.hs("a9", "a11") }, { press: "b1" }, { wait: 0.5 }, { press: "b2" }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
@@ -171,7 +167,6 @@
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "button", n: 2 }, { type: "led", color: "yellow", n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "wire", n: 4 }], latchButtons: true, banner: true },
-          allowDamage: true,
           goalsFrom: 1,
           ui: { xray: true },
           beats: [
@@ -185,10 +180,7 @@
             FINISH("Either door rings the bell. Chapter 7 done!"),
           ],
           goals: [{ text: "Off with no button; on with either one", when: state }],
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "Use at most three wires", final: () => !seen.over, when: (S) => { if (S.parts("wire").length > 3) seen.over = true; return false; } },
-          ],
+          challenge: { text: "Use at most three wires", final: () => !seen.over, when: (S) => { if (S.parts("wire").length > 3) seen.over = true; return false; } },
           solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "yellow" }, at: ["c6", "c7"] },
             { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: ["e7", "f7", "e9", "f9"] }, { wire: ["a9", "-T9"] }, { wire: ["b7", "b11"] },
             { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: ["e11", "f11", "e13", "f13"] }, { wire: ["a13", "-T13"] }, { wait: 0.5 },

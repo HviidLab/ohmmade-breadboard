@@ -51,10 +51,7 @@
             FINISH("A pin is a switch you control: HIGH gives 5 V, LOW gives 0 V. In the code a real board runs: digitalWrite(13, HIGH);"),
           ],
           goals: [{ text: "Light the LED from D13", when: hi }, { text: "Switch it off from D13", when: (S, m) => { if (hi(S)) m.on = true; return !!m.on && lo(S); } }],
-          bonus: [
-            { text: "Predict what HIGH does", final: (C) => C.right("p") },
-            { text: "Blink it: on, off, on, off", when: (S, m) => { const now = led(S); if (now !== !!m.was) { m.n = (m.n || 0) + 1; m.was = now; } return (m.n || 0) >= 4; } },
-          ],
+          challenge: { text: "Blink it: on, off, on, off", when: (S, m) => { const now = led(S); if (now !== !!m.was) { m.n = (m.n || 0) + 1; m.was = now; } return (m.n || 0) >= 4; } },
           solution: [{ choose: "right" }, { pin: "D13", mode: "HIGH" }, { wait: 0.5 }, { pin: "D13", mode: "LOW" }, { wait: 0.5 },
             { pin: "D13", mode: "HIGH" }, { wait: 0.3 }, { pin: "D13", mode: "LOW" }, { wait: 0.5 }, { next: 1 }],
         };
@@ -76,7 +73,7 @@
           region: REGION(V),
           start: start(BOARD({ pins: { D13: "LOW" } }), GND(V), ...LEDLOOP(V, true)),
           rules: { tray: [{ type: "resistor", value: 330, n: 1 }], allow: allow({ pins: { D13: ["LOW", "HIGH"] } }) },
-          allowDamage: true, simText: { uno: null },
+          demo: { uno: 1 }, simText: { uno: null },
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -90,10 +87,7 @@
               { note: "a pin pushed past 40 mA wears out slowly; it may not break at once. Fit the resistor anyway, every time." }),
           ],
           goals: [{ text: "Light the LED safely from D13", when: fixed, hold: 0.6 }],
-          bonus: [
-            { text: "Predict what a bare LED does", final: (C) => C.right("p") },
-            { text: "Damage only one board", final: (C) => (C.count.destroyed || 0) <= 1 },
-          ],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
           solution: [{ choose: "right" }, { pin: "D13", mode: "HIGH" }, { wait: 2.5 }, { remove: "w3" }, { place: { type: "resistor", value: 330 }, at: V.hs("b15", "b18") },
             { replace: "board" }, { wait: 1 }, { next: 1 }],
         };
@@ -127,10 +121,7 @@
             FINISH("A0 turns its push into a number: 0 V reads 0, 5 V reads 1023. In code: analogRead(A0). That's how a board reads a knob."),
           ],
           goals: [{ text: "Read the knob at both ends", when: ends }],
-          bonus: [
-            { text: "Predict the middle", final: (C) => C.right("p") },
-            { text: "Then set A0 between 500 and 524", when: (S, m) => { if (ends(S, m)) m.both = true; const v = a0(S); return !!m.both && v !== null && v >= 500 && v <= 524; } },
-          ],
+          challenge: { text: "Then set A0 between 500 and 524", when: (S, m) => { if (ends(S, m)) m.both = true; const v = a0(S); return !!m.both && v !== null && v >= 500 && v <= 524; } },
           solution: [{ choose: "right" }, { wire: [V.h("b17"), "U.A0"] }, { wait: 0.6 }, { knob: "k1", pos: 0 }, { wait: 0.3 }, { knob: "k1", pos: 1 }, { wait: 0.3 },
             { knob: "k1", pos: 0.5 }, { wait: 0.6 }, { next: 1 }],
         };
@@ -145,7 +136,7 @@
         return {
           region: REGION(V),
           start: start(BOARD({ watch: ["D2"] }), ...POWER(V), ...BUTTON(V)),
-          rules: { tray: [], allow: allow({ ctl: ["b1"] }) },
+          rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["b1"] }) },
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -157,12 +148,9 @@
             FINISH("A pin set to IN reads its push: above 3 V is HIGH, below 1.5 V is LOW. In code: pinMode(2, INPUT), then digitalRead(2)."),
           ],
           goals: [{ text: "Make D2 read HIGH", when: high }, { text: "And LOW again", when: (S, m) => { if (high(S)) m.h = true; return !!m.h && low(S); } }],
-          bonus: [
-            { text: "Predict what D2 reads", final: (C) => C.right("p") },
-            { text: "Press it three times", when: (S, m) => { const h = high(S); if (h && !m.was) m.n = (m.n || 0) + 1; m.was = h; return (m.n || 0) >= 3; } },
-          ],
+          challenge: { text: "Then make D2 read HIGH with a wire instead of the button", when: (S, m, C) => !pressed(S) && S.uno.read("D2") === "HIGH" && S.parts("wire").some((q) => !["p5", "pg", "w5", "wd"].includes(q.id)) },
           solution: [{ choose: "right" }, { press: "b1", on: true }, { wait: 0.5 }, { press: "b1", on: false }, { wait: 0.5 }, { press: "b1", on: true }, { wait: 0.2 },
-            { press: "b1", on: false }, { wait: 0.2 }, { press: "b1", on: true }, { wait: 0.2 }, { press: "b1", on: false }, { wait: 0.3 }, { next: 1 }],
+            { press: "b1", on: false }, { wait: 0.2 }, { press: "b1", on: true }, { wait: 0.2 }, { press: "b1", on: false }, { wait: 0.3 }, { wire: V.hs("+T9", "c7") }, { wait: 0.4 }, { next: 1 }],
         };
       },
     },
@@ -190,10 +178,7 @@
             FINISH("That 10 kΩ is a pull-down: it holds D2 LOW until the button pulls it HIGH. A resistor, not a wire, so a press can't short 5 V."),
           ],
           goals: [{ text: "See D2 float", pre: "Watch D2", when: floated }, { text: "Hold D2 steady at LOW", when: steady, hold: 1 }],
-          bonus: [
-            { text: "Predict a floating pin", final: (C) => C.right("p") },
-            { text: "Then press: D2 reads HIGH", when: (S, m) => { if (steady(S)) m.s = true; return !!m.s && pressed(S) && S.uno.read("D2") === "HIGH"; } },
-          ],
+          challenge: { text: "Then press: D2 reads HIGH", when: (S, m) => { if (steady(S)) m.s = true; return !!m.s && pressed(S) && S.uno.read("D2") === "HIGH"; } },
           solution: [{ choose: "right" }, { remove: "pd" }, { wait: 1.5 }, { place: { type: "resistor", value: 10000 }, at: V.hs("-T7", "a7") }, { wait: 1.4 },
             { press: "b1", on: true }, { wait: 0.3 }, { press: "b1", on: false }, { wait: 0.3 }, { next: 1 }],
         };
@@ -223,10 +208,7 @@
             FINISH("Same wires, a new program, and the LED does the opposite. The ! in the code means \"not\". In a controller, the program decides."),
           ],
           goals: [{ text: "Light the LED with the button", when: copyOn }, { text: "Make the button switch it off", when: oppOff }],
-          bonus: [
-            { text: "Predict what the program does", final: (C) => C.right("p") },
-            { text: "Then switch back to “copies”", when: (S, m) => { if (rule(S) === "opposite") m.o = true; return !!m.o && rule(S) === "copy"; } },
-          ],
+          challenge: { text: "Then switch back to “copies”", when: (S, m) => { if (rule(S) === "opposite") m.o = true; return !!m.o && rule(S) === "copy"; } },
           solution: [{ choose: "right" }, { press: "b1", on: true }, { wait: 0.5 }, { press: "b1", on: false }, { wait: 0.3 }, { program: "opposite" }, { wait: 0.3 },
             { press: "b1", on: true }, { wait: 0.4 }, { press: "b1", on: false }, { wait: 0.3 }, { program: "copy" }, { wait: 0.3 }, { next: 1 }],
         };
@@ -250,7 +232,6 @@
           start: start(BOARD({ watch: ["A0"], program: BELOW }), ...POWER(V)),
           rules: { tray: [{ type: "ldr", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "led", color: "yellow", n: 1 },
             { type: "wire", n: 4 }], banner: true },
-          allowDamage: true,
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
@@ -265,13 +246,11 @@
             FINISH("A night light run by a program. Chapter 11 done!"),
           ],
           goals: [{ text: "Off in the light, on in the dark", when: tested }],
-          bonus: [
-            { text: "Nothing breaks", final: (C) => C.broken.size === 0 },
-            { text: "Use at most four wires", final: () => !seen.more, when: (S) => { if (S.parts("wire").length > 6) seen.more = true; return false; } },
-          ],
+          challenge: { text: "Use at most three wires", when: (S, m) => { m.max = Math.max(m.max || 0, S.parts("wire").filter((q) => !["p5", "pg"].includes(q.id)).length); return false; },
+            final: (C, m) => (m.max || 0) <= 3 },
           solution: [{ next: 1 }, { place: { type: "ldr", lux: 200 }, at: V.hs("+T17", "a17") }, { place: { type: "resistor", value: 10000 }, at: V.hs("c17", "c20") },
             { wire: V.hs("a20", "-T20") }, { wire: [V.h("b17"), "U.A0"] }, { wire: ["U.D13", V.h("a14")] }, { place: { type: "resistor", value: 330 }, at: V.hs("b14", "b11") },
-            { place: { type: "led", color: "yellow" }, at: V.hs("c11", "c10") }, { wire: V.hs("e10", "-T10") }, { wait: 0.6 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],
+            { place: { type: "led", color: "yellow" }, at: V.hs("c11", "-T11") }, { wait: 0.6 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],
         };
       },
     },

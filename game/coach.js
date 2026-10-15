@@ -1,7 +1,7 @@
 // Coach: runs a level's beats. Each beat is one short mentor line, an optional highlight, and something to wait for:
 // a Continue click, a prediction, an action by the player (an event), or a state of the circuit (`when`).
-// Also the hint ladder (only when the player presses Hint: never on a timer, so there is time to think), bonus
-// objectives, plain-language messages for failures, and local telemetry. No DOM:
+// Also the hint ladder (only when the player presses Hint: never on a timer, so there is time to think), the stars,
+// plain-language messages for failures, and local telemetry. No DOM:
 // the screen side (coachui.js) passes in `hooks`, and the tests pass in a stub.
 //
 // beat = { id, say: "text" | (coach) => "text", highlight, do: {xray}, allow: {...rules},
@@ -10,7 +10,8 @@
 //          hints: [{say} | {highlight} | {show: [parts]}] }
 // A beat with `reply` opens with Sparky's answer to that prediction: "Right!" or "Not quite: " and the belief behind the
 // wrong choice, said once, above the beat's own line. A beat's `note` is a "Real bench" safety line shown under it.
-// level.bonus = [{ text, when: (S, mem, coach) => bool } | { text, final: (coach) => bool }]
+// Stars: ★1 the level is done; ★2 a clean build (nothing broke and no short circuit, except what level.demo allows:
+// {led: 1, short: true}); ★3 the level's challenge: { text, when: (S, mem, coach) => bool, final: (coach, mem) => bool }.
 (function (BB) {
   "use strict";
 
@@ -27,7 +28,7 @@
   const METER = "Careful: set for mA, the meter is almost a wire. There it would blow its fuse, so I undid it. More on that soon.";
 
   const noop = () => {};
-  const HOOKS = ["say", "highlight", "ghost", "xray", "beat", "bonus", "aside"];
+  const HOOKS = ["say", "highlight", "ghost", "xray", "beat", "challenge", "aside"];
 
   class CoachRun {
     constructor(level, hooks = {}) {
@@ -36,8 +37,11 @@
       for (const k of HOOKS) this.h[k] = hooks[k] || noop;
       this.i = -1;
       this.mem = {};                       // scratch memory of the current beat's `when`
-      this.bmem = (level.bonus || []).map(() => ({}));
-      this.bonus = (level.bonus || []).map(() => false);
+      this.chMem = {};                     // the challenge's scratch memory
+      this.challenge = false;              // the challenge is met
+      this.lost = {};                      // part type -> how many burned out (or blew, or were damaged)
+      this.shortT = 0;                     // seconds of short circuit
+      this.hintsUsed = 0;
       this.pred = {};                      // beat id -> chosen answer
       this.count = {};                     // event type -> how many times
       this.broken = new Set();             // types of parts that failed during this attempt
@@ -86,12 +90,13 @@
     // Every frame, with the same query object the goals use.
     step(S, dt) {
       this.t += dt;
-      (this.lv.bonus || []).forEach((bn, k) => {
-        if (this.bonus[k] || !bn.when) return;
+      if (!this.finished && S.shortNow && S.shortNow()) this.shortT += dt;
+      const ch = this.lv.challenge;
+      if (ch && ch.when && !this.challenge && !this.finished) {
         let ok = false;
-        try { ok = !!bn.when(S, this.bmem[k], this); } catch (e) { ok = false; }
-        if (ok) { this.bonus[k] = true; this.h.bonus(k); }
-      });
+        try { ok = !!ch.when(S, this.chMem, this); } catch (e) { ok = false; }
+        if (ok) { this.challenge = true; this.h.challenge(); }
+      }
       if (this.done) return;
       this.beatT += dt; this.idle += dt;
       const w = this.beat.waitFor;
@@ -106,6 +111,7 @@
       const b = this.beat, hs = (b && b.hints) || [];
       if (this.hint >= hs.length) return;
       const h = hs[this.hint++];
+      this.hintsUsed++;
       if (h.say) this.hintSay = h.say;             // a hint's words stay up while later hints add marks or a ghost
       this.h.say(this.hintSay ? `${this.text(b)}\n${this.hintSay}` : this.text(b), this.offer(b));
       if (h.highlight) this.h.highlight([].concat(b.highlight || [], h.highlight));
@@ -139,22 +145,34 @@
     simEvent(ev, part) {
       if (ev.kind !== "destroyed" || !part) return null;
       this.broken.add(part.type);
+      this.lost[part.type] = (this.lost[part.type] || 0) + 1;
       this.emit("destroyed", { id: part.id, type: part.type });
       const own = this.lv.simText || {};
       if (part.type in own) return own[part.type];
       return PLAIN[part.type] || "Something burned out.";
     }
 
-    // The goals are done: settle the bonus objectives and the stars. Stars = 1 + bonus objectives earned.
+    // A clean build so far: nothing broke beyond what the level breaks on purpose, and no short circuit (unless it is the lesson).
+    get clean() {
+      const d = this.lv.demo || {};
+      if (Object.entries(this.lost).some(([type, n]) => n > (d[type] || 0))) return false;
+      return !!d.short || this.shortT <= 0.5;
+    }
+    // The goals are done: settle the challenge and the stars.
     finish() {
       if (!this.finished) {
-        (this.lv.bonus || []).forEach((bn, k) => { if (!this.bonus[k] && bn.final) { try { this.bonus[k] = !!bn.final(this); } catch (e) { this.bonus[k] = false; } } });
+        const ch = this.lv.challenge;
+        if (ch && ch.final && !this.challenge) { try { this.challenge = !!ch.final(this, this.chMem); } catch (e) { this.challenge = false; } }
         this.finished = true;
-        this.stars = 1 + this.bonus.filter(Boolean).length;
+        this.wasClean = this.clean;
+        this.stars = 1 + (this.wasClean ? 1 : 0) + (this.challenge ? 1 : 0);
       }
-      return { stars: this.stars, bonus: this.bonus.slice() };
+      return { stars: this.stars, clean: this.wasClean, challenge: this.challenge };
     }
   }
 
-  BB.Coach = { CoachRun, SHORT, METER, PLAIN };
+  // The words for the clean-build star.
+  const cleanText = (lv) => (Object.keys(lv.demo || {}).some((k) => k !== "short") ? "Clean build: nothing else breaks" : "Clean build: nothing breaks, no short circuit");
+
+  BB.Coach = { CoachRun, SHORT, METER, PLAIN, cleanText };
 })(window.BB = window.BB || {});

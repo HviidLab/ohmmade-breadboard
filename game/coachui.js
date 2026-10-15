@@ -309,13 +309,13 @@
     BB.Flow.xray(on);
     $("lv-xray").setAttribute("aria-pressed", String(!!on));
   }
-  function bonus(k) {
+  function challenge() {
     refreshObjective(true);
     BB.Effects.chime && BB.Effects.chime(1);
-    aside(`Bonus: ${lv.bonus[k].text} ★`, 4000, "good");
+    aside(`Challenge done: ${lv.challenge.text} ★`, 4000, "good");
     mood("happy", 1600);
   }
-  const hooks = () => ({ say, highlight, ghost, xray, bonus, aside: (t) => aside(t, 4000), beat: () => { G.redraw(); refresh(); } });
+  const hooks = () => ({ say, highlight, ghost, xray, challenge, aside: (t) => aside(t, 4000), beat: () => { G.redraw(); refresh(); } });
 
   // A short line under the mentor's own: refusals, failures, the short-circuit guard.
   function aside(text, ms = 6000, kind = "") {
@@ -332,15 +332,16 @@
   // ---------- objective card, hotbar, part card ----------
   function refreshObjective(force) {
     if (!lv || !G.run) return;
-    const goalDone = G.run.state.map((s) => s.done), got = G.coach ? G.coach.bonus : [];
+    const goalDone = G.run.state.map((s) => s.done), C = G.coach, got = !!C && C.challenge, clean = !C || C.clean;
     // while a question is still open, a goal that would give its answer away shows its neutral words (`pre`)
     const asking = !!G.coach && lv.beats.some((b) => b.waitFor.predict && G.coach.pred[b.id] === undefined);
-    const key = JSON.stringify([lv.id, goalDone, got, asking]);
+    const key = JSON.stringify([lv.id, goalDone, got, clean, asking]);
     if (!force && key === lastObjective) return;
     lastObjective = key;
     $("objective").innerHTML = `<p class="ob-level">Level ${lv.id}</p><h2>${esc(lv.title)}</h2>
       <ul class="ob-goals">${lv.goals.map((g, k) => `<li class="${goalDone[k] ? "done" : ""}"><span aria-hidden="true">${goalDone[k] ? "✓" : "○"}</span>${esc(asking && g.pre ? g.pre : g.text)}</li>`).join("")}</ul>
-      <ul class="ob-bonus">${(lv.bonus || []).map((b, k) => `<li class="${got[k] ? "got" : ""}"><span aria-hidden="true">${got[k] ? "★" : "☆"}</span>${esc(b.text)}</li>`).join("")}</ul>`;
+      <ul class="ob-bonus"><li class="${clean ? "" : "lost"}"><span aria-hidden="true">${clean ? "☆" : "✗"}</span>${esc(BB.Coach.cleanText(lv))}</li>
+      ${lv.challenge ? `<li class="${got ? "got" : ""}"><span aria-hidden="true">${got ? "★" : "☆"}</span>${esc(lv.challenge.text)}</li>` : ""}</ul>`;
   }
 
   function label(item) {
