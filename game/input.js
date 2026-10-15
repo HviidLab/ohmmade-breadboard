@@ -383,7 +383,7 @@
     const partEl = e.target.closest && e.target.closest("[data-part]");
     const hole = holeUnder(e.clientX, e.clientY);
     if (G.mode === "level") {          // no voltages yet: the part's name and how to use it, and the strip under the pointer once strips are taught
-      R.highlight(hole && G.level.ui && G.level.ui.xray ? hole : null);
+      R.highlight(hole && G.level.ui && G.level.ui.strips ? hole : null);
       const ctl = e.target.closest && e.target.closest("[data-ctl]"), part = partEl && G.doc.get(partEl.dataset.part);
       const tip = ctl && CTL_TIP(ctl.dataset.ctl) || (!hole && part ? `${BB.Parts.name(part)}\n${BB.CoachUI.howTo(part)}` : null);
       BB.HUD.tooltip(tip, e.clientX, e.clientY);

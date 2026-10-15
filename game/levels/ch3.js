@@ -34,7 +34,7 @@
           start: start(V.BAT("+T3", "-T4"), RES(V, 1000), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "resistor", value: 3900, n: 1 }, { type: "resistor", value: 10000, n: 1 }],
             allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"], replace: ["meter"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 3,
           beats: [
             { id: "p", say: "No LED this time: a 1 kΩ resistor and the meter, counting 6 mA. With 2 kΩ, twice the resistance, what will it read?",
@@ -64,7 +64,7 @@
           region: REGION(V),
           start: start(Object.assign(V.BAT("+T3", "-T4"), { cells: 2, cellSwap: true }), RES(V, 1000), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 2000, n: 1 }], allow: allow({ ctl: ["meter", "bat"], remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 3,
           beats: [
             { id: "p1", say: "This pack holds only two cells: 3 V. With 1 kΩ the meter shows 3 mA. With four cells, twice the push, what will it show?",
@@ -94,7 +94,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 1000), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "rule", say: "The rule: current = push ÷ resistance. Volts ÷ kΩ gives mA: 6 V ÷ 1 kΩ = 6 mA, just what the meter shows.", highlight: { lcd: "meter" }, waitFor: NEXT },
@@ -126,7 +126,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), Object.assign(V.RES("resX", "+T6", "a6", R), { tag: "X" }), LOOP_METER(V)),
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["meter", "bat"], dial: ["V", "mA", "ohm"], socket: ["VO", "mA"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 2,
           beats: [
             { id: "intro", say: `This resistor lost its label. 6 V pushes ${+mA.toFixed(1)} mA through it. Turn the rule round: resistance = push ÷ current.`,
@@ -159,7 +159,7 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "resistor", value: 33, n: 1 }, { type: "resistor", value: 1000, n: 1 }], banner: true },
           simText: { resistor: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "A resistor turns electrical energy into heat. Which one gets hot, straight across the 6 V rails: the 1 kΩ or the 33 Ω?", predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: put the 33 Ω resistor straight across the rails, one leg on +, one on −.", highlight: { nets: ["bb:+T", "bb:-T"] },
@@ -196,7 +196,7 @@
           rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 3900, n: 1 },
             { type: "resistor", value: 4700, n: 1 }],
             allow: allow({ ctl: ["meter", "bat"], replace: ["meter"] }), banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "brief", say: V.say(`Make exactly ${T.mA} mA flow through the meter. There is more than one way to do it.`,
               `Your task: exactly ${T.mA} mA through the meter. Find a way, then maybe a second one.`), waitFor: { next: true, label: "Start" } },

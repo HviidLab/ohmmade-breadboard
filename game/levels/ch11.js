@@ -40,7 +40,7 @@
           region: REGION(V),
           start: start(BOARD({ pins: { D13: "LOW" } }), GND(V), ...LEDLOOP(V)),
           rules: { tray: [], allow: allow({ pins: { D13: ["LOW", "HIGH"] } }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "A controller board, powered by USB. Its pin D13 feeds the LED. Set D13 HIGH, which joins it to 5 V inside the board: the LED…",
@@ -74,7 +74,7 @@
           start: start(BOARD({ pins: { D13: "LOW" } }), GND(V), ...LEDLOOP(V, true)),
           rules: { tray: [{ type: "resistor", value: 330, n: 1 }], allow: allow({ pins: { D13: ["LOW", "HIGH"] } }) },
           demo: { uno: 1 }, simText: { uno: null },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "This LED is on D13 with a plain wire where its resistor should be. Set D13 HIGH, and…", highlight: { part: "w3" },
@@ -108,7 +108,7 @@
           start: start(BOARD({ watch: ["A0"] }), ...POWER(V), { id: "k1", type: "pot", legs: V.hs("c16", "c17", "c18"), pos: 0.5 },
             V.WIRE("w1", "a16", "+T16"), V.WIRE("w2", "a18", "-T18")),
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["k1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "The knob's ends are on 5 V and GND. A0 turns 0 to 5 V into a number from 0 to 1023. Knob in the middle: A0 reads…",
@@ -137,7 +137,7 @@
           region: REGION(V),
           start: start(BOARD({ watch: ["D2"] }), ...POWER(V), ...BUTTON(V)),
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["b1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "D2 is set to IN: it doesn't push, it reads. The button joins D2 to 5 V. Press it, and the screen will say D2 reads…",
@@ -166,7 +166,7 @@
           region: REGION(V),
           start: start(BOARD({ watch: ["D2"] }), ...POWER(V), ...BUTTON(V)),
           rules: { tray: [], allow: allow({ ctl: ["b1"], remove: ["pd"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "Take the 10 kΩ away, and with the button up nothing joins D2 to anything. D2 will read…", highlight: { part: "pd" },
@@ -197,7 +197,7 @@
           region: REGION(V),
           start: start(BOARD({ watch: ["D2"], program: COPY, programs: [COPY, OPP] }), ...POWER(V), ...BUTTON(V), ...LEDLOOP(V)),
           rules: { tray: [], allow: allow({ ctl: ["b1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "The board runs a program, shown on its screen: D13 copies D2. Press the button, and the LED will…", highlight: { lcd: "board" },
@@ -232,7 +232,7 @@
           start: start(BOARD({ watch: ["A0"], program: BELOW }), ...POWER(V)),
           rules: { tray: [{ type: "ldr", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "led", color: "yellow", n: 1 },
             { type: "wire", n: 4 }], banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "brief", say: V.say("Build a night light with the board. Its program sets D13 HIGH while A0 reads under 500: see the code on its screen.",

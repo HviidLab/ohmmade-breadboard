@@ -71,7 +71,7 @@
     el("rect", { x: -1400, y: -1100, width: 4600, height: 2700, fill: "url(#bench)" }, world);
     el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "url(#matgrid)" }, world);
     // layers, bottom to top; only the board and the parts take the pointer
-    for (const k of ["board", "xray", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui", "kb"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
+    for (const k of ["board", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui", "kb"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
     drawBoard();
     apply();
   }

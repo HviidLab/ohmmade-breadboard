@@ -19,7 +19,7 @@
     const s = Object.assign(fresh(), raw);
     delete s.classic;                                   // progress in the removed Classic lab
     for (const k of ["levels", "settings", "telemetry"]) if (!obj(s[k])) s[k] = {};
-    for (const k of ["notebook", "nbSeen"]) if (s[k] !== undefined && !Array.isArray(s[k])) s[k] = [];
+    for (const k of ["notebook", "nbSeen", "introSeen"]) if (s[k] !== undefined && !Array.isArray(s[k])) s[k] = [];
     if (s.variants !== undefined && !obj(s.variants)) delete s.variants;
     for (const [id, l] of Object.entries(s.levels)) { if (!obj(l)) delete s.levels[id]; else delete l.bonus; }    // bonus: the old bonus objectives, now replaced
     for (const [id, t] of Object.entries(s.telemetry)) if (!obj(t)) delete s.telemetry[id];

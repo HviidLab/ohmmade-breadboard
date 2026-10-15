@@ -4,7 +4,7 @@
 // plain-language messages for failures, and local telemetry. No DOM:
 // the screen side (coachui.js) passes in `hooks`, and the tests pass in a stub.
 //
-// beat = { id, say: "text" | (coach) => "text", highlight, do: {xray}, allow: {...rules},
+// beat = { id, say: "text" | (coach) => "text", highlight, allow: {...rules},
 //          waitFor: {next: true, label} | {predict: true} | {event: "remove", id} | {when: (S, mem, coach) => bool, hold},
 //          predict: {choices: [...], answer: k, why: [line per wrong choice]}, reply: "p" (this beat answers prediction "p"),
 //          hints: [{say} | {highlight} | {show: [parts]}] }
@@ -30,7 +30,7 @@
   const METER = "Careful: set for mA, the meter is almost a wire. There it would blow its fuse, so I undid it. More on that soon.";
 
   const noop = () => {};
-  const HOOKS = ["say", "highlight", "ghost", "xray", "beat", "challenge", "aside"];
+  const HOOKS = ["say", "highlight", "ghost", "beat", "challenge", "aside"];
 
   class CoachRun {
     constructor(level, hooks = {}) {
@@ -73,7 +73,6 @@
       this.h.ghost(null);
       if (this.done) { this.h.highlight(null); this.h.beat(null); return; }
       const b = this.beat;
-      if (b.do && b.do.xray !== undefined) this.h.xray(b.do.xray);
       this.h.say(this.text(b), this.offer(b));
       this.h.highlight(b.highlight || null);
       this.h.beat(b);

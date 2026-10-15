@@ -27,7 +27,7 @@
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 100), CAP(V, "c1", "c6", "c7", 1e-3), V.WIRE("w1", "e7", "-T7"),
             V.RES("r2", "d6", "d9", 470), V.LED("led1", "c9", "c10"), V.WIRE("w2", "e10", "-T10")),
           rules: { tray: [], allow: allow({ ctl: ["bat"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "The blue can is a capacitor. It stores energy: think of a little bucket for charge. Its ring shows how full it is. Switch off: the LED…",
@@ -55,7 +55,7 @@
           region: REGION(V),
           start: start(off(V, V.BAT("+T3", "-T4")), V.RES("r1", "+T6", "a6", 4700), CAP(V, "c1", "c6", "c7", 1e-3), V.WIRE("w1", "e7", "-T7"), METER("V", "VO", V.hs("b6", "-T9"))),
           rules: { tray: [], allow: allow({ ctl: ["bat", "meter"], dial: ["V"], socket: ["VO"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its push. Switch on: will it be full at once?",
@@ -90,7 +90,7 @@
             V.RES("rB", "+T10", "a10", 10000), CAP(V, "cB", "c10", "c11", 1e-4), V.WIRE("wB", "e11", "-T11"),
             V.RES("rC", "+T15", "a15", 10000), CAP(V, "cC", "c15", "c16", 1e-3), V.WIRE("wC", "e16", "-T16")),
           rules: { tray: [], allow: allow({ ctl: ["bat"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "Left: 1 kΩ and 1000 µF. Middle: 10 kΩ and 100 µF. Right: 10 kΩ and 1000 µF. Which two will fill equally fast?",
@@ -118,7 +118,7 @@
           start: start(off(V, V.BAT("+T3", "-T4")), CAP(V, "c1", "-T8", "+T8", 1e-3)),
           rules: { tray: [], allow: allow({ ctl: ["bat"], flip: ["c1"], legs: ["c1"], move: ["c1"] }), banner: true },
           demo: { cap: 1 }, simText: { cap: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "This capacitor is in backwards: its + leg is on the − rail. The stripe marks the − leg. What happens when you switch on?",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
@@ -152,7 +152,7 @@
           start: start(V.BAT("+T3", "-T4"), { id: "b1", type: "button", legs: ["e6", "f6", "e8", "f8"], pairs: "across", pressed: false }, V.WIRE("w0", "+T6", "a6")),
           rules: { tray: [{ type: "cap", value: 1e-4, n: 1 }, { type: "cap", value: 1e-3, n: 1 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 470, n: 1 },
             { type: "led", color: "red", n: 1 }, { type: "wire", n: 2 }], allow: allow({ ctl: ["b1"] }), banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "brief", say: V.say("Make the LED keep glowing for a second after you let go of the button. The button feeds column 8 while you hold it.",

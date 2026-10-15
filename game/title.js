@@ -38,7 +38,7 @@
     BB.inertAround(host, true);       // the game behind is out of reach
     G.paused = true;
     BB.HUD.toast(null);
-    $("ts-go").addEventListener("click", () => { hide(); if (next) G.enterLevel(next); else BB.LevelMap.finale(); });
+    $("ts-go").addEventListener("click", () => { hide(); if (next) BB.LevelMap.play(next); else BB.LevelMap.finale(); });
     $("ts-map").addEventListener("click", () => { hide(); BB.LevelMap.showMap(); });
     $("ts-sandbox").addEventListener("click", () => { hide(); G.enterSandbox(); });
     $("ts-go").focus();

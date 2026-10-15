@@ -49,7 +49,7 @@
             V.RES("res1", "+T6", "a6", 330), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "-T7"),
             V.WIRE("wa", "+B5", "j5"), V.RES("res2", "g5", "g8", 330), V.LED("led2", "h8", "h9"), V.WIRE("wb", "f9", "-B9"), METER("off")),
           rules: { tray: [], allow: allow({ dial: ["off", "V"], socket: ["VO"], legs: ["wa", "wb"], move: ["wa", "wb"] }), guardMeter: true, guardShorts: true },   // moving wire ends between rails: shorts are easy, and not the lesson
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "q", say: "Two circuits with the same parts. So why is the bottom LED dimmer than the top one?", highlight: { parts: ["led1", "led2"] },
               predict: P, waitFor: { predict: true } },
@@ -92,7 +92,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("V")),
           rules: { tray: [{ type: "led", color: "blue", n: 1 }], allow: allow({ dial: ["V"], socket: ["VO"] }), guardMeter: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "p1", say: "The battery's 6 V push is shared out across the parts in the loop. Which part do you think gets the biggest share?", predict: P1, waitFor: { predict: true } },
@@ -137,7 +137,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("V")),
           rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"] }), guardMeter: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 2,
           beats: [
             { id: "set", say: "The current must go through the meter. Set it for current, in mA (thousandths of an amp): dial to mA, red lead into the mA socket.",
@@ -176,7 +176,7 @@
           start: start(V.BAT("+T3", "-T4"), V.WIRE("w1", "+T6", "a6"), V.RES("res1", "b6", "b9"), V.WIRE("w2", "c9", "c11"), V.LED("led1", "d11", "d12"),
             V.WIRE("w3", "e12", "-T12"), METER("mA", "mA")),
           rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"] }), guardMeter: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 0,
           beats: [
             { id: "p", say: "This LED is lit. Does it use up some of the current? Is there less current after the LED than before it?", highlight: { part: "led1" },
@@ -219,7 +219,7 @@
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("mA", "mA")),
           rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"], replace: ["meter"] }), banner: true },
           demo: { meter: 1, short: true }, simText: { meter: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "Set for mA, the meter is almost a wire. What happens if you put it across the battery?", highlight: { part: "meter" }, predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: put the meter across the battery, one probe on each of its rails.",
@@ -258,7 +258,7 @@
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("mA", "mA", V.hs(...V.L.at))),
           rules: { tray: [{ type: "resistor", value: 470, n: 1 }, { type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 330, n: 1 }],
             allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"], remove: ["res1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "p", say: "Resistors come in sizes, measured in ohms (Ω); 1 kΩ is 1000 Ω. This one is 220 Ω. With a bigger resistor, more or less current?",
@@ -301,7 +301,7 @@
           start: start(V.BAT("+T3", "-T4"), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "-T7"),
             Object.assign(V.RES("resA", "b12", "b15", R.A), { tag: "A" }), Object.assign(V.RES("resB", "g12", "g15", R.B), { tag: "B" }), METER("V")),
           rules: { tray: [], allow: allow({ ctl: ["meter", "bat"], dial: ["V", "mA", "ohm"], move: ["resA", "resB"], legs: ["resA", "resB"], remove: ["resA", "resB"], replace: ["led1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "lost", say: "These two resistors lost their labels. One keeps the LED safe, the other would burn it out. Which is which?",
               highlight: { parts: ["resA", "resB"] }, waitFor: NEXT },
@@ -349,7 +349,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.WIRE("wire1", "e7", "-T7"), ...V.L.parts(V), METER("V")),
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ dial: ["V", "mA", "ohm"], move: ["wire2", "led2"], legs: ["wire2", "led2"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "make", say: "A break is a place where the loop is cut, so current can't get through. A missing wire is one. Make one: take this wire out.",
               highlight: { part: "wire1" }, allow: { remove: ["wire1"] },
@@ -466,7 +466,19 @@
     },
   ];
 
-  K.chapter(2, "Measuring", L);
+  K.chapter(2, "Measuring", L, {
+    lede: "So far you could only see whether an LED lit. Now you get a tool that measures what the eye cannot see.",
+    questions: ["Why is one LED dimmer than another, with the same parts?", "Where does the battery's push go: which part takes how much?",
+      "Does an LED use up current, so less comes out than goes in?"],
+    words: [
+      { w: "Multimeter", d: "A meter that measures push, current or resistance. Its dial chooses which.", sym: "VΩ" },
+      { w: "Probes", d: "The meter's two leads. The red one goes where you measure; the black one (COM) is what you compare with.", sym: "±" },
+      { w: "Volt (V)", d: "How hard the battery pushes. Measured across a part: one probe on each side of it.", sym: "V" },
+      { w: "Milliamp (mA)", d: "Current is counted in amps; a milliamp is a thousandth of one. Measured through the meter: the current flows through it.", sym: "mA" },
+      { w: "Ohm (Ω)", d: "How much a resistor holds the current back. 1 kΩ (a kilo-ohm) is 1000 Ω.", sym: "Ω" },
+      { w: "Fuse", d: "A thin wire inside the meter that burns through when far too much current flows, to save the meter.", sym: "~" },
+    ],
+  });
   // The meter checks and helpers, for the later chapters.
   K.meter = { net, M, mode, probes, on, volts, ohms, amps, across, fmtV, fmtR, fmtmA, RING, METER, allow, REGION, NEXT };
 })(window.BB = window.BB || {});

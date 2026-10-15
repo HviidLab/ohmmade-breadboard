@@ -1,12 +1,11 @@
 // Current flow: amber dots that move along every path the current takes (parts, wires, battery leads,
 // meter cables and the metal strips inside the board). Faster dots mean more current.
-// Also the x-ray view: the strips and rails inside the board, drawn as metal bars.
 (function (BB) {
   "use strict";
   const R = BB.Render, { Y } = BBShared;
   const SPACING = 15;          // world units between dots
   const MIN_I = 2e-5;          // below this no dots are drawn
-  let enabled = true, tracks = [], xrayOn = false, xrayDrawn = false;
+  let enabled = true, tracks = [];
 
   // Speed in world units per second: 10 mA ≈ 70, 20 mA ≈ 100; capped so a short circuit is a blur, not a jump.
   const calm = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -96,20 +95,5 @@
     if (!enabled) { R.layers.flow.replaceChildren(); tracks = []; }
   }
 
-  // ---------- x-ray ----------
-  function drawXray() {
-    const g = R.layers.xray, { xr, BOARD } = R, rows = BB.Grid.ROWS;
-    for (let r = 1; r <= rows; r++) {
-      for (const [y0, y1] of [[Y.a, Y.e], [Y.f, Y.j]]) R.el("rect", { x: xr(r) - 5, y: y0 - 6, width: 10, height: y1 - y0 + 12, rx: 5, class: "xr-strip" }, g);
-    }
-    for (const k of ["+T", "-T", "+B", "-B"]) R.el("rect", { x: BOARD.x + 30, y: Y[k] - 5, width: BOARD.w - 46, height: 10, rx: 5, class: `xr-rail ${k[0] === "+" ? "pos" : "neg"}` }, g);
-    xrayDrawn = true;
-  }
-  function xray(on) {
-    xrayOn = !!on;
-    if (xrayOn && !xrayDrawn) drawXray();
-    R.layers.xray.style.display = xrayOn ? "" : "none";
-  }
-
-  BB.Flow = { rebuild, frame, setEnabled, xray, get xrayOn() { return xrayOn; }, get enabled() { return enabled; }, tracks: () => tracks };
+  BB.Flow = { rebuild, frame, setEnabled, get enabled() { return enabled; }, tracks: () => tracks };
 })(window.BB = window.BB || {});

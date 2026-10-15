@@ -106,7 +106,6 @@
       G.keepUnfinished();
       G.level = null; G.rules = null; G.coach = null; G.run = null;
       R.region(null); R.guide(null); R.setInsets(null); R.setCtlLock(null);
-      BB.Flow.xray(false);
       BB.CoachUI.leave();
       document.body.classList.remove("mode-level");
     },

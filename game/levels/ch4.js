@@ -37,7 +37,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 330), LED(V, V.c1), V.WIRE("wire1", "e7", "-T7"), METER("V")),
           rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V"], socket: ["VO"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "led", say: "First, measure the push across the LED.", hints: [RING(V.hs("d6", "d7"))],
@@ -70,7 +70,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 470), LED(V, "red"), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 220, n: 1 }, { type: "led", color: "green", n: 1 }], allow: allow({ remove: ["res1", "led1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "rule", say: "The resistor gets 6 − 2 = 4 V. 470 Ω is 0.47 kΩ, so 4 V ÷ 0.47 kΩ ≈ 8.5 mA. The LED gets the same current: see the meter.",
@@ -99,7 +99,7 @@
           start: start(V.BAT("+T3", "-T4"), LED(V, "red"), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "resistor", value: 1000, n: 1 }],
             allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"] }), banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "This red LED needs a resistor, and we want 10 mA. Resistor = (6 − 2) V ÷ 10 mA = …", highlight: { part: "led1" }, predict: P, waitFor: { predict: true } },
             { id: "build", reply: "p", say: "Resistors come in fixed sizes. Round up to the next one: a little less current is always safe. Put it in.",
@@ -127,7 +127,7 @@
           start: start(V.BAT("+T3", "-T4"), RES(V, 390), LED(V, "red"), V.WIRE("wire1", "e7", "-T7"), METER("V")),
           rules: { tray: [{ type: "led", color: "blue", n: 1 }, { type: "resistor", value: 270, n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "resistor", value: 470, n: 1 }],
             allow: allow({ remove: ["res1", "led1", "wire1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "red", say: "A red LED with 390 Ω: about 10 mA. Measure the push across the LED.", hints: [RING(V.hs("d6", "d7"))],
@@ -159,7 +159,7 @@
           start: start(V.BAT("+T3", "-T4"), RES(V, 330), LED(V, "red"), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 47, n: 1 }, { type: "resistor", value: 220, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V", "mA"], socket: ["VO", "mA"] }), banner: true },
           demo: { led: 1 }, simText: { led: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "A small LED is made for 20 mA at most. The smallest safe resistor for this red one: (6 − 2) V ÷ 20 mA = …", predict: P, waitFor: { predict: true } },
             { id: "try", reply: "p", say: "What if you go far below 200 Ω? Swap in the 47 Ω and watch the meter.", hints: [SWAP_HINT],
@@ -194,7 +194,7 @@
           start: start(V.BAT("+T3", "-T4"), METER("V")),
           rules: { tray: [{ type: "led", color: "red", n: 1 }, { type: "led", color: "yellow", n: 1 }, { type: "led", color: "green", n: 1 },
             ...W.tray.map(([value, n]) => ({ type: "resistor", value, n })), { type: "wire", n: 3 }], allow: allow({ replace: ["meter"] }), banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "brief", say: V.say(`A traffic light of your own: a red, a yellow and a green LED, each with between ${W.lo} and ${W.hi} mA.`,
               `Build three lights, red, yellow and green, each with ${W.lo} to ${W.hi} mA through it.`), waitFor: { next: true, label: "Start" } },

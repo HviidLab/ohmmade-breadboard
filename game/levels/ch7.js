@@ -28,7 +28,7 @@
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 330), V.LED("led1", "c6", "c7", V.c1), BUTTON(V, "b1", 7), V.WIRE("w1", "a9", "-T9")),
           rules: { tray: [], allow: allow({ ctl: ["b1"] }) },
           goalsFrom: 1,
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "This red-capped part is a push button, sitting in the LED's loop. What will happen when you press it?", highlight: { part: "b1" },
               predict: P, waitFor: { predict: true } },
@@ -59,7 +59,7 @@
           region: REGION(V),
           start: start(BUTTON(V, "b1", 10), METER("cont")),
           rules: { tray: [], allow: allow({ ctl: ["meter", "b1"], dial: ["off", "V", "mA", "ohm", "cont"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 3,
           beats: [
             { id: "p1", say: "A push button has four legs. Which of them are joined, even without pressing?", highlight: { part: "b1" }, predict: P1, waitFor: { predict: true } },
@@ -96,7 +96,7 @@
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 330), V.LED("led1", "c6", "c7"), BUTTON(V, "b1", 7, true), V.WIRE("w1", "a9", "a11"),
             BUTTON(V, "b2", 11, true), V.WIRE("w2", "a13", "-T13")),
           rules: { tray: [], allow: allow({ ctl: ["b1", "b2"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "Two buttons in a row in the LED's loop. These click down and stay down, to free your hands. When will the LED light?", highlight: { parts: ["b1", "b2"] },
               predict: P, waitFor: { predict: true } },
@@ -128,7 +128,7 @@
             V.WIRE("w2", "b7", "b11"), BUTTON(V, "b2", 11, true), V.WIRE("w3", "a13", "-T13")),
           rules: { tray: [], allow: allow({ ctl: ["b1", "b2"] }) },
           goalsFrom: 1,
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "Now the two buttons sit side by side. When will the LED light?", highlight: { parts: ["b1", "b2"] },
               predict: P, waitFor: { predict: true } },
@@ -168,7 +168,7 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "button", n: 2 }, { type: "led", color: "yellow", n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "wire", n: 4 }], latchButtons: true, banner: true },
           goalsFrom: 1,
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "brief", say: V.say("A house with two doors and one bell light. Build it so that either button lights the LED.",
               "Two doors, one light: the yellow LED must light from either button."), waitFor: { next: true, label: "Start" } },

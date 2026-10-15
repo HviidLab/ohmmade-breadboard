@@ -26,7 +26,7 @@
           region: REGION(V),
           start: start(LDR(V, "s1", "c10", "c13"), METER("ohm")),
           rules: { tray: [], allow: allow({ ctl: ["meter", "s1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 2,
           beats: [
             { id: "p", say: "This is a light sensor: a resistor that reacts to light. Cover it with your hand: will its resistance go up or down?", highlight: { part: "s1" },
@@ -56,7 +56,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), LDR(V, "s1", "+T6", "a6"), V.RES("r1", "c6", "c10", 10000), V.WIRE("w1", "e10", "-T10"), METER("V")),
           rules: { tray: [], allow: allow({ ctl: ["meter", "s1"], dial: ["V"], socket: ["VO"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 2,
           beats: [
             { id: "p", say: "The light sensor sits above a 10 kΩ, making a middle point. In the dark its resistance rises. So the middle point will…",
@@ -84,7 +84,7 @@
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "a8", 330), V.LED("led1", "c8", "c9"), V.WIRE("w1", "e9", "e12"), { id: "q1", type: "npn", legs: V.hs("c12", "c13", "c14") },
             V.WIRE("w2", "a14", "-T15"), V.RES("rb", "+T13", "a13", 100000), V.WIRE("w3", "b13", "b18"), LDR(V, "s1", "a18", "-T18")),
           rules: { tray: [], allow: allow({ ctl: ["s1"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "A transistor switch for the LED. A 100 kΩ feeds its base; the light sensor runs from the base to the − rail. Cover it: the LED…",
@@ -118,7 +118,7 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "npn", n: 1 }, { type: "ldr", n: 1 }, { type: "resistor", value: 100000, n: 1 }, { type: "resistor", value: 330, n: 1 },
             { type: "led", color: "yellow", n: 1 }, { type: "wire", n: 4 }], banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "brief", say: V.say("Build a night light: the yellow LED off in room light, on when you cover the light sensor.",

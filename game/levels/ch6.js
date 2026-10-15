@@ -27,7 +27,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 10000), V.RES("r2", "c6", "c10", 10000), V.WIRE("w1", "e10", "-T10"), METER("V")),
           rules: { tray: [{ type: "resistor", value: 22000, n: 1 }], allow: allow({ remove: ["r2", "r1"], dial: ["V"], socket: ["VO"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 3,
           beats: [
             { id: "p1", say: "Two 10 kΩ resistors in a row, from + to −. What push sits at the middle point between them, against the − rail?",
@@ -60,7 +60,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), POT(V), V.WIRE("w1", "a12", "+T12"), V.WIRE("w2", "a14", "-T14"), METER("V")),
           rules: { tray: [], allow: allow({ ctl: ["meter", "pot"], dial: ["V"], socket: ["VO"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "what", say: "This is a potentiometer, a knob with three legs. The outer legs go to + and −. The middle leg, the wiper, slides along between them.",
@@ -96,7 +96,7 @@
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 220), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "e12"), POT(V, 0.5), V.WIRE("w2", "a13", "-T13")),
           rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ ctl: ["pot"], remove: ["r1"] }), banner: true },
           demo: { led: 1, pot: 1 }, simText: { led: null, pot: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "turn", say: "Here only one end and the wiper are used: the knob is a resistor you can turn, 0 to 10 kΩ. Turn it both ways; watch the LED.", highlight: { ctl: "knob", id: "pot" },
               hints: [{ say: "Press on the white knob and drag the mouse up or down." }], waitFor: { when: swept } },
@@ -132,7 +132,7 @@
           start: start(V.BAT("+T3", "-T4"), METER("V")),
           rules: { tray: [{ type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 22000, n: 1 }, { type: "resistor", value: 6800, n: 1 },
             { type: "pot", n: 1 }, { type: "wire", n: 3 }], allow: allow({}), banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "brief", say: V.say(`Make exactly ${T.v} V on a strip (within 0.15 V, against the − rail). Resistors or the knob: your choice.`,
               `Your task: a strip at ${T.v} V against the − rail. Use two resistors, or the knob, or both ways.`), waitFor: { next: true, label: "Start" } },

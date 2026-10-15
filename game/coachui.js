@@ -64,14 +64,12 @@
     $("lv-zout").addEventListener("click", () => zoom(1 / 1.2));
     $("lv-fit").addEventListener("click", () => G.fitLevel());
     $("lv-pause").addEventListener("click", () => BB.LevelMap.pause());
-    $("lv-xray").addEventListener("click", () => xray(!BB.Flow.xrayOn));
     window.addEventListener("keydown", (e) => {
       if (G.mode !== "level" || e.target.matches("input, select, textarea")) return;
       const free = e.target === document.body || !!e.target.closest("#mentor");     // Enter belongs to the focused button, if any
       if (e.key === "Escape" && !G.paused) { e.preventDefault(); BB.LevelMap.pause(); }
       else if (e.key === "Enter" && !G.paused && typing && free) { e.preventDefault(); stopSpeaking(); }
       else if (e.key === "Enter" && !G.paused && $("mentor-next") && free) { e.preventDefault(); $("mentor-next").click(); }
-      else if ((e.key === "x" || e.key === "X") && !G.paused && !$("lv-xray").hidden) xray(!BB.Flow.xrayOn);
     });
     // Hidden tuning overlay (the backquote key): per level, attempts, time and hints of the last finished attempt.
     // Kept on this computer only; nothing is sent anywhere.
@@ -83,8 +81,6 @@
     stopSpeaking(); shownParts = []; shownReply = null;
     lv = level; marks = null; partFor = null; lastHotbar = ""; lastObjective = "";
     $("lv").hidden = false;
-    $("lv-xray").hidden = !(lv.ui && lv.ui.xray);
-    xray(false);
     $("mentor-text").textContent = "";
     $("mentor-act").replaceChildren();
     aside(null);
@@ -325,17 +321,13 @@
     R.guide(parts && parts.map((p) => Object.assign({}, p, { id: `ghost-${p.id}` })));
     document.querySelectorAll('[data-id^="ghost-"]').forEach((n) => { n.removeAttribute("data-ctl"); n.removeAttribute("data-id"); });    // a hint's picture is not a control
   }
-  function xray(on) {
-    BB.Flow.xray(on);
-    $("lv-xray").setAttribute("aria-pressed", String(!!on));
-  }
   function challenge() {
     refreshObjective(true);
     BB.Effects.chime && BB.Effects.chime(1);
     aside(`Challenge done: ${lv.challenge.text} ★`, 4000, "good");
     mood("happy", 1600);
   }
-  const hooks = () => ({ say, highlight, ghost, xray, challenge, aside: (t) => aside(t, 6000), beat: () => { G.redraw(); refresh(); } });
+  const hooks = () => ({ say, highlight, ghost, challenge, aside: (t) => aside(t, 6000), beat: () => { G.redraw(); refresh(); } });
 
   // A short line under the mentor's own: refusals, failures, the short-circuit guard.
   function aside(text, ms = 6000, kind = "") {

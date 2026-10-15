@@ -27,7 +27,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 1000), V.WIRE("w1", "c6", "c10"), METER("mA", "mA", V.hs("b10", "-T12"))),
           rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }], allow: allow({ remove: ["w1"], dial: ["V", "mA"], socket: ["VO", "mA"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p1", say: "One 1 kΩ resistor: 6 mA. Put a second 1 kΩ in a row with it, in place of the wire. What will the meter read?",
@@ -57,7 +57,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 1000), V.RES("r2", "c6", "c10", 2000), V.WIRE("w1", "e10", "-T10"), METER("V")),
           rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ remove: ["r2"], dial: ["V"], socket: ["VO"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "p1", say: "A 1 kΩ and a 2 kΩ in a row share the battery's 6 V. Which one takes the bigger share?", highlight: { parts: ["r1", "r2"] }, predict: P1, waitFor: { predict: true } },
@@ -94,7 +94,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "-T10", 1000), V.RES("r2", "+T14", "-T16", 2000), METER("V")),
           rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"], move: ["r2"], legs: ["r2"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p1", say: "Now side by side: the 1 kΩ and the 2 kΩ each go straight from + to −. How much push does each one get?",
@@ -134,7 +134,7 @@
           // the battery's + lead goes into strip 3, and the meter carries everything on to the + rail
           start: start(Object.assign(V.BAT("c3", "-T4")), METER("mA", "mA", V.hs("b3", "+T5")), V.RES("r1", "+T8", "-T10", 1000)),
           rules: { tray: [{ type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 1000, n: 1 }], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"], replace: ["meter"] }) },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 3,
           beats: [
             { id: "p1", say: "The meter sits in the main line, the path all the current takes, so it counts everything: 6 mA for one 1 kΩ branch. Add a 2 kΩ?",
@@ -166,7 +166,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 330), V.LED("led1", "c6", "c7", "red"), V.WIRE("w1", "e7", "-T7")),
           rules: { tray: [{ type: "led", color: "blue", n: 1 }, { type: "resistor", value: 270, n: 1 }, { type: "wire", n: 1 }], banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "Put a blue LED side by side with the red one, in the same two strips, sharing the resistor. Which one will light?",
               highlight: { part: "led1" }, predict: P, waitFor: { predict: true } },
@@ -198,7 +198,7 @@
           start: start(V.BAT("+T3", "-T4"), METER("mA", "mA")),
           rules: { tray: [{ type: "led", color: "red", n: 2 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 150, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 390, n: 1 }, { type: "resistor", value: 470, n: 1 },
             { type: "wire", n: 2 }], allow: allow({ replace: ["meter"] }), banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "brief", say: V.say(`Christmas lights: two red LEDs in a row, with one resistor, each at ${W.lo} to ${W.hi} mA.`,
               `Two red LEDs one after the other, one resistor for both, and ${W.lo} to ${W.hi} mA through them.`), waitFor: { next: true, label: "Start" } },

@@ -25,7 +25,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...LOOP(V), V.RES("rb", "b13", "b17", 10000)),
           rules: { tray: [{ type: "wire", n: 1 }] },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "p", say: "A transistor: three legs, C, B and E. The LED's loop runs in at C and out at E, yet it is dark. What if a tiny current flows into B?",
@@ -55,7 +55,7 @@
           start: start(V.BAT("+T3", "-T4"), ...LOOP(V)),
           rules: { tray: [{ type: "wire", n: 1 }, { type: "resistor", value: 10000, n: 1 }], banner: true },
           demo: { npn: 1 }, simText: { npn: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: "Last time a 10 kΩ fed the base. What if a wire runs straight from the + rail into B, with no resistor?", highlight: { part: "q1" },
               predict: P, waitFor: { predict: true } },
@@ -92,7 +92,7 @@
           start: start(V.BAT("+T3", "-T4")),
           rules: { tray: [{ type: "npn", n: 1 }, { type: "button", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 330, n: 1 },
             { type: "led", color: "green", n: 1 }, { type: "wire", n: 4 }], latchButtons: true, banner: true },
-          ui: { xray: true },
+          ui: { strips: true },
           goalsFrom: 1,
           beats: [
             { id: "brief", say: V.say("Build a transistor switch: the button sends a tiny current into B, and the transistor lights the LED.",

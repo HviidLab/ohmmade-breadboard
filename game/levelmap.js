@@ -52,12 +52,36 @@
   }
   function close() { hideAll(); G.paused = false; }
   const on = (host, sel, fn) => { const b = host.querySelector(sel); if (b) b.addEventListener("click", fn); };
-  function play(lv) { close(); BB.Title.hide(); G.enterLevel(lv); }
+  // A chapter's first level opens with the chapter's opener page the first time (and again from the map).
+  function play(lv, skipIntro) {
+    const ch = BB.Levels.chapters.find((c) => c.levels[0] === lv);
+    if (!skipIntro && ch && ch.intro && !(BB.Store.get().introSeen || []).includes(ch.n)) return opener(ch.n);
+    close(); BB.Title.hide(); G.enterLevel(lv);
+  }
+  // The chapter's opener: what it will answer, its new words, and the earlier ideas it builds on.
+  function opener(n, from) {
+    const ch = BB.Levels.chapters.find((c) => c.n === n), it = ch.intro, first = ch.levels[0], learned = BB.Store.get().notebook || [];
+    const earlier = new Set(BB.Levels.chapters.filter((c) => c.n < n).flatMap((c) => c.levels.flatMap((l) => l.teaches)));
+    const knows = [...new Set(ch.levels.flatMap((l) => l.uses))].filter((id) => earlier.has(id)).map((id) => BB.Concepts.get(id));
+    const sym = (t) => `<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="#fffdf6" stroke="#2b2a26" stroke-width="2.2"/>
+      <text x="22" y="${t.length > 1 ? 27 : 29}" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" font-size="${t.length > 1 ? 16 : 21}" fill="#2b2a26">${esc(t)}</text></svg>`;
+    BB.Store.update((s) => { s.introSeen = [...new Set([...(s.introSeen || []), n])]; });
+    const open_ = unlocked(first);
+    const host = show("notebook", `<div class="nb-book opener"><div class="nb-head"><p class="op-k">Chapter ${n}</p><h1>${esc(ch.title)}</h1></div>
+      <p class="op-lede"><span class="op-sp">Sparky:</span> ${esc(it.lede)}</p>
+      <section class="nb-page"><h2 class="nb-ch">In this chapter you find out</h2><ol class="op-q">${it.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></section>
+      <section class="nb-page"><h2 class="nb-ch">New words</h2><dl class="op-words">${it.words.map((w) => `<div>${sym(w.sym || w.w[0])}<dt>${esc(w.w)}</dt><dd>${esc(w.d)}</dd></div>`).join("")}</dl></section>
+      ${knows.length ? `<section class="nb-page"><h2 class="nb-ch">You already know</h2><ul class="op-knows">${knows.map((c) => `<li class="${learned.includes(c.id) ? "" : "op-new"}">${esc(c.name)}</li>`).join("")}</ul></section>` : ""}
+      <div class="scr-row">${open_ ? `<button type="button" class="btn primary" id="op-go">Start ${first.id} · ${esc(first.title)} →</button>` : ""}<button type="button" class="btn" id="op-map">Level map</button></div></div>`,
+      open_ ? "#op-go" : "#op-map");
+    on(host, "#op-go", () => play(first, true));
+    on(host, "#op-map", showMap);
+  }
 
   function showMap() {
     BB.Title.hide();
     const prog = progress(), s = summary(prog), next = nextLevel(prog);
-    const ch = BB.Levels.chapters.map((c) => `<section class="lm-chapter"><h2><span>Chapter ${c.n}</span>${esc(c.title)}</h2>
+    const ch = BB.Levels.chapters.map((c) => `<section class="lm-chapter"><h2><span>Chapter ${c.n}</span>${esc(c.title)}${c.intro ? `<button type="button" class="lm-about" data-ch="${c.n}">About this chapter</button>` : ""}</h2>
       <ol class="lm-path">${c.levels.map((lv) => {
         const p = prog[lv.id] || {}, open_ = unlocked(lv, prog), cur = next === lv;
         return `<li><button type="button" class="lm-node${p.done ? " done" : ""}${cur ? " current" : ""}" data-id="${lv.id}" ${open_ ? "" : "disabled"}>
@@ -69,6 +93,7 @@
       ${(() => { const later = COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)); return later.length ? `<section class="lm-coming"><h2>Coming next</h2><ul>${later.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>` : ""; })()}
       <div class="scr-row">${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}<button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-playtest">Playtest data</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
     host.querySelectorAll(".lm-node").forEach((b) => b.addEventListener("click", () => play(BB.Levels.get(b.dataset.id))));
+    host.querySelectorAll(".lm-about").forEach((b) => b.addEventListener("click", () => opener(+b.dataset.ch)));
     on(host, "#lm-notebook", () => notebook("map"));
     on(host, "#lm-finale", finale);
     on(host, "#lm-playtest", () => playtest("map"));
@@ -298,11 +323,11 @@
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !open) return;
     const host = $(open), zoomed = host.querySelector(".nb-zoom:not([hidden])");
-    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back") : host.querySelector("#nb-back, #pt-back, #lm-title");
+    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back") : host.querySelector("#nb-back, #pt-back, #op-map, #lm-title");
     if (open !== "pause" && !back) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (back) back.click(); else close();
   }, true);
 
-  BB.LevelMap = { finale, init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
+  BB.LevelMap = { play, opener, finale, init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
 })(window.BB = window.BB || {});

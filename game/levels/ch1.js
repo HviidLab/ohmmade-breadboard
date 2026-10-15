@@ -140,10 +140,10 @@
           region: { rows: V.rows([1, 16]), cols: "a-e", rails: "none" },
           start: start(V.BAT(...V.L.bat), ...V.L.parts(V)),
           rules: { tray: [{ type: "led", color: V.c1, n: 1 }], guardShorts: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
-            { id: "xray", do: { xray: true }, say: V.say("X-ray on! Under each group of 5 holes is a metal strip. Everything plugged into one strip is connected.",
-              "Let's look inside: X-ray on! Each group of 5 holes sits on one metal strip, so they are all connected."), highlight: { nets: [V.n(`bb:L${t1}`)] }, waitFor: { next: true } },
+            { id: "look", say: V.say("Look closely: each group of 5 holes sits in one slot. A metal strip inside joins them, so whatever is plugged in there is connected.",
+              "See the slots? Each group of 5 holes has one metal strip inside, so everything plugged into it is connected."), highlight: { nets: [V.n(`bb:L${t1}`)] }, waitFor: { next: true } },
             { id: "p", say: "If the LED's legs went into these two holes, would it light?", highlight: { holes: V.hs(`c${V.L.ask[0]}`, `c${V.L.ask[1]}`) }, predict: P, waitFor: { predict: true } },
             { id: "plug", reply: "p", say: V.L.yes ? "Both strips are in the loop. Plug the LED in there, or anywhere else in the same strips."
               : "Those strips are not in the loop. Plug the LED in where it closes the loop.",
@@ -173,9 +173,9 @@
           region: { rows: V.rows([1, 34]), cols: "a-e", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
           rules: { tray: [{ type: "wire", n: 1 }], guardShorts: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
-            { id: "rails", do: { xray: true }, say: V.say("These long lines are the rails. Each rail is one strip that runs the whole length of the board.",
+            { id: "rails", say: V.say("These long lines are the rails. Each rail is one strip that runs the whole length of the board.",
               "Meet the rails: two long strips that run the whole length of the board."), highlight: { nets: ["bb:+T", "bb:-T"] }, waitFor: { next: true } },
             { id: "feed", say: `The battery feeds them: + to the red rail, − to the blue rail. ${Lt.feed}`, highlight: [{ holes: V.hs("+T3", "-T4") }, { part: "res1" }], waitFor: { next: true } },
             { id: "p", say: `Would a wire from the LED to the far end of the ${Lt.word}, at column ${V.r(30)}, close the loop?`, highlight: { holes: [V.h(`${Lt.rail}30`)] }, predict: P, waitFor: { predict: true } },
@@ -209,10 +209,10 @@
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
           rules: { tray: [{ type: "wire", n: 1 }], allow: { move: [Lt.id], legs: [Lt.id] }, guardShorts: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: V.say("This circuit looks finished, but the LED stays dark. Why?", "Everything seems to be there, yet the LED is dark. What is wrong?"), predict: P, waitFor: { predict: true } },
-            { id: "gap", do: { xray: true }, reply: "p", say: `The gap down the middle splits each numbered column into two strips, top and bottom. ${Lt.what}`,
+            { id: "gap", reply: "p", say: `The gap down the middle splits each numbered column into two strips, top and bottom. ${Lt.what}`,
               highlight: { nets: [V.n(`bb:L${Lt.row}`), V.n(`bb:R${Lt.row}`)] }, waitFor: { next: true } },
             { id: "fix", say: `Fix it: ${Lt.fix} across the gap, or bridge the gap with a new wire.`, highlight: { part: Lt.id },
               hints: [{ say: `${Lt.hint} at ${V.h(Lt.wrong)} up into strip ${V.r(Lt.row)}, above the gap.` }, { highlight: { holes: [V.h(Lt.wrong), V.h(`e${Lt.row}`)] } }, { show: [V.WIRE("h", ...Lt.bridge)] }],
@@ -240,7 +240,7 @@
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), V.RES("res1", "+T6", "a6", 330), led1, led2, V.WIRE("wire1", "e8", "-T8")),
           rules: { tray: [], allow: { flip: ["led1", "led2"] }, guardShorts: true },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "dark", say: "Two LEDs in one loop, and both are dark. An LED is one-way: current can only go in at its + leg.", highlight: { parts: ["led1", "led2"] }, waitFor: { next: true } },
             { id: "leg", say: "The + leg is the long one, marked + here. It must face the + side of the loop (here, the resistor's side).", highlight: { holes: [led1.legs[0], led2.legs[0]] }, waitFor: { next: true } },
@@ -280,7 +280,7 @@
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
           rules: { tray: [{ type: "wire", n: 1 }], allow: { place: false, replace: ["led1"] }, guardShorts: true },
           demo: { led: 1 }, simText: { led: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "what", say: V.say("This striped part is a resistor. What is it doing here?", "See the part with coloured stripes? That is a resistor. Why is it here?"), highlight: { part: "res1" }, waitFor: { next: true } },
             { id: "p", say: "If a plain wire took the resistor's place, the LED would…", predict: P, waitFor: { predict: true } },
@@ -321,7 +321,7 @@
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V)),
           rules: { tray: [{ type: "wire", n: 1 }], guardShorts: false, banner: true },
           demo: { short: true }, simText: { wire: null },
-          ui: { xray: true },
+          ui: { strips: true },
           beats: [
             { id: "p", say: V.say("What happens if a wire joins the red + rail straight to the blue − rail?", "Suppose a wire went straight from the red + rail to the blue − rail. What happens?"), predict: P, waitFor: { predict: true } },
             { id: "try", say: "Try it: drag a wire from the red + rail to the blue − rail.", highlight: { nets: ["bb:+T", "bb:-T"] },
@@ -350,7 +350,7 @@
         region: { rows: [1, 30], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
         rules: { tray: [{ type: "resistor", value: V.ohms, n: 1 }, { type: "led", color: V.c1, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
-        ui: { xray: true },
+        ui: { strips: true },
         beats: [
           { id: "brief", say: V.say("Your turn. Light the LED safely from the rails. You have a resistor, an LED and three wires.",
             "Now you build it. Light the LED safely from the rails, with a resistor, an LED and up to three wires."), waitFor: { next: true, label: "Start" } },
@@ -380,7 +380,7 @@
         region: { rows: [1, 40], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
         rules: { tray: [{ type: "resistor", value: V.ohms, n: 2 }, { type: "led", color: V.c1, n: 1 }, { type: "led", color: V.c2, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
-        ui: { xray: true },
+        ui: { strips: true },
         beats: [
           { id: "brief", say: V.say("Last one: light both LEDs at the same time, each with its own resistor.", "Final test: both LEDs lit at once, and each one gets its own resistor."), waitFor: { next: true, label: "Start" } },
           { id: "build", say: "Build it.",
@@ -416,9 +416,10 @@
     return lv;
   }
   // A chapter: its levels become playable families (each builds variants from a seed).
-  function chapter(n, title, fams) {
+  // intro: the chapter's opener page (levelmap.js): { lede, questions: [3 lines], words: [{ w, d, sym }] }
+  function chapter(n, title, fams, intro = null) {
     for (const fam of fams) { fam.chapter = n; fam.instance = (seed) => instance(fam, seed); }
-    BB.Levels.chapters.push({ n, title, levels: fams });
+    BB.Levels.chapters.push({ n, title, levels: fams, intro });
   }
 
   BB.Levels = BB.Levels || {};
