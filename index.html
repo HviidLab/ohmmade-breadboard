@@ -5,17 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Breadboard Game · Ohmmade Breadboard</title>
 <link rel="stylesheet" href="fonts/fonts.css?v=d6131645">
-<link rel="stylesheet" href="game/game.css?v=522e85a5">
+<link rel="stylesheet" href="game/game.css?v=bcc5835d">
 </head>
 <body>
 <div class="app" id="app">
   <header class="bar">
     <a class="brand" href="index.html">Ohmmade Breadboard</a>
     <button type="button" class="title" id="to-title" title="Start screen">Breadboard game</button>
-    <nav class="modes" aria-label="Game mode">
-      <button type="button" id="mode-missions" aria-pressed="false">Classic missions</button>
-      <button type="button" id="mode-sandbox" aria-pressed="true">Sandbox</button>
-    </nav>
     <div class="tools" role="toolbar" aria-label="Simulation">
       <button type="button" id="undo" title="Undo (Ctrl+Z)">Undo</button>
       <button type="button" id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
@@ -52,7 +48,6 @@
     <div class="tooltip" id="tooltip" hidden></div>
     <div class="banner" id="banner" hidden role="alert"></div>
     <div class="toast" id="toast" hidden></div>
-    <div class="mselect" id="mselect" hidden></div>
     <div class="lv" id="lv" hidden>
       <section class="objective" id="objective" aria-live="polite"></section>
       <div class="topctl" role="toolbar" aria-label="Level">
@@ -81,7 +76,6 @@
       <h2>Inspector</h2>
       <div id="insp-body"><p class="note">Click a part to see its voltage, current and temperature.</p></div>
     </section>
-    <section class="panel" id="mission-panel" hidden></section>
     <section class="panel" id="uno-panel" hidden></section>
     <section class="panel">
       <h2>On the board</h2>
@@ -111,19 +105,18 @@
 <script src="game/arduino.js?v=1c179882"></script>
 <script src="game/sim.js?v=3758fe99"></script>
 <script src="game/doc.js?v=1e66f5e4"></script>
-<script src="game/store.js?v=c7146acf"></script>
+<script src="game/store.js?v=a5230208"></script>
 <script src="game/concepts.js?v=ce73cde3"></script>
-<script src="game/rules.js?v=b717c50b"></script>
+<script src="game/rules.js?v=932617f4"></script>
 <script src="game/art/manifest.js?v=4aa9e66e"></script>
 <script src="game/art.js?v=44ef9f61"></script>
 <script src="game/render.js?v=07f78355"></script>
 <script src="game/flow.js?v=9b495806"></script>
-<script src="game/effects.js?v=1dcc8db7"></script>
+<script src="game/effects.js?v=79b02b35"></script>
 <script src="game/hud.js?v=45c61f1f"></script>
 <script src="game/input.js?v=7293df89"></script>
-<script src="game/goals.js?v=afc1ed05"></script>
+<script src="game/goals.js?v=2b5f6dc1"></script>
 <script src="game/coach.js?v=e66cdda5"></script>
-<script src="game/missions.js?v=b4aa0240"></script>
 <script src="game/levels/ch1.js?v=98993c46"></script>
 <script src="game/levels/ch2.js?v=21cbd67f"></script>
 <script src="game/levels/ch3.js?v=fa7c351b"></script>
@@ -135,11 +128,10 @@
 <script src="game/levels/ch9.js?v=a4c64488"></script>
 <script src="game/levels/ch10.js?v=5de63055"></script>
 <script src="game/levels/ch11.js?v=1eb37a63"></script>
-<script src="game/missionui.js?v=26225a2c"></script>
 <script src="game/coachui.js?v=65a53cfc"></script>
 <script src="game/notebook-art.js?v=ac929e0a"></script>
 <script src="game/levelmap.js?v=04240e1c"></script>
-<script src="game/title.js?v=750f04ce"></script>
-<script src="game/main.js?v=03df3a8a"></script>
+<script src="game/title.js?v=e52ebb0a"></script>
+<script src="game/main.js?v=1d21c769"></script>
 </body>
 </html>

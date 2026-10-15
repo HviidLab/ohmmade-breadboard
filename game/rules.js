@@ -1,5 +1,5 @@
 // Rules of a level: which parts may be moved, flipped, removed or switched, what is in the parts tray,
-// and which holes are open. No DOM. In the sandbox and the classic missions there are no rules (G.rules is null).
+// and which holes are open. No DOM. In the sandbox there are no rules (G.rules is null).
 //
 // level.rules = {
 //   tray: [{type: "wire", n: 1}, {type: "resistor", value: 330, n: 1}, {type: "led", color: "green", n: 1}],

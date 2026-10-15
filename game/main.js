@@ -1,5 +1,5 @@
 // Boot, game state, editing actions, the animation loop, routing and test hooks.
-// Modes: "level" (the teaching levels: full-screen bench, rules, coach), "sandbox" and "mission" (the classic lab layout).
+// Modes: "level" (the teaching levels: full-screen bench, rules, coach) and "sandbox" (the free bench).
 (function (BB) {
   "use strict";
   const R = BB.Render, H = BB.HUD, St = BB.Store;
@@ -30,8 +30,6 @@
     recompile() { G.sim.compile(); G.redraw(); },
     refreshPanels(force) { try { H.partList(G); H.inspector(G, force); BB.CoachUI.refresh(); } catch (err) { BB.reportError(err, "panels"); } },
     save() { if (G.mode !== "sandbox") return; St.update((s) => { s.sandbox = G.doc.serialize(); }); },
-    progress() { return St.get().classic || {}; },
-    saveProgress(p) { St.update((s) => { s.classic = p; }); },
     hasSavedSandbox() { return !!St.get().sandbox; },
     load(docData) {
       G.doc = new BB.Doc(docData);
@@ -107,7 +105,6 @@
       St.update((s) => { s.variants = s.variants || {}; s.variants[fam.id] = seed; });
       if (G.mode === "sandbox") G.save();
       G.leaveLevel();
-      $("mselect").hidden = true;
       G.mode = "level"; G.level = lv; G.paused = false; G.speed = 1;
       document.body.classList.add("mode-level");
       G.rules = new BB.Rules.LevelRules(lv);
@@ -149,30 +146,14 @@
       BB.CoachUI.refresh();
       setTimeout(() => { if (G.level === lv) BB.LevelMap.complete(lv, res); }, 500);
     },
-    enterMission(m) {
-      if (G.mode === "sandbox") G.save();
-      G.leaveLevel();
-      G.mode = "mission";
-      G.load(clone(m.start));
-      G.run = new BB.Goals.Run(m);
-      BB.trail("start mission");
-      H.toast(null);
-      BB.Render.guide(null);
-      requestAnimationFrame(() => R.fit(m.view));
-      H.log(`Mission ${m.id}: ${m.title}. ${m.brief}`, "", 0);
-      try { history.replaceState(null, "", `#mission-${m.id}`); } catch (e) { /* ignore */ }
-    },
     enterSandbox(opts = {}) {
       G.leaveLevel();
       G.paused = false;
       if (G.mode !== "sandbox") {
         G.mode = "sandbox"; G.run = null;
         G.load(St.get().sandbox || starter());
-        BB.MissionUI.render(true);
         requestAnimationFrame(() => R.fit());
       }
-      document.getElementById("mode-missions").setAttribute("aria-pressed", "false");
-      document.getElementById("mode-sandbox").setAttribute("aria-pressed", "true");
       try { history.replaceState(null, "", "#sandbox"); } catch (e) { /* ignore */ }
       if (!opts.quiet && !G.hasSavedSandbox()) H.toast("Drag a resistor and a red LED onto the board, and connect them to the battery rails. Then try it without the resistor.", 12000);
     },
@@ -281,7 +262,7 @@
   // The last few things the player did, for bug reports.
   const trail = [];
   BB.trail = (text) => {
-    const where = G.mode === "level" && G.level ? `level ${G.level.id}` : G.mode === "mission" && G.run ? G.run.m.id : "sandbox";
+    const where = G.mode === "level" && G.level ? `level ${G.level.id}` : "sandbox";
     trail.push(`${(G.sim ? G.sim.t : 0).toFixed(1)} s ${where}: ${text}`);
     if (trail.length > 12) trail.shift();
   };
@@ -302,17 +283,12 @@
   };
   window.addEventListener("error", (e) => BB.reportError(e.error || e.message, "page"));
 
-  // The old Classic lab (the workbook missions) is kept for development only: game.html?classic opens the way to it.
-  BB.CLASSIC = /[?&]classic\b/.test(location.search);
-
   // Where a link (game.html#…) should take you.
   function route() {
     const h = location.hash;
     let m;
     if ((m = /^#level-(\d+-\d+)(?:\/(\d+))?$/.exec(h)) && BB.Levels.get(m[1])) return G.enterLevel(BB.Levels.get(m[1]), m[2] === undefined ? undefined : +m[2]);
     if (h === "#map") return BB.LevelMap.showMap();
-    if (BB.CLASSIC && (m = /^#mission-(\w+)$/.exec(h)) && BB.Missions.list.find((x) => x.id === m[1])) return BB.MissionUI.start(BB.Missions.list.find((x) => x.id === m[1]));
-    if (BB.CLASSIC && (h === "#missions" || h === "#classic")) return BB.MissionUI.showSelect();
     if (h === "#sandbox") return G.enterSandbox();
     BB.Title.show();
   }
@@ -342,7 +318,6 @@
       G.speed = +b.dataset.v;
       for (const x of $("speed").querySelectorAll("button")) x.setAttribute("aria-pressed", x === b);
     });
-    BB.MissionUI.init(G);
     BB.Title.init(G);
     route();
 
@@ -359,7 +334,6 @@
       const t0 = performance.now();
       G.sim.advance(dt);
       G.simMs = performance.now() - t0;
-      if (G.mode === "mission") BB.MissionUI.step(dt);
       // new failure events
       while (G.seen < G.sim.events.length) {
         const ev = G.sim.events[G.seen++];
@@ -388,7 +362,7 @@
       hudT += dtReal;
       if (hudT > 0.1) {
         hudT = 0;
-        H.meter(G); H.inspector(G); H.uno(G); BB.MissionUI.render(); BB.CoachUI.tick();
+        H.meter(G); H.inspector(G); H.uno(G); BB.CoachUI.tick();
         const m = G.doc.parts.find((q) => q.type === "meter");
         if (m) {
           const rd = G.sim.read(m.id), scale = rd.mode === "mA" ? 1000 : 1;

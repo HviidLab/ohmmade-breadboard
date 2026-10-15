@@ -52,9 +52,7 @@ kbd { font: 500 12px var(--font-data); background: var(--panel-2); border: 1px s
 .brand { font: 600 13px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
 .title { font: 600 18px var(--font-display); letter-spacing: .02em; background: none; border: 0; padding: 0; cursor: pointer; }
 .title:hover { color: var(--amber); }
-.modes { display: flex; gap: 4px; margin-left: 8px; }
-.modes button, .tools button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-family: var(--font-display); }
-.modes button[aria-pressed="true"] { background: var(--amber); color: #1c1305; border-color: var(--amber); font-weight: 600; }
+.tools button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-family: var(--font-display); }
 .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .tools .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
@@ -62,7 +60,7 @@ kbd { font: 500 12px var(--font-data); background: var(--panel-2); border: 1px s
 .seg button:last-child { border-right: 0; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
 .clock { min-width: 64px; text-align: right; color: var(--muted); }
-.tools button:hover, .modes button:hover { border-color: var(--amber); }
+.tools button:hover { border-color: var(--amber); }
 
 /* drawer */
 .drawer { grid-area: drawer; background: var(--panel); border-right: 1px solid var(--line); padding: 12px; overflow-y: auto; }
@@ -141,42 +139,6 @@ select { background: var(--panel); color: var(--ink); border: 1px solid var(--li
 .xr-rail { fill: rgba(196, 204, 212, .5); stroke-width: 1.4; }
 .xr-rail.pos { stroke: #d64545; } .xr-rail.neg { stroke: #3a78d6; }
 
-/* mission select */
-.mselect { position: absolute; inset: 0; z-index: 8; background: rgba(9, 16, 13, .9); overflow-y: auto; padding: 24px; }
-.ms-inner { max-width: 1100px; margin: 0 auto; }
-.ms-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 16px; }
-.ms-head h2 { font: 600 26px var(--font-display); margin: 0; }
-.ms-head p { margin: 0; color: var(--muted); flex: 1 1 360px; }
-.ms-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
-.ms-card { width: 100%; text-align: left; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 20px; padding: 10px 10px 12px; cursor: pointer; display: grid; gap: 2px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, .35); transition: transform .12s, border-color .12s; }
-.ms-card:hover, .ms-card:focus-visible { transform: translateY(-2px); border-color: var(--amber); }
-.ms-ph { width: 100%; aspect-ratio: 4 / 3; border-radius: 14px; display: grid; place-items: center; align-content: center; gap: 4px;
-  background: radial-gradient(circle at 50% 40%, #1f3a63, #0d1b33 75%); }
-.ms-ph svg { width: 58%; height: auto; filter: drop-shadow(0 0 10px rgba(255, 181, 71, .35)); }
-.ms-ph b { font: 700 26px var(--font-display); color: #fff4dc; text-shadow: 0 0 14px rgba(255, 181, 71, .6); }
-.ms-id { font: 600 11px var(--font-data); letter-spacing: .1em; color: var(--muted); margin-top: 6px; }
-.ms-title { font: 600 17px var(--font-display); }
-.ms-stars { color: var(--amber); letter-spacing: 2px; }
-.ms-badge { font: 600 10px var(--font-data); text-transform: uppercase; letter-spacing: .08em; color: var(--warn); }
-.ms-card.done { border-color: rgba(255, 181, 71, .45); }
-.ms-card.done .ms-title::after { content: " ✓"; color: var(--ok); }
-/* mission card in the HUD: a sheet of lab-notebook paper */
-#mission-panel { background: none; border: 0; padding: 0; }
-.paper { background: #efe9db; color: #1f241f; border-radius: 6px; padding: 12px 14px; box-shadow: 0 6px 16px rgba(0,0,0,.4);
-  background-image: repeating-linear-gradient(#efe9db 0 23px, #d9d0bd 23px 24px); }
-.paper h2 { color: #1f241f; font: 600 15px var(--font-display); text-transform: none; letter-spacing: 0; margin: 0 0 6px; }
-.paper .brief { margin: 0 0 8px; font-size: 13px; line-height: 24px; }
-.goals { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; font-size: 13px; line-height: 1.35; }
-.goals li { display: flex; gap: 8px; padding: 3px 0; }
-.goals .tick { font-weight: 700; width: 14px; flex: none; color: #8d8370; }
-.goals li.done { color: #3d6b47; } .goals li.done .tick { color: #2f7a3e; }
-.goals li.next { font-weight: 600; } .goals li.next .tick { color: #c98a12; }
-.hints { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: #4a4336; }
-.won { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #b9ad94; font-size: 13px; }
-.big-stars { font-size: 26px; color: #c98a12; letter-spacing: 3px; }
-#mission-panel .row { margin-top: 8px; }
-#mission-panel .note a { color: var(--amber); }
 .pins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; margin-top: 8px; }
 .pinbtn { display: grid; text-align: left; gap: 1px; padding: 5px 7px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font: 11.5px var(--font-data); color: var(--muted); }
 .pinbtn b { color: var(--ink); font-size: 12.5px; }
@@ -460,8 +422,6 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
 .pt-table td, .pt-table th, .telemetry .pt-table td, .telemetry .pt-table th { padding: 4px 14px 4px 0; text-align: left; border-bottom: 1px solid var(--line); }
 .pt-text { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #0b1729; color: inherit; font: 12.5px/1.5 var(--font-data); resize: vertical; }
 .pt-ok { align-self: center; color: var(--muted); font: 13px var(--font-data); }
-.ts-link { justify-self: start; background: none; border: 0; padding: 2px 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
-.ts-link:hover { color: var(--amber); }
 .narrow-note { display: none; }
 @media (max-width: 899px) {
   .app { grid-template: "note" 1fr / minmax(0, 1fr); }

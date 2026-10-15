@@ -1,4 +1,4 @@
-// Start screen: shown when the game opens without a link to a level, the map, a mission or the sandbox.
+// Start screen: shown when the game opens without a link to a level, the map or the sandbox.
 // The bench behind it stays loaded but paused until the player picks a way in.
 (function (BB) {
   "use strict";
@@ -26,7 +26,6 @@
           <button type="button" class="ts-alt" id="ts-map"><span class="ts-k">Level map</span><span class="ts-s">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</span></button>
           <button type="button" class="ts-alt" id="ts-sandbox"><span class="ts-k">Sandbox</span><span class="ts-s">${hasBench ? "Your bench, as you left it" : "Every part, no goals"}</span></button>
         </div>
-        ${BB.CLASSIC ? `<button type="button" class="ts-link" id="ts-classic">Classic lab: the old workbook missions</button>` : ""}
       </div>
       <p class="ts-narrow">The game needs a desktop screen (at least 900 px wide).</p>
       <ol class="ts-how">
@@ -41,7 +40,6 @@
     $("ts-go").addEventListener("click", () => { hide(); if (next) G.enterLevel(next); else BB.LevelMap.showMap(); });
     $("ts-map").addEventListener("click", () => { hide(); BB.LevelMap.showMap(); });
     $("ts-sandbox").addEventListener("click", () => { hide(); G.enterSandbox(); });
-    if (BB.CLASSIC) $("ts-classic").addEventListener("click", () => { hide(); G.enterSandbox({ quiet: true }); BB.MissionUI.showSelect(); });
     $("ts-go").focus();
     try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignore */ }
   }

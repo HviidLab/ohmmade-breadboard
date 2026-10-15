@@ -60,11 +60,11 @@
     return S;
   }
 
-  // Tracks one mission attempt: goal latching, timers for stars.
+  // Tracks one level attempt: goal latching, timers for stars.
   class Run {
-    constructor(mission) {
-      this.m = mission;
-      this.state = mission.goals.map(() => ({ held: 0, done: false, mem: {} }));
+    constructor(level) {
+      this.m = level;
+      this.state = level.goals.map(() => ({ held: 0, done: false, mem: {} }));
       this.shortT = 0; this.stressT = 0; this.destroyed = new Set(); this.complete = false; this.t0 = null;
     }
     step(G, dt) {
