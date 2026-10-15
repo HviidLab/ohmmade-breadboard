@@ -6,7 +6,10 @@
 //
 // beat = { id, say: "text" | (coach) => "text", highlight, do: {xray}, allow: {...rules},
 //          waitFor: {next: true, label} | {predict: true} | {event: "remove", id} | {when: (S, mem, coach) => bool, hold},
-//          predict: {choices: [...], answer: k}, hints: [{say} | {highlight} | {show: [parts]}] }
+//          predict: {choices: [...], answer: k, why: [line per wrong choice]}, reply: "p" (this beat answers prediction "p"),
+//          hints: [{say} | {highlight} | {show: [parts]}] }
+// A beat with `reply` opens with Sparky's answer to that prediction: "Right!" or "Not quite: " and the belief behind the
+// wrong choice, said once, above the beat's own line. A beat's `note` is a "Real bench" safety line shown under it.
 // level.bonus = [{ text, when: (S, mem, coach) => bool } | { text, final: (coach) => bool }]
 (function (BB) {
   "use strict";
@@ -15,8 +18,8 @@
   const PLAIN = {
     led: "Pop! The LED burned out: far too much current went through it.",
     resistor: "The resistor burned out: it got far too hot.",
-    wire: "The wire melted! A short circuit sent a huge current through it.",
-    battery: "The batteries overheated and leaked after a long short circuit.",
+    wire: "The wire got so hot its insulation melted: far too much current went through it.",
+    battery: "The batteries overheated in a short circuit. Click the battery pack for fresh ones.",
     meter: "Pop! The meter's fuse blew: set for mA, the meter is almost a wire. Click the meter to put in a new fuse.",
     uno: "A pin gave far too much current and is damaged. Click the board for a fresh one.",
   };
@@ -48,6 +51,13 @@
     get goalsOn() { return this.i >= (this.lv.goalsFrom ?? this.lv.beats.length - 1); }
     text(b) { return typeof b.say === "function" ? b.say(this) : b.say; }
     right(id) { const b = this.lv.beats.find((x) => x.id === id); return !!b && this.pred[id] === b.predict.answer; }
+    // Sparky's answer to prediction `id`: {ok, text}, or null if it was not asked.
+    reply(id) {
+      const b = this.lv.beats.find((x) => x.id === id);
+      if (!b || this.pred[id] === undefined) return null;
+      if (this.right(id)) return { ok: true, text: b.predict.ok || "Right!" };
+      return { ok: false, text: `Not quite: ${(b.predict.why || [])[this.pred[id]] || ""}`.trim() };
+    }
 
     start() { this.enter(0); }
     enter(i) {
@@ -66,6 +76,8 @@
       return {
         next: b.waitFor.next ? b.waitFor.label || "Continue" : null,
         choices: b.waitFor.predict ? b.predict.choices : null,
+        reply: b.reply ? this.reply(b.reply) : null,
+        note: b.note || null,
         hints: (b.hints || []).length - this.hint,
       };
     }

@@ -114,6 +114,14 @@
   // ---------- the Notebook: an inventor's notebook on graph paper (art style 2) ----------
   // A page per chapter; each idea is a taped card with its drawing. Ideas not learned yet are pencil outlines that say
   // where you will learn them. Cards learned since the last visit carry a "New!" stamp. Click a card to see it large.
+  // Always in the Notebook: what is safe in the game is not always safe on a real bench.
+  const SAFE = `<section class="nb-page"><h2 class="nb-ch">Safe bench</h2><ol class="nb-grid"><li class="nb-wide"><div class="nb-card nb-safe">
+    <h2>Safe here, careful there</h2><p>In the game you can break anything. On a real bench:</p><ul>
+    <li>Use only AA or AAA alkaline packs. Never lithium cells, power banks or mains.</li>
+    <li>Never short a battery: wires and cells get hot enough to burn.</li>
+    <li>If a part gets hot or smells, disconnect it, and let it cool before you touch it.</li>
+    <li>Electrolytic capacitors: stripe to −, below their voltage, face away when you switch on.</li>
+    <li>Every LED gets its resistor, every pin and every transistor base too.</li></ul></div></li></ol></section>`;
   const teacher = (id) => BB.Levels.all().find((l) => l.teaches.includes(id));
   function ideaCard(c, isNew) {
     return `${isNew ? '<span class="nb-new">New!</span>' : ""}<span class="nb-art">${BB.NotebookArt.diagram(c.id)}</span>
@@ -128,7 +136,7 @@
     const pages = BB.Levels.chapters.map((ch) => `<section class="nb-page"><h2 class="nb-ch">Chapter ${ch.n} · ${esc(ch.title)}</h2>
       <ol class="nb-grid">${ch.levels.flatMap((l) => l.teaches).map((id) => card(BB.Concepts.get(id))).join("")}</ol></section>`).join("");
     const host = show("notebook", `<div class="nb-book"><div class="nb-head"><h1>My Notebook</h1>
-      <p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div>${pages}
+      <p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div>${SAFE}${pages}
       <div class="scr-row"><button type="button" class="btn primary" id="nb-back">Back</button></div></div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
     on(host, "#nb-back", () => (from === "pause" ? pause() : from === "map" ? showMap() : (hideAll(), BB.Title.show())));
     host.querySelectorAll(".nb-card[data-id]").forEach((b) => b.addEventListener("click", () => zoom(host, b.dataset.id)));

@@ -60,9 +60,10 @@
         const r = c.add(new D.Resistor(a, b, P.wire.r));
         return { read: (S) => ({ I: r.current(S.v) }) };
       },
-      stresses: () => ({ heat: { rated: 1.5, tau: 5, square: true, smoke: 1.78, fail: 25, x: (rd) => rd.I } }),
+      // A jumper carries a battery short (about 11 A) for a long time; the batteries overheat first (as on a real bench).
+      stresses: () => ({ heat: { rated: 2.5, tau: 5, square: true, smoke: 1.78, fail: 25, x: (rd) => rd.I } }),
       legI: (rd) => [rd.I || 0, -(rd.I || 0)],
-      failText: (part, rt) => `A jumper wire melted: ${fmtA(rt.stress.heat.peak)} flowed through it. That is a short circuit: a wire straight from + to − with nothing to limit the current.`,
+      failText: (part, rt) => `A jumper wire got so hot its insulation melted: ${fmtA(rt.stress.heat.peak)} flowed through it, with nothing to limit the current.`,
     },
 
     battery: {
@@ -75,9 +76,9 @@
         s.on = part.on !== false;
         return { src: s, read: (S) => { const I = s.current(S.v); return { I, V: S.v[pos] - S.v[neg], Pint: I * I * rint, short: I > 2 }; } };
       },
-      stresses: () => ({ heat: { rated: 1, tau: 20, square: false, smoke: 10, fail: 40, x: (rd) => rd.Pint } }),
+      stresses: () => ({ heat: { rated: 1, tau: 20, square: false, smoke: 10, fail: 18, x: (rd) => rd.Pint } }),      // a full short: hot in 3 s, ruined in 6 s
       legI: (rd) => [-(rd.I || 0), rd.I || 0],
-      failText: () => "The batteries overheated and leaked after a long short circuit. Replace them, and always put a resistance in the path.",
+      failText: () => "The batteries overheated in a short circuit. Real cells get hot enough to burn you, and can leak. Always put a resistance in the path.",
     },
 
     led: {
@@ -90,9 +91,9 @@
       stresses: (part) => ({ current: { rated: D.ledParams(part.color).imax, tau: 0.1, square: true, smoke: 6, fail: 12, x: (rd) => Math.max(rd.I, 0) } }),
       legI: (rd) => [rd.I || 0, -(rd.I || 0)],
       failText(part, rt) {
-        const p = D.ledParams(part.color), emf = P.battery.emf, r = e12AtLeast((emf - p.vf) / 0.015);
+        const p = D.ledParams(part.color), emf = P.battery.emf, raw = (emf - p.vf) / 0.02, r = e12AtLeast(raw);    // the 20 mA rule, rounded up (level 4-5)
         return `The ${name(part).toLowerCase().replace(" led", " LED")} burned out: ${fmtA(rt.stress.current.peak)} flowed, and a standard LED takes about ${p.imax * 1000} mA. ` +
-          `It drops about ${p.vf.toFixed(1)} V, so from the ${emf} V pack a resistor of (${emf} − ${p.vf.toFixed(1)}) V ÷ 15 mA ≈ ${fmtR(r)} or more keeps it safe.`;
+          `It drops about ${p.vf.toFixed(1)} V, so from the ${emf} V pack a resistor of at least (${emf} − ${p.vf.toFixed(1)}) V ÷ 20 mA = ${fmtR(Math.round(raw))}${r > raw + 0.5 ? `, so ${fmtR(r)}` : ""} or more keeps it safe.`;
       },
     },
 
@@ -243,7 +244,7 @@
         c.preferRef(g, 3);
         const n5 = c.node("U.5V"), n33 = c.node("U.3V3");
         const powered = !br.poly;
-        const s5 = c.add(new D.Source(n5, g, U.v5, U.r5)); s5.on = powered;
+        const s5 = c.add(new D.Source(n5, g, U.v5, U.r5)); s5.on = powered;          // r5: a short draws about 1.7 A, about what a USB port can give
         const s33 = c.add(new D.Source(n33, g, U.v33, U.r33)); s33.on = powered;
         const pins = {};
         for (const name of [...BB.Uno.DIGITAL, ...BB.Uno.ANALOG]) {

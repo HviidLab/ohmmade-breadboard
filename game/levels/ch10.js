@@ -17,7 +17,8 @@
       id: "10-1", title: "Light and resistance", teaches: ["ldr"], uses: ["ohms", "resistor", "strip"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Up", "Down", "It stays the same"], 0), seen = {};
+        const P = V.predict(["Up", "Down", "It stays the same"], 0, [null, "it works the other way round: light lets current through, so covered, its resistance goes up.",
+          "this resistor reacts to light: cover it and its resistance climbs."]), seen = {};
         const reading = (S) => { const q = part(S, "s1"); return !!q && S.across(q) && ohms(S) !== null && S.near(ohms(S), q.rd.R, 0.05) ? ohms(S) : null; };
         const light = (S) => { const r = reading(S); if (r !== null && !dark(S, "s1")) seen.light = r; return r !== null && !dark(S, "s1"); };
         const darkR = (S) => { const r = reading(S); if (r !== null && dark(S, "s1") && r > 30000) seen.dark = r; return r !== null && dark(S, "s1") && r > 30000; };
@@ -32,7 +33,8 @@
               predict: P, waitFor: { predict: true } },
             { id: "light", say: "First measure it in room light. The meter is already on Ω.", hints: [RING(V.hs("b10", "b13"))], waitFor: { when: light } },
             { id: "dark", say: () => `${fmtR(seen.light || 1850)} in room light. Now cover it, and watch the meter.`, hints: [COVER], waitFor: { when: darkR } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}${fmtR(seen.light || 1850)} in the light, ${fmtR(seen.dark || 75000)} in the dark. Light lets the current through.`),
+            Object.assign(FINISH(() => `${fmtR(seen.light || 1850)} in the light, ${fmtR(seen.dark || 75000)} covered. Light lets the current through.`),
+              { reply: "p", note: "a real light sensor reads about 2 kΩ in room light, tens of kΩ under your hand, and up to 1 MΩ in total darkness." }),
           ],
           goals: [{ text: "Measure it in the dark", when: darkR }],
           bonus: [
@@ -47,7 +49,8 @@
       id: "10-2", title: "A light meter", teaches: ["ldrDivider"], uses: ["ldr", "divider", "volts", "resistor", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Drop", "Rise", "Stay the same"], 0), seen = {};
+        const P = V.predict(["Drop", "Rise", "Stay the same"], 0, [null, "the sensor sits on the + side. Its share grows in the dark, so less push is left for the 10 kΩ.",
+          "change one resistor of a divider and the middle point moves."]), seen = {};
         const mid = V.n("bb:L6");
         const vMid = (S) => (on(S, mid, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);
         const light = (S) => { const v = vMid(S); if (v !== null && !dark(S, "s1") && v > 4) seen.light = v; return v !== null && !dark(S, "s1") && v > 4; };
@@ -63,7 +66,7 @@
               highlight: { nets: [mid] }, predict: P, waitFor: { predict: true } },
             { id: "light", say: "Measure the middle point against the − rail, in room light.", hints: [RING(V.hs("d6", "-T12"))], waitFor: { when: light } },
             { id: "dark", say: () => `${fmtV(seen.light || 5)} in the light. Now cover the sensor and watch.`, hints: [COVER], waitFor: { when: low } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}${fmtV(seen.light || 5)} in light, ${fmtV(seen.dark || 0.7)} in the dark. Light becomes a push you can measure.`),
+            Object.assign(FINISH(() => `${fmtV(seen.light || 5)} in light, ${fmtV(seen.dark || 0.7)} in the dark. Light becomes a push you can measure.`), { reply: "p" }),
           ],
           goals: [{ text: "Measure the middle point in the dark", when: low }],
           bonus: [
@@ -78,7 +81,8 @@
       id: "10-3", title: "Night light", teaches: ["nightLight"], uses: ["ldrDivider", "ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["The LED lights up", "The LED goes out", "Nothing changes"], 0);
+        const P = V.predict(["The LED lights up", "The LED goes out", "Nothing changes"], 0, [null, "it is off already. In the dark the sensor's resistance rises, and B gets current.",
+          "covering the sensor raises its resistance, so B gets current and the LED comes on."]);
         const ledOn = (S) => lit(part(S, "led1"));
         const works = (S) => dark(S, "s1") && ledOn(S);
         return {
@@ -89,13 +93,13 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "A transistor switch for the LED, with a 100 kΩ feeding its base and the light sensor draining it. Cover the sensor, and the LED will…",
+            { id: "p", say: "A transistor switch for the LED. A 100 kΩ feeds its base; the light sensor runs from the base to the − rail. Cover it: the LED…",
               highlight: { part: "s1" }, predict: P, waitFor: { predict: true } },
             { id: "cover", say: "Find out: cover the light sensor.", hints: [COVER], waitFor: { when: works, hold: 0.4 } },
-            { id: "name", say: (C) => `${C.right("p") ? "Right: " : ""}in light the sensor drains the base current away. In the dark it can't, so the base gets current.`, waitFor: NEXT },
-            FINISH("A night light: the sensor decides, the transistor switches, the LED shines when it gets dark."),
+            { id: "name", reply: "p", say: "The 100 kΩ and the sensor make a divider at B. In light, B stays below 0.7 V: no base current. Covered, B rises and current flows in.", waitFor: NEXT },
+            FINISH("Only about 0.04 mA gets into B, × 200 ≈ 9 mA: on, but not fully. A night light: the sensor decides, the transistor switches."),
           ],
-          goals: [{ text: "The LED on in the dark", when: works }],
+          goals: [{ text: "The LED on in the dark", pre: "Cover the sensor", when: works }],
           bonus: [
             { text: "Predict what the night light does", final: (C) => C.right("p") },
             { text: "And off again in the light", when: (S, m) => { if (works(S)) m.on = true; return !!m.on && !dark(S, "s1") && !lit(part(S, "led1"), 0.0005); } },

@@ -59,6 +59,15 @@
     if (prog.rule === "below") return `${prog.out} on while ${prog.from} < ${prog.n}`;
     return "";
   }
+  // The same rule as one line of the code a real controller board runs (C, as most boards are programmed).
+  function programCode(prog) {
+    if (!prog) return "";
+    const pin = (n) => (n[0] === "D" ? n.slice(1) : n);
+    if (prog.rule === "copy") return `digitalWrite(${pin(prog.out)}, digitalRead(${pin(prog.from)}));`;
+    if (prog.rule === "opposite") return `digitalWrite(${pin(prog.out)}, !digitalRead(${pin(prog.from)}));`;
+    if (prog.rule === "below") return `digitalWrite(${pin(prog.out)}, analogRead(${pin(prog.from)}) < ${prog.n});`;
+    return "";
+  }
   // Run every board's program once. Returns true when it changed a pin (the caller rebuilds the circuit).
   function tick(sim) {
     let changed = false;
@@ -73,5 +82,5 @@
     return changed;
   }
 
-  BB.Uno = { W, H, P, SOCKETS, DIGITAL, ANALOG, pos, netOf, socketXY, socketAt, usable, label, damaged, reading, tick, programText, present: false };
+  BB.Uno = { W, H, P, SOCKETS, DIGITAL, ANALOG, pos, netOf, socketXY, socketAt, usable, label, damaged, reading, tick, programText, programCode, present: false };
 })(window.BB = window.BB || {});

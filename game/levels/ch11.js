@@ -33,7 +33,8 @@
       id: "11-1", title: "A pin you switch", teaches: ["pinOut"], uses: ["loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Light up", "Stay dark", "Burn out"], 0);
+        const P = V.predict(["Light up", "Stay dark", "Burn out"], 0, [null, "HIGH joins D13 to 5 V, so current flows round the LED's loop.",
+          "the 330 Ω holds the current down, just as it does with a battery."]);
         const hi = (S) => mode(S, "D13") === "HIGH" && led(S), lo = (S) => mode(S, "D13") === "LOW" && !lit(part(S, "led1"), 0.0005);
         return {
           region: REGION(V),
@@ -42,12 +43,12 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "This is a controller board, powered by its USB cable. Its pin D13 feeds the LED. Set D13 HIGH, and the LED will…",
+            { id: "p", say: "A controller board, powered by USB. Its pin D13 feeds the LED. Set D13 HIGH, which joins it to 5 V inside the board: the LED…",
               highlight: { part: "board" }, predict: P, waitFor: { predict: true } },
             { id: "high", say: "Find out: click D13's badge on the board. H means HIGH, L means LOW.", hints: [PIN], waitFor: { when: hi, hold: 0.3 } },
-            { id: "low", say: (C) => `${C.right("p") ? "Right: " : ""}HIGH joins D13 to 5 V inside the board, so a current flows. Now set it LOW.`,
+            { id: "low", reply: "p", say: "HIGH joined D13 to 5 V, so a current flowed. Now set it LOW, which joins it to 0 V.",
               waitFor: { when: lo, hold: 0.3 } },
-            FINISH("A pin is a switch you control: HIGH gives 5 V, LOW gives 0 V. The board does the switching."),
+            FINISH("A pin is a switch you control: HIGH gives 5 V, LOW gives 0 V. In the code a real board runs: digitalWrite(13, HIGH);"),
           ],
           goals: [{ text: "Light the LED from D13", when: hi }, { text: "Switch it off from D13", when: (S, m) => { if (hi(S)) m.on = true; return !!m.on && lo(S); } }],
           bonus: [
@@ -63,7 +64,8 @@
       id: "11-2", title: "A pin's limit", teaches: ["pinLimit"], uses: ["pinOut", "ledCurrent", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["The LED just lights", "The pin is damaged", "Nothing happens"], 1), seen = {};
+        const P = V.predict(["The LED just lights", "The pin is damaged", "Nothing happens"], 1, ["with no resistor, far more current flows than a pin can give.", null,
+          "HIGH pushes 5 V through the LED with nothing to hold the current down."]), seen = {};
         const hurt = (S) => { const p = S.uno.pin("D13"); return !!p && p.damaged; };
         const fixed = (S) => {
           const p = S.uno.pin("D13"), ok = !!p && !p.damaged && p.mode === "HIGH" && led(S) && Math.abs(p.I) < 0.02 && S.parts("resistor").some((q) => q.part.value === 330);
@@ -81,10 +83,11 @@
             { id: "p", say: "This LED is on D13 with a plain wire where its resistor should be. Set D13 HIGH, and…", highlight: { part: "w3" },
               predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: set D13 HIGH.", hints: [PIN], waitFor: { when: hurt, hold: 0.05 } },
-            { id: "fix", say: (C) => `${C.right("p") ? "Right. " : ""}Pop! D13 gave over 60 mA. Swap the plain wire for the 330 Ω, then get a fresh board.`, allow: { remove: ["w3"] },
+            { id: "fix", reply: "p", say: "Pop! D13 was forced past its 40 mA limit. Swap the plain wire for the 330 Ω, then get a fresh board.", allow: { remove: ["w3"] },
               hints: [{ say: "Click the plain wire and remove it. Put the 330 Ω in its place. Then click the board and press Fresh board." }, { show: [V.RES("h", "b15", "b18", 330)] }],
               waitFor: { when: fixed, hold: 0.6 } },
-            FINISH(() => `${fmtI(seen.i || 0.008)} now. A pin gives about 20 mA safely, so an LED on a pin always needs its resistor.`),
+            Object.assign(FINISH(() => `${fmtI(seen.i || 0.008)} now. A pin gives about 20 mA safely, so an LED on a pin always needs its resistor.`),
+              { note: "a pin pushed past 40 mA wears out slowly; it may not break at once. Fit the resistor anyway, every time." }),
           ],
           goals: [{ text: "Light the LED safely from D13", when: fixed, hold: 0.6 }],
           bonus: [
@@ -100,7 +103,8 @@
       id: "11-3", title: "Reading a knob", teaches: ["analogRead"], uses: ["pinOut", "potKnob", "divider", "volts", "strip", "rail"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["About 512", "About 1023", "About 2.5"], 0), seen = {};
+        const P = V.predict(["About 512", "About 1023", "About 2.5"], 0, [null, "1023 is the full 5 V. Half the push reads about half of that: 512.",
+          "A0 doesn't show volts. It turns the push into a number: 2.5 V reads about 512."]), seen = {};
         const wired = (S) => S.parts("wire").some((w) => w.legs.includes("U.A0") && w.nets.includes(V.n("bb:L17")));
         const a0 = (S) => (wired(S) ? S.uno.analog("A0") : null);
         const mid = (S) => { const v = a0(S); if (v !== null && v > 400 && v < 624) seen.mid = v; return v !== null && v > 400 && v < 624; };
@@ -113,14 +117,14 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "The knob's ends are on 5 V and GND. Wire its middle leg to A0, knob in the middle: the screen will show A0 reads…",
+            { id: "p", say: "The knob's ends are on 5 V and GND. A0 turns 0 to 5 V into a number from 0 to 1023. Knob in the middle: A0 reads…",
               highlight: { part: "k1" }, predict: P, waitFor: { predict: true } },
             { id: "wire", say: "Find out: draw a wire from the knob's middle leg to the board's A0 socket.",
               hints: [{ say: "A0 is in the group marked “analog in”, on the right of the board.", highlight: { holes: ["U.A0"] } }, { show: [V.WIRE("h", "b17", "U.A0")] }],
               waitFor: { when: mid, hold: 0.3 } },
-            { id: "turn", say: (C) => `${C.right("p") ? "Right: " : ""}half of 5 V reads ${seen.mid || 512}, about half of 1023. Now turn the knob all the way, both ways.`,
+            { id: "turn", reply: "p", say: () => `Half of 5 V reads ${seen.mid || 512}, about half of 1023. Now turn the knob all the way, both ways.`,
               waitFor: { when: ends } },
-            FINISH("A0 turns its push into a number: 0 V reads 0, 5 V reads 1023. That's how a board reads a knob."),
+            FINISH("A0 turns its push into a number: 0 V reads 0, 5 V reads 1023. In code: analogRead(A0). That's how a board reads a knob."),
           ],
           goals: [{ text: "Read the knob at both ends", when: ends }],
           bonus: [
@@ -136,7 +140,7 @@
       id: "11-4", title: "A pin that reads", teaches: ["pinIn"], uses: ["pinOut", "buttonLoop", "buttonLegs", "resistor", "strip", "rail", "gap"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["HIGH", "LOW", "5 V"], 0);
+        const P = V.predict(["HIGH", "LOW", "5 V"], 0, [null, "the button joins D2 to 5 V, and anything above 3 V reads HIGH.", "a pin set to IN reads HIGH or LOW, not volts: 5 V reads HIGH."]);
         const high = (S) => pressed(S) && S.uno.read("D2") === "HIGH", low = (S) => !pressed(S) && S.uno.read("D2") === "LOW";
         return {
           region: REGION(V),
@@ -148,9 +152,9 @@
             { id: "p", say: "D2 is set to IN: it doesn't push, it reads. The button joins D2 to 5 V. Press it, and the screen will say D2 reads…",
               highlight: { lcd: "board" }, predict: P, waitFor: { predict: true } },
             { id: "press", say: "Find out: press and hold the button, and watch the board's screen.", hints: [PRESS], waitFor: { when: high, hold: 0.2 } },
-            { id: "name", say: (C) => `${C.right("p") ? "Right: " : ""}5 V reads HIGH. Now let go: the 10 kΩ joins D2 to GND, so it reads LOW.`,
+            { id: "name", reply: "p", say: "5 V reads HIGH. Now let go: the 10 kΩ joins D2 to GND, so it reads LOW.",
               waitFor: { when: low, hold: 0.3 } },
-            FINISH("A pin set to IN reads its push: above 3 V is HIGH, below 1.5 V is LOW. That's how a board reads a button."),
+            FINISH("A pin set to IN reads its push: above 3 V is HIGH, below 1.5 V is LOW. In code: pinMode(2, INPUT), then digitalRead(2)."),
           ],
           goals: [{ text: "Make D2 read HIGH", when: high }, { text: "And LOW again", when: (S, m) => { if (high(S)) m.h = true; return !!m.h && low(S); } }],
           bonus: [
@@ -166,7 +170,7 @@
       id: "11-5", title: "Floating", teaches: ["pullDown"], uses: ["pinIn", "pinOut", "buttonLoop", "buttonLegs", "resistor", "strip", "rail", "gap"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["LOW", "HIGH", "HIGH and LOW at random"], 2);
+        const P = V.predict(["LOW", "HIGH", "HIGH and LOW at random"], 2, ["joined to nothing, nothing pulls it down to 0 V: it floats.", "nothing pulls it up either. Joined to nothing, it floats and reads at random.", null]);
         let once = false;                    // D2 has floated: only after that does holding it LOW count
         const floated = (S, m) => { if (pressed(S) || !S.uno.floating("D2")) return false; m[S.uno.read("D2")] = true; if (m.HIGH && m.LOW) once = true; return !!m.HIGH && !!m.LOW; };
         const steady = (S) => once && !pressed(S) && !S.uno.floating("D2") && S.uno.read("D2") === "LOW";
@@ -181,11 +185,11 @@
               predict: P, waitFor: { predict: true } },
             { id: "remove", say: "Find out: take the 10 kΩ off the board. Keep the button up, and watch the screen.",
               hints: [{ say: "Click the 10 kΩ, then Remove." }], waitFor: { when: floated } },
-            { id: "back", say: (C) => `${C.right("p") ? "Right: " : ""}nothing holds it, so it floats and reads at random. Put the 10 kΩ back, from D2's strip to the − rail.`,
+            { id: "back", reply: "p", say: "Nothing holds it, so it floats and reads at random. Put the 10 kΩ back, from D2's strip to the − rail.",
               hints: [{ show: [V.RES("h", "-T7", "a7", 10000)] }], waitFor: { when: steady, hold: 1 } },
-            FINISH("That 10 kΩ is a pull-down: it holds D2 LOW until the button pulls it HIGH. Every button input needs one."),
+            FINISH("That 10 kΩ is a pull-down: it holds D2 LOW until the button pulls it HIGH. A resistor, not a wire, so a press can't short 5 V."),
           ],
-          goals: [{ text: "See D2 float", when: floated }, { text: "Hold D2 steady at LOW", when: steady, hold: 1 }],
+          goals: [{ text: "See D2 float", pre: "Watch D2", when: floated }, { text: "Hold D2 steady at LOW", when: steady, hold: 1 }],
           bonus: [
             { text: "Predict a floating pin", final: (C) => C.right("p") },
             { text: "Then press: D2 reads HIGH", when: (S, m) => { if (steady(S)) m.s = true; return !!m.s && pressed(S) && S.uno.read("D2") === "HIGH"; } },
@@ -199,7 +203,7 @@
       id: "11-6", title: "A tiny program", teaches: ["program"], uses: ["pinIn", "pullDown", "pinOut", "pinLimit", "buttonLoop", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Light up", "Stay dark", "Blink"], 0);
+        const P = V.predict(["Light up", "Stay dark", "Blink"], 0, [null, "pressing makes D2 read HIGH, and the program copies that to D13.", "the program only copies D2: D13 stays HIGH as long as you press."]);
         const rule = (S) => (part(S, "board").part.program || {}).rule;
         const copyOn = (S) => rule(S) === "copy" && pressed(S) && led(S);
         const oppOff = (S) => rule(S) === "opposite" && pressed(S) && !lit(part(S, "led1"), 0.0005);
@@ -214,9 +218,9 @@
             { id: "p", say: "The board runs a program, shown on its screen: D13 copies D2. Press the button, and the LED will…", highlight: { lcd: "board" },
               allow: { program: false }, predict: P, waitFor: { predict: true } },
             { id: "press", say: "Find out: press the button.", allow: { program: false }, hints: [PRESS], waitFor: { when: copyOn, hold: 0.3 } },
-            { id: "swap", say: (C) => `${C.right("p") ? "Right: " : ""}D2 reads HIGH, so the program sets D13 HIGH. Click the screen to change the program, then try the button.`,
+            { id: "swap", reply: "p", say: "D2 reads HIGH, so the program sets D13 HIGH. Click the screen to change the program, then try the button.",
               hints: [{ say: "Click the board's screen once: the program becomes “D13 is opposite of D2”.", highlight: { lcd: "board" } }], waitFor: { when: tried } },
-            FINISH("Same wires, a new program, and the LED does the opposite. In a controller, the program decides."),
+            FINISH("Same wires, a new program, and the LED does the opposite. The ! in the code means \"not\". In a controller, the program decides."),
           ],
           goals: [{ text: "Light the LED with the button", when: copyOn }, { text: "Make the button switch it off", when: oppOff }],
           bonus: [
@@ -250,7 +254,7 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "brief", say: V.say("Build a night light with the board. Its program sets D13 HIGH while A0 reads under 500.",
+            { id: "brief", say: V.say("Build a night light with the board. Its program sets D13 HIGH while A0 reads under 500: see the code on its screen.",
               "Your turn: the program is ready. Build the night light around it."), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build a light-sensor divider into A0, and the LED on D13. Then test it: in the light, and covered.",
               hints: [{ say: "The divider: the light sensor from the + rail to a strip, the 10 kΩ from that strip to the − rail. Wire the strip to A0." },

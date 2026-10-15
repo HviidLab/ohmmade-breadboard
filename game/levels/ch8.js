@@ -18,7 +18,8 @@
       id: "8-1", title: "A bucket for charge", teaches: ["capStore"], uses: ["switch", "parallelV", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["It goes out at once", "It fades out over a second", "It stays on"], 1);
+        const P = V.predict(["It goes out at once", "It fades out over a second", "It stays on"], 1, ["the capacitor filled up while the battery was on, and now it empties through the LED.", null,
+          "a capacitor holds only a little: it empties through the LED, and the glow fades."]);
         const led = (S) => part(S, "led1");
         const faded = (S, m) => { if (onOff(S) && lit(led(S))) m.on = true; if (m.on && !onOff(S) && lit(led(S), 0.001)) m.glow = true; return !!m.glow && !onOff(S) && !lit(led(S), 0.0003); };
         return {
@@ -29,11 +30,11 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "The blue can is a capacitor: a little bucket for charge. Its ring shows how full it is. What will the LED do when you switch off?",
+            { id: "p", say: "The blue can is a capacitor. It stores energy: think of a little bucket for charge. Its ring shows how full it is. Switch off: the LED…",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
             { id: "off", say: "Find out: switch the battery off, and watch the LED and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: faded } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}the capacitor filled up while the battery was on, then emptied through the LED: a short glow.`),
+            Object.assign(FINISH("The capacitor filled up while the battery was on, then emptied through the LED: a short glow."), { reply: "p" }),
           ],
           goals: [{ text: "Watch the LED fade with the battery off", when: faded }],
           bonus: [
@@ -48,7 +49,10 @@
       id: "8-2", title: "Filling takes time", teaches: ["capTime"], uses: ["capStore", "volts", "switch", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["At once", "It takes a few seconds", "It never fills"], 1), P2 = V.predict(["At the start", "Near the end", "The same all the way"], 0);
+        const P1 = V.predict(["At once", "It takes a few seconds", "It never fills"], 1, ["the resistor holds the current back, so the bucket fills slowly.", null,
+          "current flows in until the capacitor's push nearly matches the battery's: then it is full."]);
+        const P2 = V.predict(["At the start", "Near the end", "The same all the way"], 0, [null, "near the end it is slowest: the capacitor pushes back, so less push is left for the resistor.",
+          "as it fills, its own push grows, so less is left across the resistor, and less current flows in."]);
         const full = (S) => vc(S, "c1") > 5;
         return {
           region: REGION(V),
@@ -57,12 +61,12 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "p1", say: "An empty capacitor, filled through a 4.7 kΩ resistor. The meter watches its push. Switch on: will it be full at once?",
+            { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its push. Switch on: will it be full at once?",
               highlight: { part: "c1" }, predict: P1, waitFor: { predict: true } },
             { id: "fill", say: "Find out: switch the battery on, and watch the meter and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: full } },
-            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}a few seconds. When did it fill fastest?`, predict: P2, waitFor: { predict: true } },
-            FINISH((C) => `${C.right("p2") ? "Right: " : ""}fast at first, slower as it fills up. Through a resistor, charging takes time.`),
+            { id: "p2", reply: "p1", say: "A few seconds. When did it fill fastest?", predict: P2, waitFor: { predict: true } },
+            Object.assign(FINISH("Fast at first, slower as it fills: its own push grows, so less is left across the resistor, and less current flows in."), { reply: "p2" }),
           ],
           goals: [{ text: "Fill the capacitor above 5 V", when: full }],
           bonus: [
@@ -77,7 +81,8 @@
       id: "8-3", title: "R × C", teaches: ["tau"], uses: ["capTime", "capStore", "switch", "resistor", "loop", "strip", "rail"], shifts: [0],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Left and middle", "Left and right", "Middle and right"], 0);
+        const P = V.predict(["Left and middle", "Left and right", "Middle and right"], 0, [null, "the right one has a 10 kΩ, ten times the left one's resistance: it fills ten times slower.",
+          "the right one has ten times the middle one's capacitance: it fills ten times slower."]);
         const race = (S, m) => { if (vc(S, "cA") > 5 && vc(S, "cB") > 5 && vc(S, "cC") < 2.5) m.seen = true; return !!m.seen; };
         return {
           region: REGION(V),
@@ -92,10 +97,10 @@
             { id: "p", say: "Left: 1 kΩ and 1000 µF. Middle: 10 kΩ and 100 µF. Right: 10 kΩ and 1000 µF. Which two will fill equally fast?",
               highlight: { parts: ["cA", "cB", "cC"] }, predict: P, waitFor: { predict: true } },
             { id: "race", say: "Find out: switch on, and watch the three rings.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: race } },
-            { id: "name", say: (C) => `${C.right("p") ? "Right! " : ""}Multiply them: 1 kΩ × 1000 µF = 1 s, and 10 kΩ × 100 µF = 1 s. The right one: 10 s.`, waitFor: NEXT },
+            { id: "name", reply: "p", say: "Multiply: kΩ × µF gives milliseconds. 1 kΩ × 1000 µF = 1000 ms = 1 s; 10 kΩ × 100 µF = 1 s too. The right one: 10 s.", waitFor: NEXT },
             FINISH("R × C, in seconds, is the capacitor's time: in that time it fills about two thirds of the way. Bigger R or C, slower."),
           ],
-          goals: [{ text: "Watch left and middle win the race", when: race }],
+          goals: [{ text: "Watch left and middle win the race", pre: "Watch the race", when: race }],
           bonus: [
             { text: "Predict the pair", final: (C) => C.right("p") },
             { text: "Wait until the right one passes half full", when: (S) => vc(S, "cC") > 3 },
@@ -108,7 +113,8 @@
       id: "8-4", title: "Which way round", teaches: ["capPolarity"], uses: ["capStore", "polarity", "short", "switch", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["It swells up and vents", "It fills up the other way", "Nothing at all"], 0);
+        const P = V.predict(["It swells up and vents", "It fills up the other way", "Nothing at all"], 0, [null,
+          "an electrolytic capacitor works one way only. Backwards, current leaks through it and heats it up.", "backwards, current leaks through it, and it heats up until it vents."]);
         const vented = (S) => S.parts("cap").some((q) => !q.ok);
         const right = (S) => S.parts("cap").some((q) => q.ok && q.rd.Vc > 5);
         return {
@@ -121,9 +127,10 @@
             { id: "p", say: "This capacitor is in backwards: its + leg is on the − rail. The stripe marks the − leg. What happens when you switch on?",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
             { id: "on", say: "Find out: switch the battery on, and watch.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: vented, hold: 0.05 } },
-            { id: "fix", say: (C) => `${C.right("p") ? "Right: " : ""}it swelled and vented. Turn it the right way round, + leg to the + rail, and take a fresh one.`,
+            { id: "fix", reply: "p", say: "It swelled and vented. Turn it the right way round, + leg to the + rail, and take a fresh one.",
               hints: [{ say: "Click the capacitor: press Flip (or the R key), then Fresh one." }], waitFor: { when: right, hold: 0.5 } },
-            FINISH("An electrolytic capacitor is one-way, like an LED: + leg to the + side, stripe to the − side."),
+            Object.assign(FINISH("An electrolytic capacitor is one-way, like an LED: + leg to the + side, stripe to the − side."),
+              { note: "a backwards electrolytic capacitor can burst and spray hot liquid. Check the stripe before you switch on, and keep your face away." }),
           ],
           goals: [{ text: "A capacitor charged the right way round", when: right, hold: 0.5 }],
           bonus: [
@@ -136,7 +143,7 @@
     },
     {
       id: "8-5", title: "Fading light", teaches: [], uses: ["capStore", "capTime", "tau", "capPolarity", "buttonLoop", "buttonLegs", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0],
-      card: { name: "Capacitors and time", text: "A capacitor stores charge and lets it out again over time. R × C sets how long: bigger R or C, slower." },
+      card: { name: "Capacitors and time", text: "A capacitor stores energy and lets it out again over time. R × C sets how long: bigger R or C, slower." },
       layouts: [{}],
       make: (V) => {
         // after the button is let go, the LED keeps glowing (> 0.5 mA) for at least a second
@@ -156,10 +163,10 @@
           ui: { xray: true },
           goalsFrom: 1,
           beats: [
-            { id: "brief", say: V.say("Make the LED keep glowing for a second after you let go of the button. The button feeds row 8 while you hold it.",
-              "When you let go of the button, the LED should glow on for at least a second. The button feeds row 8 while pressed."), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say("Make the LED keep glowing for a second after you let go of the button. The button feeds column 8 while you hold it.",
+              "When you let go of the button, the LED should glow on for at least a second. The button feeds column 8 while pressed."), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it, then hold the button for a couple of seconds and let go. Ask for a hint if you need one.",
-              hints: [{ say: "From row 8: a small resistor to the capacitor's + leg (its − leg to the − rail). From that strip: a resistor and the LED to the − rail." },
+              hints: [{ say: "From column 8: a small resistor to the capacitor's + leg (its − leg to the − rail). From that strip: a resistor and the LED to the − rail." },
                 { say: "The 100 µF empties ten times faster than the 1000 µF." },
                 { show: [V.RES("h1", "a8", "a10", 100), CAP(V, "h2", "c10", "c11", 1e-3), V.WIRE("h3", "e11", "-T11"), V.RES("h4", "d10", "d14", 470), V.LED("h5", "c14", "c15"),
                   V.WIRE("h6", "e15", "-T15")] }],

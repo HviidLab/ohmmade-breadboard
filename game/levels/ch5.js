@@ -20,7 +20,8 @@
       id: "5-1", title: "Two in a row", teaches: ["seriesR"], uses: ["twiceR", "ohmsLaw", "sameCurrent", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["12 mA", "6 mA", "3 mA"], 2), P2 = V.predict(["2 mA", "3 mA", "6 mA"], 0), seen = {};
+        const P1 = V.predict(["12 mA", "6 mA", "3 mA"], 2, ["a second resistor in a row holds back more, so the current falls, not rises.", "the current must get through both: twice the resistance, half the current.", null]);
+        const P2 = V.predict(["2 mA", "3 mA", "6 mA"], 0, [null, "1 kΩ + 2 kΩ = 3 kΩ in all, and 6 V ÷ 3 kΩ = 2 mA.", "in a row the resistances add up to 3 kΩ, so 6 V ÷ 3 kΩ = 2 mA."]), seen = {};
         const two = (S) => !part(S, "w1") && resWith(S, 1000).length === 2 && near(reads(S), 0.0028, 0.0032);
         return {
           region: REGION(V),
@@ -34,9 +35,9 @@
             { id: "build", say: "Find out: take the wire out and put the second resistor in its place.",
               hints: [{ say: "Click the wire and press Remove. Then drag the 1 kΩ into the two holes the wire used." }],
               waitFor: { when: (S) => { if (two(S)) seen.i = reads(S); return two(S); } } },
-            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}${fmtI(seen.i || 0.003)}. In a row, the resistances add: 1 kΩ + 1 kΩ = 2 kΩ. And 1 kΩ + 2 kΩ?`,
+            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i || 0.003)}. In a row, called series, the resistances add: 1 kΩ + 1 kΩ = 2 kΩ. And 1 kΩ + 2 kΩ?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
-            FINISH((C) => `${C.right("p2") ? "Right: " : ""}3 kΩ in all, so 6 V ÷ 3 kΩ = 2 mA. Resistors in a row add up.`),
+            Object.assign(FINISH("3 kΩ in all, so 6 V ÷ 3 kΩ = 2 mA. Resistors in series add up."), { reply: "p2" }),
           ],
           goals: [{ text: "Two 1 kΩ resistors in a row", when: two }],
           bonus: [
@@ -51,7 +52,8 @@
       id: "5-2", title: "Sharing the push", teaches: ["seriesShare"], uses: ["seriesR", "across", "ohmsLaw", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["The 1 kΩ", "The 2 kΩ", "Both the same"], 1), P2 = V.predict(["3 V each", "6 V each", "2 V and 4 V"], 0), seen = {};
+        const P1 = V.predict(["The 1 kΩ", "The 2 kΩ", "Both the same"], 1, ["the bigger resistor takes the bigger share of the push, not the smaller one.", null, "the same current goes through both, so the bigger one takes the bigger share."]);
+        const P2 = V.predict(["3 V each", "6 V each", "2 V and 4 V"], 0, [null, "in series they share the 6 V: it is not given to each one.", "that was for 1 kΩ and 2 kΩ. Two equal resistors take equal shares."]), seen = {};
         const swapped = (S) => !part(S, "r2") && resWith(S, 1000).length === 2;
         const half = (S) => swapped(S) && S.parts("resistor").some((q) => q.id !== "r1" && acrossQ(S, q) && Math.abs(volts(S)) > 2.7 && Math.abs(volts(S)) < 3.3);
         return {
@@ -68,11 +70,11 @@
                 if (acrossQ(S, part(S, "r2"))) { m.b = true; seen.b = volts(S); }
                 return m.a && m.b;
               } } },
-            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}${fmtV(seen.a || 2)} and ${fmtV(seen.b || 4)}: twice the resistance, twice the share. With two 1 kΩ?`,
+            { id: "p2", reply: "p1", say: () => `${fmtV(seen.a || 2)} and ${fmtV(seen.b || 4)}: twice the resistance, twice the share. With two 1 kΩ?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
             { id: "swap", say: "Check it: swap the 2 kΩ for the 1 kΩ from the tray, and measure across it.",
               hints: [{ say: "Click the 2 kΩ and press Remove, then drag the 1 kΩ into the same two holes." }, RING(V.hs("d6", "d10"))], waitFor: { when: half } },
-            FINISH("In a row, the resistors share out the push, the bigger one taking the bigger share. The shares add up to the battery."),
+            Object.assign(FINISH("In series, the resistors share out the push, the bigger one taking the bigger share. The shares add up to the battery."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure across the second 1 kΩ", when: half }],
           bonus: [
@@ -88,7 +90,8 @@
       id: "5-3", title: "Side by side", teaches: ["parallelV"], uses: ["seriesShare", "volts", "across", "ohmsLaw", "resistor", "rail"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["6 V each", "3 V each", "2 V and 4 V"], 0), P2 = V.predict(["3 mA", "6 mA", "9 mA"], 0);
+        const P1 = V.predict(["6 V each", "3 V each", "2 V and 4 V"], 0, [null, "side by side they don't share: each goes straight from + to −, so each gets all 6 V.", "that was for a row. Side by side, each one gets the whole 6 V."]);
+        const P2 = V.predict(["3 mA", "6 mA", "9 mA"], 0, [null, "the 2 kΩ gets 6 V too, but holds back twice as much: 6 V ÷ 2 kΩ = 3 mA.", "9 mA is what the battery sends to both. The 2 kΩ alone takes 6 ÷ 2 = 3 mA."]);
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "-T10", 1000), V.RES("r2", "+T14", "-T16", 2000), METER("V")),
@@ -104,9 +107,9 @@
                 if (acrossQ(S, part(S, "r2")) && Math.abs(volts(S)) > 5.5) m.b = true;
                 return m.a && m.b;
               } } },
-            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}6 V across both: side by side, each gets the whole push. So 1 kΩ takes 6 mA. And the 2 kΩ?`,
+            { id: "p2", reply: "p1", say: "6 V across both: side by side, called parallel, each gets the whole push. So the 1 kΩ takes 6 mA. And the 2 kΩ?",
               predict: P2, waitFor: { predict: true } },
-            FINISH((C) => `${C.right("p2") ? "Right: " : ""}6 V ÷ 2 kΩ = 3 mA. Side by side, every branch gets the full push and works out its own current.`),
+            Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch gets the full push and works out its own current."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure across both resistors", when: (S, m) => {
             if (acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 5.5) m.a = true;
@@ -125,7 +128,8 @@
       id: "5-4", title: "Branches add up", teaches: ["parallelI"], uses: ["parallelV", "current", "ohmsLaw", "resistor", "rail", "strip"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["9 mA", "3 mA", "6 mA"], 0), P2 = V.predict(["15 mA", "9 mA", "7 mA"], 0), seen = {};
+        const P1 = V.predict(["9 mA", "3 mA", "6 mA"], 0, [null, "adding a branch gives the current a second path, so the battery sends more, not less.", "the first branch still takes its 6 mA, and the new one adds its own 3 mA."]);
+        const P2 = V.predict(["15 mA", "9 mA", "7 mA"], 0, [null, "every new branch adds its own current: 9 + 6 = 15 mA.", "branches add, they don't average: 6 + 3 + 6 = 15 mA."]), seen = {};
         const nBranches = (S) => S.parts("resistor").filter((q) => q.ok && railToRail(q)).length;
         const nine = (S) => nBranches(S) === 2 && near(reads(S), 0.0086, 0.0094);
         const fifteen = (S) => nBranches(S) === 3 && near(reads(S), 0.0143, 0.0157);
@@ -137,14 +141,14 @@
           ui: { xray: true },
           goalsFrom: 3,
           beats: [
-            { id: "p1", say: "The meter sits in the main line, so it counts everything the battery sends: 6 mA for one 1 kΩ branch. Add a 2 kΩ branch?",
+            { id: "p1", say: "The meter sits in the main line, the path all the current takes, so it counts everything: 6 mA for one 1 kΩ branch. Add a 2 kΩ?",
               highlight: { lcd: "meter" }, predict: P1, waitFor: { predict: true } },
             { id: "add", say: "Find out: put the 2 kΩ side by side with the other resistor, from the + rail to the − rail.",
               hints: [{ say: "One leg on the red + rail, the other on the blue − rail, like the resistor already there." }, { show: [V.RES("h", "+T14", "-T16", 2000)] }],
               waitFor: { when: (S) => { if (nine(S)) seen.i = reads(S); return nine(S); } } },
-            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}${fmtI(seen.i || 0.009)}: 6 + 3. The branches add up. A third branch, another 1 kΩ?`, predict: P2, waitFor: { predict: true } },
+            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i || 0.009)}: 6 + 3. The branches add up. A third branch, another 1 kΩ?`, predict: P2, waitFor: { predict: true } },
             { id: "add2", say: "Add it, and watch the meter.", hints: [{ show: [V.RES("h", "+T17", "-T19", 1000)] }], waitFor: { when: fifteen } },
-            FINISH("Side by side, the currents add up: the battery supplies every branch at once."),
+            Object.assign(FINISH("In parallel, the currents add up: the battery supplies every branch at once."), { reply: "p2" }),
           ],
           goals: [{ text: "Three branches: about 15 mA in all", when: fifteen }],
           bonus: [
@@ -160,7 +164,8 @@
       id: "5-5", title: "One resistor, two LEDs", teaches: ["ownResistor"], uses: ["parallelV", "ledColours", "ledDrop", "chooseR", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Both", "Only the red one", "Only the blue one"], 1);
+        const P = V.predict(["Both", "Only the red one", "Only the blue one"], 1, ["side by side they get the same push: about 2 V, too little for blue, which needs 3 V.", null,
+          "blue needs more push, about 3 V. Red lights at 2 V and holds the push there."]);
         const blue = (S) => S.parts("led").find((q) => q.part.color === "blue") || null;
         const shared = (S) => { const b = blue(S); return !!b && b.nets.includes(V.n("bb:L6")) && b.nets.includes(V.n("bb:L7")); };
         const both = (S) => S.parts("led").filter((q) => lit(q, 0.005) && q.rd.I <= 0.02).length === 2;
@@ -176,11 +181,11 @@
             { id: "share", say: "Find out: plug the blue LED into the same two strips as the red one, long leg on the + side.",
               hints: [{ say: "Into d6 and d7, say: the same strips as the red LED, which is in c6 and c7." }, { show: [V.LED("h", "d6", "d7", "blue")] }],
               waitFor: { when: shared, hold: 0.6 } },
-            { id: "fix", say: (C) => `${C.right("p") ? "Right: " : ""}side by side they get the same push, about 2 V: too little for blue. Give blue its own resistor and strips.`,
+            { id: "fix", reply: "p", say: "Side by side they get the same push, about 2 V: too little for blue. Give blue its own resistor and strips.",
               hints: [{ say: "Move the blue LED to free strips. Then 270 Ω from the + rail to its + leg, and a wire from its − leg to the − rail." },
                 { show: [V.RES("h1", "+T12", "a12", 270), V.LED("h2", "c12", "c13", "blue"), V.WIRE("h3", "e13", "-T13")] }],
               waitFor: { when: both, hold: 0.6 } },
-            FINISH("Each LED gets its own resistor. Side by side on one, the LED that needs the least push takes all the current."),
+            FINISH("Each LED gets its own resistor. Side by side on one, the LED that needs the least push takes almost all the current."),
           ],
           goals: [{ text: "Both LEDs lit, each with its own resistor", when: both, hold: 0.6 }],
           bonus: [
@@ -209,7 +214,7 @@
             { id: "brief", say: V.say("Christmas lights: two red LEDs in a row, with one resistor, each at 8 to 11 mA.",
               "Two red LEDs one after the other, one resistor for both, and 8 to 11 mA through them."), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it. Ask for a hint if you get stuck.",
-              hints: [{ say: "In a row, the two LEDs take 2 V each: 4 V. The resistor gets what is left: 6 − 4 = 2 V." }, { say: "Resistor = 2 V ÷ 10 mA = 200 Ω, so take 220 Ω." },
+              hints: [{ say: "In a row, the two LEDs take 2 V each: 4 V. What is left for the resistor?" }, { say: "It gets 6 − 4 = 2 V. Which size lets about 10 mA through: 2 V ÷ 10 mA = …?" },
                 { show: [V.RES("h1", "+T6", "a6", 220), V.LED("h2", "c6", "c7", "red"), V.LED("h3", "d7", "d8", "red"), V.WIRE("h4", "e8", "-T8")] }],
               waitFor: { when: two, hold: 0.8 } },
             FINISH("LEDs in a row add up their pushes, so the resistor gets less. Chapter 5 done!"),

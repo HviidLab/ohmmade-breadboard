@@ -164,7 +164,7 @@
     ledCurrent: () => tx(110, 34, "(battery − LED) ÷ resistor", { s: 21 }) + ln(28, 44, 192, 44, HL, 7) +
       tx(110, 76, "(6 − 2) V ÷ 0.22 kΩ", { s: 20 }) + tx(110, 106, "≈ 18 mA", { s: 22, c: "#a3360f" }),
     chooseR: () => ln(30, 58, 46, 58) + resH(46, 92, 58, 6) + ln(92, 58, 112, 58) + `<g transform="rotate(-90 132 58)">${ledV(132, 58)}</g>` + ln(140, 58, 190, 58) +
-      tx(69, 38, "?", { s: 26, c: RED }) + tx(110, 96, "(6 − 2) V ÷ 10 mA = 400 Ω", { s: 18 }) + tx(110, 120, "nearest: 390 Ω", { s: 18, c: "#a3360f" }),
+      tx(69, 38, "?", { s: 26, c: RED }) + tx(110, 96, "(6 − 2) V ÷ 10 mA = 400 Ω", { s: 18 }) + tx(110, 120, "round up: 470 Ω", { s: 18, c: "#a3360f" }),
     ledColours: () => {
       const one = (x, fill, v) => `<path d="M${x - 12} 40 L${x + 12} 40 L${x} 58 Z" fill="${fill}" stroke="${PEN}" stroke-width="2.2" stroke-linejoin="round"/>` +
         ln(x - 12, 58, x + 12, 58, PEN, 2.6) + ln(x, 24, x, 40) + ln(x, 58, x, 74) + tx(x, 98, v, { s: 20, c: "#a3360f" });
@@ -230,7 +230,7 @@
     capStore: () => {
       const cap = (x, y) => ln(x - 14, y - 4, x + 14, y - 4, PEN, 3) + `<path d="M${x - 14} ${y + 6} q14 -6 28 0" fill="none" stroke="${PEN}" stroke-width="3"/>` + tx(x - 20, y - 6, "+", { s: 16, c: RED });
       return current([[70, 58], [70, 104], [150, 104], [150, 40], [110, 40], [110, 58]], 14) + pl([[110, 56], [110, 40], [150, 40], [150, 58]]) + ledV(150, 66, true, true) +
-        pl([[150, 73], [150, 104], [70, 104], [70, 64]]) + pl([[70, 54], [70, 40], [110, 40]]) + cap(70, 58) + tx(110, 24, "the bucket empties", { s: 17, c: "#a3360f" }) +
+        pl([[150, 73], [150, 104], [70, 104], [70, 64]]) + pl([[70, 54], [70, 40], [110, 40]]) + cap(70, 58) + tx(110, 24, "it empties", { s: 17, c: "#a3360f" }) +
         tx(110, 124, "through the LED: a short glow", { s: 16 });
     },
     capTime: () => ln(30, 108, 200, 108, PEN, 2) + ln(30, 108, 30, 18, PEN, 2) + `<path d="M30 108 C60 40 100 28 196 24" fill="none" stroke="${DOT}" stroke-width="4"/>` +
@@ -263,7 +263,7 @@
       const ldr = (x, y, lit) => circ(x, y, 20, "#fffdf6") + resH(x - 14, x + 14, y, 4) + (lit ? arrow(x - 16, y - 24, 50, "#e0a21c") + ln(x - 30, y - 40, x - 17, y - 25, "#e0a21c", 2.2) +
         arrow(x - 4, y - 26, 60, "#e0a21c") + ln(x - 14, y - 44, x - 5, y - 27, "#e0a21c", 2.2) : "");
       return ldr(60, 60, true) + tx(60, 104, "light: 2 kΩ", { s: 17 }) + ldr(160, 60, false) + `<path d="M140 26 q20 -14 40 0 l4 24 h-48z" fill="#5c6b7c" opacity=".55"/>` +
-        tx(160, 104, "dark: 75 kΩ", { s: 17, c: "#a3360f" });
+        tx(160, 104, "covered: 75 kΩ", { s: 17, c: "#a3360f" });
     },
     ldrDivider: () => ln(30, 16, 150, 16, RED, 2.4) + ln(30, 114, 150, 114, BLUE, 2.4) + ln(90, 16, 90, 26) + circ(90, 40, 13, "#fffdf6") + resV(90, 30, 50, 4) +
       ln(90, 53, 90, 72) + resV(90, 72, 104, 6) + ln(90, 104, 90, 114) + circ(90, 62, 3.5, PEN) + probe([[93, 62], [150, 62]], RED) + meter(166, 62, "V") +

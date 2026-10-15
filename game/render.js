@@ -523,14 +523,18 @@
     const lines = [];
     if (rd && !rd.powered) lines.push("USB fuse tripped:", "the board is off");
     else if (sim && rd) {
-      if (part.program) lines.push(`▶ ${U.programText(part.program)}`);
+      if (part.program) lines.push(`▶ ${U.programText(part.program)}`, { code: U.programCode(part.program) });
       for (const n of part.watch || []) {
         if (n[0] === "A") lines.push(`${n} reads ${rd.pins[n] && rd.pins[n].damaged ? "--" : rd.analog[n]}`);
         else { const q = U.reading(sim, part, n); lines.push(`${n} reads ${q.damaged ? "--" : q.read}`); }
       }
       if (!lines.length) lines.push("ready · 5 V");
     }
-    r.screen.forEach((t, k) => { t.textContent = lines[k] || ""; });
+    r.screen.forEach((t, k) => {             // a line of code is smaller and paler, under its rule
+      const l = lines[k] || "", code = typeof l === "object";
+      t.textContent = code ? l.code : l;
+      t.setAttribute("font-size", code ? 12.5 : 17); t.setAttribute("fill", code ? "#c9f5dd" : "#9dffc8");
+    });
   }
   function partPoints(part) {
     return part.legs.map((pt) => (pt ? (pt.startsWith("U.") ? BB.Uno.socketXY(pt) : xy(pt)) : null));

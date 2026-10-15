@@ -38,7 +38,8 @@
       colors: ["red", "yellow", "green"],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Its LED is weaker", "Its battery pushes less", "Its wires are longer"], 1), seen = {};
+        const P = V.predict(["Its LED is weaker", "Its battery pushes less", "Its wires are longer"], 1,
+          ["the two LEDs are the same kind. The difference is in the push behind them.", null, "a wire's length hardly matters here: a wire takes almost no push."]), seen = {};
         const top = (S) => on(S, "bb:+T", "bb:-T") && Math.abs(volts(S) || 0) > 5.5;
         const bottom = (S) => on(S, "bb:+B", "bb:-B") && Math.abs(volts(S) || 0) > 2.5 && Math.abs(volts(S)) < 3.5;
         const bright = (S) => lit(part(S, "led2"), 0.009);
@@ -59,12 +60,13 @@
               waitFor: { when: (S) => { if (top(S)) seen.top = volts(S); return top(S); } } },
             { id: "bottom", say: () => `${fmtV(seen.top || 6)} at the top. Now measure the bottom battery the same way, on the bottom rails.`,
               hints: [RING(V.hs("+B10", "-B10"))], waitFor: { when: (S) => { if (bottom(S)) seen.bottom = volts(S); return bottom(S); } } },
-            { id: "fix", say: (C) => `${C.right("q") ? "Right: " : ""}${fmtV(seen.bottom || 3)} at the bottom, half the push, so less current. Make the bottom LED bright.`,
+            { id: "fix", reply: "q", say: () => `${fmtV(seen.bottom || 3)} at the bottom: half the push, so less current. Make the bottom LED bright.`,
               hints: [{ say: "The bottom LED gets its push through these two wires, from the 3 V pack. Which battery should they reach?", highlight: { parts: ["wa", "wb"] } },
-                { say: "Move both wires' rail ends to the top rails: + end to the + rail, − end to the − rail. One battery, one loop." },
+                { say: "Press right on a wire's end and drag it up to a top rail: + end to the + rail, − end to the − rail." },
                 { show: [V.WIRE("h1", "+T14", "j5"), V.WIRE("h2", "f9", "-T14")] }],
               waitFor: { when: bright } },
-            FINISH("Volts are the push. More push drives more current round the loop, and the LED glows brighter."),
+            Object.assign(FINISH("Volts are the push. More push drives more current round the loop, and the LED glows brighter."),
+              { note: "a new pack of 4 AA cells reads about 6.3 V, a used one less. Rechargeable cells give only about 4.8 V." }),
           ],
           goals: [{ text: "Make the bottom LED as bright as the top one", when: bright, hold: 0.6 }],
           bonus: [
@@ -85,7 +87,8 @@
         { parts: (V) => [V.WIRE("wire1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7")], res: ["b7", "-T9"], led: ["d6", "d7"], wire: ["+T8", "b6"] },
       ],
       make: (V) => {
-        const P1 = V.predict(["The resistor", "The LED", "The wire"], 0), P2 = V.predict(["About 3 V", "About 4 V", "About 6 V"], 0), seen = {};
+        const P1 = V.predict(["The resistor", "The LED", "The wire"], 0, [null, "the LED looks busiest, but it needs only about 2 V. The resistor takes the rest.", "a wire takes almost no push: it is just metal."]);
+        const P2 = V.predict(["About 3 V", "About 4 V", "About 6 V"], 0, [null, "the resistor doesn't keep its 4 V. The shares add up to 6 V, and blue takes 3 V.", "the resistor gets only what the LED leaves: 6 − 3 = 3 V."]), seen = {};
         const blue = (S) => S.parts("led").some((q) => q.part.color === "blue" && lit(q));
         const blueRes = (S) => blue(S) && across(S, "res1") && Math.abs(volts(S)) > 2.6 && Math.abs(volts(S)) < 3.4;
         return {
@@ -95,11 +98,11 @@
           ui: { xray: true },
           goalsFrom: 4,
           beats: [
-            { id: "p1", say: "Each part in the loop uses some of the battery's 6 V push. Which part do you think uses the most?", predict: P1, waitFor: { predict: true } },
+            { id: "p1", say: "The battery's 6 V push is shared out across the parts in the loop. Which part do you think gets the biggest share?", predict: P1, waitFor: { predict: true } },
             { id: "res", say: "Find out. Measure the push across the resistor: one probe on each side of it.",
               hints: [RING(V.hs(...V.L.res), "Across means one probe in a hole joined to each leg. Try the rings.")],
               waitFor: { when: (S) => { if (across(S, "res1")) seen.r = volts(S); return across(S, "res1"); } } },
-            { id: "both", say: () => `${fmtV(seen.r || 4)} across the resistor. Now measure across the LED, and across the wire.`,
+            { id: "both", reply: "p1", say: () => `${fmtV(seen.r || 4)} across the resistor. Now measure across the LED, and across the wire.`,
               hints: [RING(V.hs(...V.L.led)), RING(V.hs(...V.L.wire), "And the wire: one probe at each end.")],
               waitFor: { when: (S, m) => {
                 if (across(S, "led1")) { m.l = true; seen.l = volts(S); }
@@ -112,7 +115,7 @@
               hints: [{ say: "Click the LED and press Remove. Drag the blue LED into the same holes, its long leg where the old long leg was." },
                 RING(V.hs(...V.L.res))],
               waitFor: { when: blueRes } },
-            FINISH((C) => `${C.right("p2") ? "Right: " : ""}the shares always add up to the battery's push. The LED takes its share, the resistor the rest.`),
+            Object.assign(FINISH("The shares always add up to the battery's push. The LED takes its share, the resistor the rest."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the resistor's share with the blue LED", when: blueRes }],
           bonus: [
@@ -133,7 +136,8 @@
         { parts: (V) => [V.WIRE("wire1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7")], at: ["+T8", "b6"] },
       ],
       make: (V) => {
-        const P = V.predict(["The LED goes out", "Nothing", "The meter reads more"], 0), seen = {};
+        const P = V.predict(["The LED goes out", "Nothing", "The meter reads more"], 0,
+          [null, "the meter is part of the loop now. Pull a probe out and the loop is open.", "a pulled probe opens the loop: no current at all, so the meter reads 0."]), seen = {};
         const reads = (S) => lit(part(S, "led1")) && amps(S, part(S, "led1"));
         return {
           region: REGION(V),
@@ -142,7 +146,7 @@
           ui: { xray: true },
           goalsFrom: 2,
           beats: [
-            { id: "set", say: "To count the flow, the current must go through the meter. Set it for current: dial to mA, red lead into the mA socket.",
+            { id: "set", say: "The current must go through the meter. Set it for current, in mA (thousandths of an amp): dial to mA, red lead into the mA socket.",
               hints: [{ say: "Click mA next to the dial. Then click the mA socket at the bottom of the meter.", highlight: { ctl: ["mode:mA", "socket:mA"], id: "meter" } }],
               waitFor: { when: (S) => mode(S, "mA") && M(S).socket === "mA" } },
             { id: "open", say: "The current has to go through the meter, so make a gap for it: take the wire out.", allow: { remove: ["wire1"] },
@@ -153,7 +157,7 @@
               waitFor: { when: (S) => { if (reads(S)) { seen.i = M(S).value; } return reads(S); } } },
             { id: "p", say: () => `${fmtmA(seen.i || 0.012)}: that many thousandths of an amp flow round${(seen.i || 1) < 0 ? " (the minus: red is on the − side)" : ""}. What if you pull out a probe?`,
               highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}the meter is part of the loop now. Pull a probe out and see the dots stop everywhere.`),
+            Object.assign(FINISH("The meter is part of the loop now. Pull a probe out and see the dots stop everywhere."), { reply: "p" }),
           ],
           goals: [{ text: "Measure the LED's current", when: reads }],
           bonus: [
@@ -169,7 +173,8 @@
       colors: ["red", "yellow", "green"], values: [330, 470],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Less after the LED", "The same", "More after the LED"], 1), seen = {};
+        const P = V.predict(["Less after the LED", "The same", "More after the LED"], 1,
+          ["current is not used up. Every bit that flows into the LED comes out of the other side.", null, "nothing adds current along the way: the same flow goes all round."]), seen = {};
         // where the meter measures: before the LED (wire w2), after it (w3), before the resistor (w1); red probe on the + side
         const AT = { w2: ["a9", "a11"], w3: ["a12", "-T14"], w1: ["+T8", "c6"] };
         const NETS = { w2: ["bb:L9", "bb:L11"], w3: ["bb:L12", "bb:-T"], w1: ["bb:+T", "bb:L6"] };
@@ -192,11 +197,11 @@
               highlight: { part: "w3" }, allow: { remove: ["w3"] },
               hints: [{ say: "Drag the wire from the tray back into its two holes. Then take out the marked wire and put the meter there." }, RING(V.hs(...AT.w3))],
               waitFor: { when: rec("w3") } },
-            { id: "same", say: (C) => `${C.right("p") ? "Right: " : ""}${fmtmA(seen.w3 || 0.012)} after, ${fmtmA(seen.w2 || 0.012)} before: the same! The LED uses push, not current.`,
+            { id: "same", reply: "p", say: () => `${fmtmA(seen.w3 || 0.012)} after, ${fmtmA(seen.w2 || 0.012)} before: the same! What the LED takes is energy: the push drops about 2 V across it.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "third", say: "One more check: put the wire back, and measure before the resistor, in place of this wire.", highlight: { part: "w1" },
               allow: { remove: ["w1"] }, hints: [RING(V.hs(...AT.w1))], waitFor: { when: rec("w1") } },
-            FINISH("The same current flows all the way round a loop: out of +, through every part, and back into −."),
+            FINISH("The same current flows all the way round: out of +, through every part, back into −. So a resistor protects an LED from either side."),
           ],
           goals: [{ text: "Measure the current in three places", when: (S, m) => { for (const w of ["w1", "w2", "w3"]) if (reads(S, w)) m[w] = true; return m.w1 && m.w2 && m.w3; } }],
           bonus: [
@@ -218,7 +223,8 @@
         { parts: (V) => [V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7")], at: ["+T8", "b6"] },
       ],
       make: (V) => {
-        const P = V.predict(["It reads 6 V", "A short circuit: something blows", "Nothing"], 1);
+        const P = V.predict(["It reads 6 V", "A short circuit: something blows", "Nothing"], 1,
+          ["only when set for V. Set for mA, the meter is almost a wire, and a wire across a battery is a short.", null, "set for mA, the meter is almost a wire: across the battery, a huge current flows."]);
         const reads = (S) => lit(part(S, "led1")) && amps(S, part(S, "led1"));
         return {
           region: REGION(V),
@@ -230,12 +236,13 @@
             { id: "p", say: "Set for mA, the meter is almost a wire. What happens if you put it across the battery?", highlight: { part: "meter" }, predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: put the meter across the battery, one probe on each of its rails.",
               hints: [RING(V.hs("+T12", "-T12"))], waitFor: { when: (S) => !!M(S) && !M(S).fuseOK, hold: 0.05 } },
-            { id: "fuse", say: (C) => `${C.right("p") ? "You called it. " : ""}Pop! The meter's fuse blew. It burns out so the meter does not. Click the meter: New fuse.`,
+            { id: "fuse", reply: "p", say: "Pop! The meter's fuse blew. It burns out so the meter does not. Click the meter: New fuse.",
               highlight: { part: "meter" }, hints: [{ say: "Click the meter body. A card with a New fuse button appears next to it." }], waitFor: { event: "replace", id: "meter" } },
             { id: "right", say: "Volts go across. Current goes through. Now measure this LED's current the right way.",
               hints: [{ say: "The loop is open. Close the gap with the meter, so the current flows through it." }, RING(V.hs(...V.L.at))],
               waitFor: { when: reads } },
-            FINISH("Before you measure, check the dial and the red lead. mA goes in the path, never across."),
+            Object.assign(FINISH("Before you measure, check the dial and the red lead. mA goes in the path, never across."),
+              { note: "a blown meter fuse must be replaced with the same kind. Set the dial and the red lead before the probes touch anything." }),
           ],
           goals: [{ text: "Measure the LED's current", when: reads }],
           bonus: [
@@ -255,7 +262,7 @@
         { parts: (V) => [V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7", 220)], at: ["+T8", "b6"], res: ["e7", "-T7"] },
       ],
       make: (V) => {
-        const P = V.predict(["More", "Less", "The same"], 1), seen = {};
+        const P = V.predict(["More", "Less", "The same"], 1, ["a bigger resistor holds back more, so less current flows.", null, "the resistor sets how much flows: another size, another current."]), seen = {};
         const reads = (S) => { const q = part(S, "led1"); return lit(q, 0.001) && amps(S, q); };
         const only = (S, r) => { const rs = S.parts("resistor"); return rs.length === 1 && rs[0].part.value === r && reads(S); };
         const rec = (r) => (S) => { if (only(S, r)) seen[r] = M(S).value; return only(S, r); };
@@ -269,12 +276,12 @@
           ui: { xray: true },
           goalsFrom: 4,
           beats: [
-            { id: "p", say: "Resistors come in sizes, measured in ohms (Ω). This one is 220 Ω. With a bigger resistor, will more or less current flow?",
+            { id: "p", say: "Resistors come in sizes, measured in ohms (Ω); 1 kΩ is 1000 Ω. This one is 220 Ω. With a bigger resistor, more or less current?",
               highlight: { part: "res1" }, predict: P, waitFor: { predict: true } },
             { id: "r470", say: "Find out: swap in the 470 Ω resistor from the tray. Watch the meter and the LED.",
               hints: [{ say: "Click the resistor and press Remove. Then drag the 470 Ω one into the same holes." }], waitFor: { when: rec(470) } },
             { id: "r1k", say: () => `${fmtmA(seen[470] || 0.0085)} with 470 Ω. Now try the 1 kΩ one: that is 1000 Ω.`, waitFor: { when: rec(1000) } },
-            { id: "name", say: (C) => `${C.right("p") ? "Right: " : ""}220 Ω ${fmtmA(seen[220] || 0.018)}, 470 Ω ${fmtmA(seen[470] || 0.0085)}, 1 kΩ ${fmtmA(seen[1000] || 0.004)}. Bigger holds back more: less flow.`,
+            { id: "name", reply: "p", say: () => `220 Ω ${fmtmA(seen[220] || 0.018)}, 470 Ω ${fmtmA(seen[470] || 0.0085)}, 1 kΩ ${fmtmA(seen[1000] || 0.004)}. Bigger holds back more: less flow.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "use", say: "Your turn: make the LED as bright as you can, but keep the current under 15 mA. Which resistor?",
               hints: [{ say: "220 Ω let more than 15 mA through. 470 Ω gave far less. Which size lies between?" }], waitFor: { when: pick, hold: 0.6 } },
@@ -298,7 +305,8 @@
       layouts: [{ safe: "B" }, { safe: "A" }],
       make: (V) => {
         const R = { [V.L.safe]: V.ohms, [V.L.safe === "A" ? "B" : "A"]: 22 }, ID = { A: "resA", B: "resB" };
-        const P = V.predict(["Resistor A", "Resistor B"], V.L.safe === "A" ? 0 : 1);
+        const tiny = "a small resistor holds back almost nothing. The bigger one is the safe one.";
+        const P = V.predict(["Resistor A", "Resistor B"], V.L.safe === "A" ? 0 : 1, V.L.safe === "A" ? [null, tiny] : [tiny, null]);
         const reads = (S, t) => { const q = part(S, ID[t]); return !!q && S.across(q) && ohms(S) !== null && S.near(ohms(S), R[t], 0.03); };
         const ok = (S) => S.parts("led").some(safe);
         return {
@@ -317,7 +325,7 @@
               hints: [RING(V.hs("c12", "c15")), RING(V.hs("h12", "h15"), "And resistor B.")],
               waitFor: { when: (S, m) => { if (reads(S, "A")) m.A = true; if (reads(S, "B")) m.B = true; return m.A && m.B; } } },
             { id: "p", say: `A is ${fmtR(R.A)}, B is ${fmtR(R.B)}. Which one keeps the LED safe?`, predict: P, waitFor: { predict: true } },
-            { id: "use", say: (C) => `${C.right("p") ? "Right. " : "Bigger holds back more. "}Put the safe one in the gap between the + rail and the LED.`,
+            { id: "use", reply: "p", say: "Put the safe one in the gap between the + rail and the LED.",
               highlight: { holes: V.hs("+T6", "a6") },
               hints: [{ say: "Drag the resistor so one leg is on the red + rail and the other in the LED's + strip." }, { show: [V.RES("h", "+T6", "a6", V.ohms)] }],
               waitFor: { when: ok, hold: 0.6 } },
@@ -347,7 +355,8 @@
           hint: "The resistor and the LED's + leg are in different strips." },
       ],
       make: (V) => {
-        const P = V.predict(["Across the LED", "Across the break", "Nowhere: nothing flows"], 1), seen = {};
+        const P = V.predict(["Across the LED", "Across the break", "Nowhere: nothing flows"], 1,
+          ["with no current, no push drops across the LED. It shows up at the break.", null, "even with nothing flowing, the battery still pushes. Its push shows up across the break."]), seen = {};
         const gap = [V.n("bb:L7"), "bb:-T"], brk = V.hs("e7", "-T7");          // the break: the two holes the wire's ends were in
         const lit2 = (S) => lit(part(S, "led2"));
         return {
@@ -367,13 +376,13 @@
             { id: "brk", say: () => `${fmtV(seen.led || 0)} across the LED. Now measure across the break: one probe in each hole where the wire's ends were.`,
               highlight: { holes: brk }, hints: [RING(brk)],
               waitFor: { when: (S) => { const ok = on(S, ...gap) && Math.abs(volts(S) || 0) > 2.5; if (ok) seen.gap = volts(S); return ok; } } },
-            { id: "find", say: (C) => `${C.right("p") ? "Right: " : ""}${fmtV(seen.gap || 4.6)} across the break. The ${K.COLOR_WORD[V.c2]} LED has a hidden break: find it and close it.`,
+            { id: "find", reply: "p", say: () => `${fmtV(seen.gap || 4.6)} across the break: most of the 6 V. The ${K.COLOR_WORD[V.c2]} LED has a hidden break: find it and close it.`,
               highlight: { part: "led2" },
               hints: [{ say: "Follow its loop from + to −. Measure across each place where one part should join the next. Most of the push there: the break." },
                 RING(V.hs(...V.L.find), "Try here: probes in the rings."),
                 { say: `${V.L.hint} One wire there closes the loop.`, show: [V.WIRE("h", ...V.hs(...V.L.fix))] }],
               waitFor: { when: lit2 } },
-            FINISH("No current, so the parts use no push: it all sits at the break. Measure where parts should join, until you find it."),
+            FINISH("That's break hunting: with no current, no push drops across the parts, so most of the push shows up at the break."),
           ],
           goals: [{ text: `Light the ${K.COLOR_WORD[V.c2]} LED`, when: lit2, hold: 0.6 }],
           bonus: [
@@ -394,7 +403,7 @@
       // which of the three wires is broken inside
       layouts: [{ broken: "w2" }, { broken: "w1" }, { broken: "w3" }],
       make: (V) => {
-        const P = V.predict(["Yes", "No"], 1), WIRES = ["w1", "w2", "w3"], seen = {};
+        const P = V.predict(["Yes", "No"], 1, ["the centre gap splits each column into two strips that are not joined.", null]), WIRES = ["w1", "w2", "w3"], seen = {};
         const ENDS = { w1: ["+T6", "a6"], w2: ["e10", "e13"], w3: ["a13", "-T13"] };
         const PROBE = { w1: ["+T8", "b6"], w2: ["b10", "b13"], w3: ["c13", "-T15"] };
         const wire = (id) => Object.assign(V.WIRE(id, ...ENDS[id]), id === V.L.broken ? { broken: true } : {});
@@ -415,10 +424,10 @@
               hints: [{ say: "Click ·))) next to the meter's dial.", highlight: { ctl: "mode:cont", id: "meter" } }, RING(V.hs("a16", "d16"), "Then, for example, these two holes.")],
               waitFor: { when: (S) => beat(S, true) } },
             { id: "next", say: "Beep: those holes are joined by metal. Now try two holes in neighbouring groups.",
-              hints: [RING(V.hs("a16", "a17"), "Same letter, rows next to each other: for example these.")], waitFor: { when: (S) => beat(S, false) } },
+              hints: [RING(V.hs("a16", "a17"), "Same letter, columns next to each other: for example these.")], waitFor: { when: (S) => beat(S, false) } },
             { id: "p", say: `No beep: not joined. Would it beep from e${V.r(16)} to f${V.r(16)}, across the centre gap?`, highlight: { holes: V.hs("e16", "f16") },
               predict: P, waitFor: { predict: true } },
-            { id: "find", say: (C) => `${C.right("p") ? "Right, no beep. " : "No beep: the gap splits them. "}One of these wires is broken inside. Find it, swap it, switch on.`,
+            { id: "find", reply: "p", say: "One of these wires is broken inside. Find it, swap it, switch on.",
               highlight: { parts: WIRES }, allow: { ctl: ["meter", "bat"], remove: WIRES },
               hints: [{ say: "Put a probe at each end of a wire. A good wire beeps. The broken one stays quiet." },
                 { say: "Take the quiet wire off, put a new one in its holes, then switch the battery on." }, { highlight: { part: V.L.broken } }],

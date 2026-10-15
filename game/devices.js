@@ -22,7 +22,7 @@
     pot: { r: 10000, rmin: 0.5 },
     button: { rPair: 0.05, rPressed: 0.1 },
     ldr: { r10: 15000, gamma: 0.7, rmax: 1e6 },
-    uno: { v5: 5.0, r5: 0.2, v33: 3.3, r33: 0.5, rPin: 40, rIn: 100e6, clampIs: 1e-12 },
+    uno: { v5: 5.0, r5: 3.0, v33: 3.3, r33: 0.5, rPin: 40, rIn: 100e6, clampIs: 1e-12 },
   };
   // LED saturation current, calibrated so that V = vf at iAt.
   const calibrate = (p) => Object.assign(p, { is: p.iAt / (Math.exp((p.vf - p.iAt * p.rs) / (p.n * VT)) - 1) });

@@ -44,11 +44,12 @@
     V.n = (net) => net.replace(/^bb:([LR])(\d+)$/, (m, c, n) => `bb:${c}${+n + V.dr}`);
     V.r = (row) => row + V.dr;
     V.rows = ([a, b]) => [a + V.dr, b + V.dr];
-    // A prediction with its choices shuffled (except in the original); the right answer follows its choice.
-    V.predict = (choices, answer) => {
-      if (orig) return { choices, answer };
+    // A prediction with its choices shuffled (except in the original); the right answer follows its choice, and so
+    // does `why`: for each wrong choice, one line that names the belief behind it (Sparky says it after the answer).
+    V.predict = (choices, answer, why = []) => {
+      if (orig) return { choices, answer, why };
       const order = choices.map((c, k) => [R(), k]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
-      return { choices: order.map((k) => choices[k]), answer: order.indexOf(answer) };
+      return { choices: order.map((k) => choices[k]), answer: order.indexOf(answer), why: order.map((k) => why[k]) };
     };
     // Parts, with holes moved by the variant's shift.
     V.BAT = (pos, neg) => ({ id: "bat", type: "battery", legs: V.hs(pos, neg), on: true });
@@ -75,11 +76,11 @@
           start: start(V.BAT(...V.L.bat), V.RES("res1", ...V.L.res), V.LED("led1", ...V.L.led)),
           rules: { tray: [{ type: "wire", n: 1 }], guardShorts: true },
           beats: [
-            { id: "bat", say: V.say("This is a battery. It pushes current out of its red + lead and wants it back at its black − lead.",
-              "Meet the battery. Current leaves through its red + lead and has to come home through the black − lead."), highlight: { part: "bat" }, waitFor: { next: true } },
+            { id: "bat", say: V.say("This is a battery. It pushes current, a flow of electricity, out of its red + lead and wants it back at its black − lead.",
+              "Meet the battery. Current, a flow of electricity, leaves through its red + lead and must come home through the black − lead."), highlight: { part: "bat" }, waitFor: { next: true } },
             { id: "gap", say: V.say("Here the path is broken. Nothing can flow, so the LED stays dark.", "See this break? With the path broken, nothing flows and the LED stays dark."),
               highlight: { nets: [V.n(`bb:L${g1}`), V.n(`bb:L${g2}`)] }, waitFor: { next: true } },
-            { id: "wire", say: "Drag from a hole in this group to a hole in that one. That makes a wire.", highlight: { nets: [V.n(`bb:L${g1}`), V.n(`bb:L${g2}`)] },
+            { id: "wire", say: "Drag from a hole in this marked group of holes to a hole in that one. That makes a wire.", highlight: { nets: [V.n(`bb:L${g1}`), V.n(`bb:L${g2}`)] },
               hints: [{ say: "Press on a free hole in one marked group, hold, and drag to a free hole in the other." }, { highlight: { holes: V.hs(`e${g1}`, `e${g2}`) } }, { show: [V.WIRE("h", `e${g1}`, `e${g2}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
             FINISH(V.say("Light! The dots show the current: out of +, through every part, back to −. A closed loop.", "It glows! Follow the dots: out of +, through every part, and back to −. A closed loop.")),
@@ -101,7 +102,8 @@
         { bat: ["a3", "a11"], res: ["b3", "b7"], led: ["c10", "c11"], wire: [7, 10] },
       ],
       make: (V) => {
-        const [w1, w2] = V.L.wire, P = V.predict(["Only the LED goes dark", "Everything stops", "Nothing changes"], 1);
+        const [w1, w2] = V.L.wire, P = V.predict(["Only the LED goes dark", "Everything stops", "Nothing changes"], 1,
+          ["a loop is one path. Open it anywhere and the current stops everywhere, not only at the LED.", null, "the wire is part of the loop. Without it there is a gap, and nothing can flow."]);
         return {
           region: { rows: V.rows([1, 16]), cols: "a-e", rails: "none" },
           start: start(V.BAT(...V.L.bat), V.RES("res1", ...V.L.res), V.LED("led1", ...V.L.led), V.WIRE("wire1", `e${w1}`, `e${w2}`)),
@@ -114,12 +116,12 @@
             { id: "p", say: "What happens if you pull the wire out?", predict: P, highlight: { part: "wire1" }, waitFor: { predict: true } },
             { id: "pull", say: "Find out: drag the wire onto the parts tray, or click it and press Remove.", allow: { remove: ["wire1"] }, highlight: [{ part: "wire1" }, { ui: "#hotbar" }],
               hints: [{ say: "Click the wire. A small card appears next to it with a Remove button." }], waitFor: { event: "remove", id: "wire1" } },
-            { id: "close", say: (C) => `${C.right("p") ? "You called it: " : ""}everything stopped. A loop open anywhere stops all the current. Now close it again.`,
+            { id: "close", reply: "p", say: "Everything stopped. A loop open anywhere stops all the current. Now close it again.",
               hints: [{ say: "The wire is back in your tray. Drag it onto the board, or draw one from hole to hole." }, { show: [V.WIRE("h", `e${w1}`, `e${w2}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
             FINISH("That is all a switch does: it opens and closes the loop."),
           ],
-          goals: [LIT],
+          goals: [Object.assign({}, LIT, { text: "Get the LED lit again" })],
           bonus: [
             { text: "Predict what happens", final: (C) => C.right("p") },
             { text: "Close the loop with the wire in different holes", when: (S, m, C) => { const [a, b] = V.hs(`e${w1}`, `e${w2}`); return !!C.count.remove && anyLit(S) && wires(S).some((q) => !(q.legs.includes(a) && q.legs.includes(b))); } },
@@ -137,7 +139,8 @@
         { bat: ["a3", "a14"], parts: (V) => [V.RES("res1", "b3", "b7"), V.WIRE("wire1", "d8", "d14")], t: [7, 8], ask: [7, 8], yes: true },
       ],
       make: (V) => {
-        const [t1, t2] = V.L.t, P = V.predict(["Yes", "No"], V.L.yes ? 0 : 1);
+        const [t1, t2] = V.L.t, P = V.predict(["Yes", "No"], V.L.yes ? 0 : 1, V.L.yes ? [null, "each leg sits in a strip, and a strip joins it to every part plugged into that strip."]
+          : ["a leg only joins what shares its strip, and nothing else is plugged into those two strips.", null]);
         return {
           region: { rows: V.rows([1, 16]), cols: "a-e", rails: "none" },
           start: start(V.BAT(...V.L.bat), ...V.L.parts(V)),
@@ -147,11 +150,10 @@
             { id: "xray", do: { xray: true }, say: V.say("X-ray on! Under each group of 5 holes is a metal strip. Everything plugged into one strip is connected.",
               "Let's look inside: X-ray on! Each group of 5 holes sits on one metal strip, so they are all connected."), highlight: { nets: [V.n(`bb:L${t1}`)] }, waitFor: { next: true } },
             { id: "p", say: "If the LED's legs went into these two holes, would it light?", highlight: { holes: V.hs(`c${V.L.ask[0]}`, `c${V.L.ask[1]}`) }, predict: P, waitFor: { predict: true } },
-            { id: "plug", say: (C) => (V.L.yes
-              ? `${C.right("p") ? "Right: " : "It would: "}both strips are in the loop. Plug the LED in there, or anywhere else in the same strips.`
-              : `${C.right("p") ? "Right: " : "No: "}those strips are not in the loop. Plug the LED in where it closes the loop.`),
+            { id: "plug", reply: "p", say: V.L.yes ? "Both strips are in the loop. Plug the LED in there, or anywhere else in the same strips."
+              : "Those strips are not in the loop. Plug the LED in where it closes the loop.",
               highlight: { nets: [V.n(`bb:L${t1}`), V.n(`bb:L${t2}`)] },
-              hints: [{ say: `One leg in strip ${V.r(t1)}, the other in strip ${V.r(t2)}.` }, { highlight: { holes: V.hs(`c${t1}`, `c${t2}`) } }, { show: [V.LED("h", `c${t1}`, `c${t2}`)] }],
+              hints: [{ say: "Which strips does the loop already reach? Look for strips with a part's leg in them." }, { say: `One leg in strip ${V.r(t1)}, the other in strip ${V.r(t2)}.`, highlight: { holes: V.hs(`c${t1}`, `c${t2}`) } }, { show: [V.LED("h", `c${t1}`, `c${t2}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
             FINISH(V.say("Lit, with no extra wire: the strips did the joining. Try other holes in the same strips.", "No wire needed: the strips joined the legs for you. Try other holes in the same strips.")),
           ],
@@ -174,7 +176,7 @@
           feed: "The resistor gives its current back to the blue one.", sol: ["+T30", "e8"] },
       ],
       make: (V) => {
-        const Lt = V.L, near = Lt.rail === "-T" ? 4 : 3, P = V.predict(["Yes", "No"], 0);
+        const Lt = V.L, near = Lt.rail === "-T" ? 4 : 3, P = V.predict(["Yes", "No"], 0, [null, "a rail is one long strip: every hole along it is joined, however far away."]);
         return {
           region: { rows: V.rows([1, 34]), cols: "a-e", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
@@ -184,8 +186,8 @@
             { id: "rails", do: { xray: true }, say: V.say("These long lines are the rails. Each rail is one strip that runs the whole length of the board.",
               "Meet the rails: two long strips that run the whole length of the board."), highlight: { nets: ["bb:+T", "bb:-T"] }, waitFor: { next: true } },
             { id: "feed", say: `The battery feeds them: + to the red rail, − to the blue rail. ${Lt.feed}`, highlight: [{ holes: V.hs("+T3", "-T4") }, { part: "res1" }], waitFor: { next: true } },
-            { id: "p", say: `Would a wire from the LED to the far end of the ${Lt.word}, at row ${V.r(30)}, close the loop?`, highlight: { holes: [V.h(`${Lt.rail}30`)] }, predict: P, waitFor: { predict: true } },
-            { id: "wire", say: (C) => `${C.right("p") ? "Yes! " : "It would! "}The whole rail is one strip. Wire the LED's free strip to the ${Lt.word}.`,
+            { id: "p", say: `Would a wire from the LED to the far end of the ${Lt.word}, at column ${V.r(30)}, close the loop?`, highlight: { holes: [V.h(`${Lt.rail}30`)] }, predict: P, waitFor: { predict: true } },
+            { id: "wire", reply: "p", say: `The whole rail is one strip. Wire the LED's free strip to the ${Lt.word}.`,
               highlight: { nets: [V.n(`bb:L${Lt.need}`), `bb:${Lt.rail}`] },
               hints: [{ say: `Drag from a free hole in strip ${V.r(Lt.need)} to any hole on the ${Lt.word}.` }, { highlight: { holes: V.hs(`e${Lt.need}`, `${Lt.rail}${Lt.need}`) } }, { show: [V.WIRE("h", `e${Lt.need}`, `${Lt.rail}${Lt.need}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
@@ -210,7 +212,10 @@
           what: "One of the resistor's legs is in the wrong one.", fix: "drag the resistor's leg", hint: "Click the resistor, then drag its round end", bridge: ["d6", "g6"] },
       ],
       make: (V) => {
-        const Lt = V.L, P = V.predict(["The LED is broken", "Something is not really connected", "The battery is flat"], 1);
+        const Lt = V.L, P = V.predict(["The LED is broken", "Something is not really connected", "The battery is flat"], 1,
+          ["a dark LED is not always broken. First check that every part is really joined into the loop.", null,
+            "a flat battery is rare. When a circuit stays dark, look for a joint that isn't really joined first."]);
+        P.ok = "Good eye!";
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
@@ -218,7 +223,7 @@
           ui: { xray: true },
           beats: [
             { id: "p", say: V.say("This circuit looks finished, but the LED stays dark. Why?", "Everything seems to be there, yet the LED is dark. What is wrong?"), predict: P, waitFor: { predict: true } },
-            { id: "gap", do: { xray: true }, say: (C) => `${C.right("p") ? "Good eye. " : ""}The gap down the middle splits each column into two strips. ${Lt.what}`,
+            { id: "gap", do: { xray: true }, reply: "p", say: `The gap down the middle splits each numbered column into two strips, top and bottom. ${Lt.what}`,
               highlight: { nets: [V.n(`bb:L${Lt.row}`), V.n(`bb:R${Lt.row}`)] }, waitFor: { next: true } },
             { id: "fix", say: `Fix it: ${Lt.fix} across the gap, or bridge the gap with a new wire.`, highlight: { part: Lt.id },
               hints: [{ say: `${Lt.hint} at ${V.h(Lt.wrong)} up into strip ${V.r(Lt.row)}, above the gap.` }, { highlight: { holes: [V.h(Lt.wrong), V.h(`e${Lt.row}`)] } }, { show: [V.WIRE("h", ...Lt.bridge)] }],
@@ -241,7 +246,9 @@
       make: (V) => {
         const [b1, b2] = V.L.back, flips = (b1 ? 1 : 0) + (b2 ? 1 : 0), w1 = COLOR_WORD[V.c1], w2 = COLOR_WORD[V.c2];
         const led1 = b1 ? V.LED("led1", "c7", "c6") : V.LED("led1", "c6", "c7"), led2 = b2 ? V.LED("led2", "d8", "d7", V.c2) : V.LED("led2", "d7", "d8", V.c2);
-        const both = b1 && b2, P = both ? V.predict(["Yes", "No"], 1) : V.predict([`The ${w1} one`, `The ${w2} one`, "Both"], b1 ? 0 : 1);
+        const look = "look at each long + leg: it must point back towards the resistor, where the current comes from.";
+        const both = b1 && b2, P = both ? V.predict(["Yes", "No"], 1, ["in one loop every part must let the current through. One backwards LED still blocks it for both.", null])
+          : V.predict([`The ${w1} one`, `The ${w2} one`, "Both"], b1 ? 0 : 1, b1 ? [null, look, "only one is backwards. " + look] : [look, null, "only one is backwards. " + look]);
         const on = (S) => lit(part(S, "led1"), 0.002) && lit(part(S, "led2"), 0.002);
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
@@ -250,10 +257,10 @@
           ui: { xray: true },
           beats: [
             { id: "dark", say: "Two LEDs in one loop, and both are dark. An LED is one-way: current can only go in at its + leg.", highlight: { parts: ["led1", "led2"] }, waitFor: { next: true } },
-            { id: "leg", say: "The + leg is the long one, marked + here. It must face the + side of the loop, where the resistor is.", highlight: { holes: [led1.legs[0], led2.legs[0]] }, waitFor: { next: true } },
+            { id: "leg", say: "The + leg is the long one, marked + here. It must face the + side of the loop (here, the resistor's side).", highlight: { holes: [led1.legs[0], led2.legs[0]] }, waitFor: { next: true } },
             both ? { id: "p", say: `If you flip just the ${w1} LED, will the lights come on?`, highlight: { part: "led1" }, predict: P, waitFor: { predict: true } }
               : { id: "p", say: "One of them is the wrong way round. Which one?", highlight: { parts: ["led1", "led2"] }, predict: P, waitFor: { predict: true } },
-            { id: "flip", say: both ? "Click an LED and press Flip (or the R key). Make both face the right way." : "Click the LED that is the wrong way round and press Flip (or the R key).",
+            { id: "flip", reply: "p", say: both ? "Click an LED and press Flip (or the R key). Make both face the right way." : "Click the LED that is the wrong way round and press Flip (or the R key).",
               hints: [{ say: "Current comes from the resistor on the left. Each + leg should be on the left side of its LED." }, { highlight: { parts: ["led1", "led2"] } }],
               waitFor: { when: on } },
             FINISH("One-way parts must all face along the loop, from + to −."),
@@ -275,7 +282,8 @@
         { parts: (V) => [V.WIRE("wire1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7", 330)], bridge: ["e7", "-T7"], back: ["-T7", "a7"] },
       ],
       make: (V) => {
-        const Lt = V.L, P = V.predict(["glow brighter", "stay the same", "burn out"], 2);
+        const Lt = V.L, P = V.predict(["glow brighter", "stay the same", "burn out"], 2,
+          ["brighter for a moment, yes. But nothing holds the current down, so it climbs until the LED burns out.", "the resistor is what holds the current down. Without it, far more flows.", null]);
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
@@ -291,11 +299,12 @@
               highlight: { holes: V.hs(...Lt.bridge) },
               hints: [{ say: "Draw a wire between the two holes where the resistor's legs were." }, { show: [V.WIRE("h", ...Lt.bridge)] }],
               waitFor: { when: (S) => S.destroyed("led") } },
-            { id: "fix", say: (C) => `${C.right("p") ? "You called it. " : ""}Pop! Nothing held the current back. Fix it: wire out, resistor back, and a fresh LED.`,
+            { id: "fix", reply: "p", say: "Pop! Nothing held the current back. Fix it: wire out, resistor back, and a fresh LED.",
               allow: { place: true, remove: ["res1"] },
               hints: [{ say: "Take the new wire off. Drop the resistor on the rail where it was. Then click the LED and press Fresh one." }, { show: [V.RES("h", ...Lt.back, 330)] }],
               waitFor: { when: (S) => lit(part(S, "led1")) && S.parts("resistor").length > 0 } },
-            FINISH("That is the resistor's job: it holds the current down to a safe amount."),
+            Object.assign(FINISH("That is the resistor's job: it holds the current down to a safe amount. It works on either side of the LED."),
+              { note: "an LED with no resistor gets hot and can crack. Always fit the resistor before you connect the battery." }),
           ],
           goals: [{ text: "Light the LED safely, with a resistor", when: (S) => safe(part(S, "led1")) && S.parts("resistor").length > 0, hold: 0.6 }],
           bonus: [
@@ -314,7 +323,9 @@
         { parts: (V) => [V.WIRE("wire1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7", 330)] },
       ],
       make: (V) => {
-        const P = V.predict(["The LED gets brighter", "The LED goes dark", "Nothing"], 1);
+        const P = V.predict(["The LED gets brighter", "The LED goes dark", "Nothing"], 1,
+          ["more current flows, but through the wire. The battery can't keep up its push, so the LED gets almost none.", null,
+            "the wire lets a huge current flow, and the battery can't keep up its push."]);
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V)),
@@ -326,14 +337,16 @@
             { id: "try", say: "Try it: drag a wire from the red + rail to the blue − rail.", highlight: { nets: ["bb:+T", "bb:-T"] },
               hints: [{ highlight: { holes: V.hs("+T12", "-T12") } }, { show: [V.WIRE("h", "+T12", "-T12")] }],
               waitFor: { when: (S) => S.shortNow(), hold: 0.05 } },
-            { id: "pull", say: "Short circuit! The current takes the easy path, so the LED is dark and the wire heats up. Pull it out, quick!",
+            { id: "pull", say: "Short circuit! The LED went dark, and the wire and the batteries are heating up. Pull the wire out, quick!",
               waitFor: { when: (S) => !S.shortNow(), hold: 0.05 } },
-            FINISH((C) => (C.broken.has("wire") ? "Too late: it melted. A short has nothing to slow the current, so it gets huge and hot." : "Phew! A short has nothing to slow the current, so it gets huge and hot. Never join + and − directly.")),
+            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and their push collapsed: the rails fell to almost 0 V."
+              : "Phew! A huge current poured through the wire, the battery's push collapsed, the rails fell to almost 0 V, and the LED went dark.")),
+            { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and some batteries can catch fire." }),
           ],
           goals: [{ text: "Light the LED, with no short circuit", when: (S) => anyLit(S) && !S.shortNow(), hold: 0.6 }],
           bonus: [
             { text: "Predict what a short does", final: (C) => C.right("p") },
-            { text: "Pull the short out before the wire melts", final: (C) => !C.broken.has("wire") },
+            { text: "Pull the short out before the batteries overheat", final: (C) => !C.broken.has("battery") },
           ],
           solution: [{ choose: "right" }, { wire: V.hs("+T12", "-T12") }, { wait: 0.4 }, { remove: "wire" }, { wait: 1 }, { next: 1 }],
         };

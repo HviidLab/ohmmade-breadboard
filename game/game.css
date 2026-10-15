@@ -264,6 +264,11 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .mentor-text { margin: 2px 0 0; font: 600 18.5px/1.45 var(--font-body); color: #1d2433; }
 .mentor-text.pop { animation: line-in .28s ease-out; }
 @keyframes line-in { from { opacity: 0; transform: translateY(4px); } }
+.mentor-text .reply { display: block; margin-bottom: 6px; font-weight: 700; }
+.mentor-text .reply.ok { color: #1f7a3a; }
+.mentor-text .reply.no { color: #a8431a; }
+.bench-note { display: block; margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: #dcebfb; color: #14335a; font-size: 15.5px; }
+.bench-note::before { content: "Real bench · "; font-weight: 700; }
 .hint-line { display: block; margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: #fde6bd; color: #4a3108; font-size: 16px; }
 .hint-line::before { content: "Hint · "; font-weight: 600; }
 .aside { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #e8e1d1; color: #3a3a32; font-size: 15px; }
@@ -438,3 +443,7 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
 /* buttons on Notebook paper: ink on paper (the primary one stays amber) */
 .nb-book .btn:not(.primary), .nb-card.big .btn:not(.primary) { background: #fffdf6; color: var(--pen); border: 2px solid var(--pen); }
 .nb-book .btn:not(.primary):hover, .nb-card.big .btn:not(.primary):hover { background: #fff3d9; }
+.nb-grid li.nb-wide { grid-column: 1 / -1; }
+.nb-card.nb-safe { cursor: default; text-align: left; }
+.nb-card.nb-safe ul { margin: 6px 0 0; padding-left: 20px; font: 17px/1.28 var(--font-hand-body); }
+.nb-card.nb-safe li { margin: 3px 0; }

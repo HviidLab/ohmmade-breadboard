@@ -72,7 +72,7 @@
 
   // ---------- entering and leaving a level ----------
   function enter(level) {
-    stopSpeaking(); shownParts = [];
+    stopSpeaking(); shownParts = []; shownReply = null;
     lv = level; marks = null; partFor = null; lastHotbar = ""; lastObjective = "";
     $("lv").hidden = false;
     $("lv-xray").hidden = !(lv.ui && lv.ui.xray);
@@ -86,7 +86,7 @@
     requestAnimationFrame(() => walk(null));
   }
   function leave() {
-    stopSpeaking(); shownParts = [];
+    stopSpeaking(); shownParts = []; shownReply = null;
     lv = null; marks = null;
     $("lv").hidden = true;
     R.marks(null); R.guide(null); spot(null);
@@ -95,6 +95,7 @@
   // Room the overlays take, so the bench is fitted into the free middle.
   function insets() {
     const st = $("stage").getBoundingClientRect();
+    fittedFor = $("mentor").offsetHeight;
     // Sparky stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
     // The bottom keeps extra room for the bubble to grow when a hint is added.
     const bub = $("mentor"), H = st.height;      // the bubble's home height, wherever Sparky is now
@@ -149,17 +150,23 @@
 
   // ---------- the coach's hooks ----------
   // A new line from Sparky. Parts already on screen (the same line with a hint added) stay; new parts are spoken.
-  let shownParts = [];
+  // offer.reply: his answer to an earlier prediction ("Right!" or "Not quite: …"), said first, above the line.
+  let shownParts = [], shownReply = null;
   function say(text, offer = {}) {
     const parts = String(text).split("\n");
     const p = $("mentor-text");
-    const same = (k) => shownParts[k] === parts[k] && (k > 0 || p.childElementCount > 0);
-    p.innerHTML = parts.map((t, k) => (k === 0 ? '<span class="ml"></span>' : '<span class="hint-line"></span>')).join("");
-    const spans = [...p.children];
+    const rp = offer.reply ? offer.reply.text : null;
+    const sameReply = rp === shownReply && p.childElementCount > 0;
+    const same = (k) => shownParts[k] === parts[k] && (k > 0 || (p.childElementCount > 0 && sameReply));
+    p.innerHTML = (rp ? `<span class="reply ${offer.reply.ok ? "ok" : "no"}"></span>` : "") + parts.map((t, k) => (k === 0 ? '<span class="ml"></span>' : '<span class="hint-line"></span>')).join("")
+      + (offer.note ? '<span class="bench-note"></span>' : "");
+    const spans = [...p.children], off = rp ? 1 : 0;
     if (!same(0)) { p.classList.remove("pop"); void p.offsetWidth; p.classList.add("pop"); }
     const toSpeak = [];
-    parts.forEach((t, k) => { if (same(k)) spans[k].textContent = t; else toSpeak.push({ el: spans[k], text: t }); });
-    shownParts = parts;
+    if (rp) { if (sameReply) spans[0].textContent = rp; else toSpeak.push({ el: spans[0], text: rp }); }
+    parts.forEach((t, k) => { if (same(k)) spans[k + off].textContent = t; else toSpeak.push({ el: spans[k + off], text: t }); });
+    if (offer.note) { const n = spans[spans.length - 1]; if (sameReply && same(0)) n.textContent = offer.note; else toSpeak.push({ el: n, text: offer.note }); }
+    shownParts = parts; shownReply = rp;
     speak(toSpeak);
     relayout();
     const act = $("mentor-act");
@@ -249,7 +256,11 @@
     }
     bub.classList.remove("away");                       // home: lower left, full size, bubble beside him, pointing from there
     go({ sx: 12, sy: H - homeH - 10, w: homeW, bx: homeW + 22, by: H - 18 - bub.offsetHeight, side: "right", aim, home: true });
+    // A longer line (an answer, a note) made the bubble taller than the room the bench was fitted around: fit it again.
+    const B = { left: homeW + 22, right: homeW + 22 + bub.offsetWidth, top: H - 18 - bub.offsetHeight, bottom: H - 18 };
+    if (meets(B, benchBox(st)) && bub.offsetHeight > fittedFor + 4) { fittedFor = bub.offsetHeight; G.fitLevel(); }
   }
+  let fittedFor = 0;                       // the bubble height the bench was last fitted around
   function go(p) {
     const a = $("mentor-avatar"), b = $("mentor"), st = $("stage").getBoundingClientRect(), cur = a.getBoundingClientRect();
     const dx = p.sx - (cur.left - st.left), dist = Math.hypot(dx, p.sy - (cur.top - st.top));
@@ -322,11 +333,13 @@
   function refreshObjective(force) {
     if (!lv || !G.run) return;
     const goalDone = G.run.state.map((s) => s.done), got = G.coach ? G.coach.bonus : [];
-    const key = JSON.stringify([lv.id, goalDone, got]);
+    // while a question is still open, a goal that would give its answer away shows its neutral words (`pre`)
+    const asking = !!G.coach && lv.beats.some((b) => b.waitFor.predict && G.coach.pred[b.id] === undefined);
+    const key = JSON.stringify([lv.id, goalDone, got, asking]);
     if (!force && key === lastObjective) return;
     lastObjective = key;
     $("objective").innerHTML = `<p class="ob-level">Level ${lv.id}</p><h2>${esc(lv.title)}</h2>
-      <ul class="ob-goals">${lv.goals.map((g, k) => `<li class="${goalDone[k] ? "done" : ""}"><span aria-hidden="true">${goalDone[k] ? "✓" : "○"}</span>${esc(g.text)}</li>`).join("")}</ul>
+      <ul class="ob-goals">${lv.goals.map((g, k) => `<li class="${goalDone[k] ? "done" : ""}"><span aria-hidden="true">${goalDone[k] ? "✓" : "○"}</span>${esc(asking && g.pre ? g.pre : g.text)}</li>`).join("")}</ul>
       <ul class="ob-bonus">${(lv.bonus || []).map((b, k) => `<li class="${got[k] ? "got" : ""}"><span aria-hidden="true">${got[k] ? "★" : "☆"}</span>${esc(b.text)}</li>`).join("")}</ul>`;
   }
 
@@ -365,16 +378,16 @@
     const card = $("partcard");
     const part = lv && G.sel && G.doc.get(G.sel);
     const rt = part && G.sim.rt.get(part.id), dead = !!(rt && (rt.destroyed || (part.type === "uno" && BB.Uno.damaged(rt))));
-    if (!part || part.type === "battery" || (part.type === "meter" && !dead)) { card.hidden = true; partFor = null; return; }
+    if (!part || ((part.type === "battery" || part.type === "meter") && !dead)) { card.hidden = true; partFor = null; return; }
     const acts = [];
     if (part.type === "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["New fuse", "fresh", () => G.replace(part.id)]);
     if ((part.type === "led" || part.type === "cap") && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
-    if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push([part.type === "uno" ? "Fresh board" : "Fresh one", "fresh", () => G.replace(part.id)]);
-    if (part.type !== "meter" && G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
+    if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push([part.type === "uno" ? "Fresh board" : part.type === "battery" ? "Fresh batteries" : "Fresh one", "fresh", () => G.replace(part.id)]);
+    if (part.type !== "meter" && part.type !== "battery" && G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
     const key = JSON.stringify([part.id, dead, acts.map((a) => a[1])]);
     if (key !== partFor) {
       partFor = key;
-      card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ` <span class="pc-dead">${part.type === "meter" ? "fuse blown" : part.type === "uno" ? "pin damaged" : "burned out"}</span>` : ""}</p><div class="pc-act"></div>`;
+      card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ` <span class="pc-dead">${part.type === "meter" ? "fuse blown" : part.type === "uno" ? "pin damaged" : part.type === "battery" ? "overheated" : "burned out"}</span>` : ""}</p><div class="pc-act"></div>`;
       const box = card.querySelector(".pc-act");
       for (const [lbl, cls, fn] of acts) { const b = document.createElement("button"); b.type = "button"; b.className = `btn pc-${cls}`; b.textContent = lbl; b.addEventListener("click", fn); box.appendChild(b); }
       if (!acts.length) box.innerHTML = '<span class="pc-fixed">Fixed in this level</span>';

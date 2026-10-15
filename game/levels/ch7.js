@@ -12,7 +12,7 @@
   // a push button across the centre gap: legs in rows r and r + 2 (e and f), so each row's two legs are joined
   const BUTTON = (V, id, r, latch = false) => Object.assign({ id, type: "button", legs: V.hs(`e${r}`, `f${r}`, `e${r + 2}`, `f${r + 2}`), pairs: "across", pressed: false }, latch ? { latch: true } : {});
   const down = (S, id) => { const q = part(S, id); return !!q && !!q.part.pressed; };
-  const LATCH_HINT = { say: "These buttons stay down when you click them, and pop up when you click again." };
+  const LATCH_HINT = { say: "These buttons stay down when you click them, and pop up when you click again. Real push buttons spring back." };
 
   const L = [
     {
@@ -20,7 +20,8 @@
       colors: ["red", "yellow", "green", "blue"],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["The LED lights while you hold it", "The LED stays on after one press", "Nothing"], 0);
+        const P = V.predict(["The LED lights while you hold it", "The LED stays on after one press", "Nothing"], 0, [null,
+          "a push button springs back when you let go, and the loop opens again.", "the button sits in the LED's loop: pressing it closes the gap."]);
         const led = (S) => part(S, "led1");
         return {
           region: REGION(V),
@@ -34,7 +35,7 @@
             { id: "press", say: "Find out: press the button and hold it down.", highlight: { part: "b1" },
               hints: [{ say: "Press the red cap with the mouse and keep the mouse button down." }], waitFor: { when: (S) => down(S, "b1") && lit(led(S)), hold: 0.4 } },
             { id: "let", say: "Now let go.", waitFor: { when: (S) => !down(S, "b1") && !lit(led(S), 0.0005), hold: 0.3 } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}a push button closes the loop only while you press it. Let go and the loop opens again.`),
+            Object.assign(FINISH("A push button closes the loop only while you press it. Let go and it springs back: the loop opens again."), { reply: "p" }),
           ],
           goals: [{ text: "Light the LED with the button", when: (S, m) => { if (down(S, "b1") && lit(led(S))) m.on = true; return !!m.on; } }],
           bonus: [
@@ -50,7 +51,9 @@
       id: "7-2", title: "Four legs", teaches: ["buttonLegs"], uses: ["buttonLoop", "continuity", "gap", "strip"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["The two in the same row, across the gap", "The two on the same side of the gap", "None of them"], 0), P2 = V.predict(["Yes", "No"], 0);
+        const P1 = V.predict(["The two on one column, across the gap", "The two on the same side of the gap", "None of them"], 0, [null,
+          "the two legs on one side sit in different columns. Only pressing joins those.", "inside, each pair of legs across the gap is one piece of metal: always joined."]);
+        const P2 = V.predict(["Yes", "No"], 0, [null, "pressing joins the two columns, so the legs on one side are joined too while it is down."]);
         const beepOn = (S, a, b) => mode(S, "cont") && !!M(S).beep && !!M(S).red && !!M(S).com && ((net(M(S).red) === a && net(M(S).com) === b) || (net(M(S).red) === b && net(M(S).com) === a));
         const row = V.n("bb:L10"), rowR = V.n("bb:R10"), side = V.n("bb:L12");
         const across = (S) => !down(S, "b1") && beepOn(S, row, rowR);
@@ -66,11 +69,11 @@
             { id: "across", say: "Find out with the beep: probe two of its legs' strips, without pressing.",
               hints: [{ say: "Each leg sits in a strip. Put one probe in the strip of one leg and the other probe in the strip of another." }, RING(V.hs("a10", "j10"))],
               waitFor: { when: across } },
-            { id: "p2", say: (C) => `${C.right("p1") ? "Right: " : ""}the legs in the same row, across the gap, are joined. Will two legs on the same side beep while you press?`,
+            { id: "p2", reply: "p1", say: "Legs on one numbered column, across the gap, are always joined. Will two legs on the same side beep while you press?",
               predict: P2, waitFor: { predict: true } },
             { id: "pressed", say: "Find out: probe two legs on the same side of the gap, and press the button. Shift-click keeps it down.",
               hints: [{ say: "Shift-click the red cap: it stays down. Shift-click again to let it up." }, RING(V.hs("a10", "a12"))], waitFor: { when: pressed } },
-            FINISH("The legs across the gap are always joined; pressing joins the two rows. That is why a button sits across the centre gap."),
+            Object.assign(FINISH("Each joined pair sits on its own column, one leg each side of the gap; pressing joins the two columns. So a button sits across the gap."), { reply: "p2" }),
           ],
           goals: [{ text: "Hear the beep through the pressed button", when: pressed }],
           bonus: [
@@ -85,7 +88,8 @@
       id: "7-3", title: "Both buttons", teaches: ["buttonsAnd"], uses: ["buttonLegs", "buttonLoop", "seriesR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Only when both are down", "When either one is down", "Never"], 0);
+        const P = V.predict(["Only when both are down", "When either one is down", "Never"], 0, [null,
+          "in a row the current must pass both buttons: one still up leaves a gap.", "with both down, the path is complete, so the LED lights."]);
         const led = (S) => part(S, "led1");
         const tried = (S, m) => {
           const a = down(S, "b1"), b = down(S, "b2"), on = lit(led(S));
@@ -100,10 +104,10 @@
           rules: { tray: [], allow: allow({ ctl: ["b1", "b2"] }) },
           ui: { xray: true },
           beats: [
-            { id: "p", say: "Two buttons in a row in the LED's loop. They stay down when clicked. When will the LED light?", highlight: { parts: ["b1", "b2"] },
+            { id: "p", say: "Two buttons in a row in the LED's loop. These click down and stay down, to free your hands. When will the LED light?", highlight: { parts: ["b1", "b2"] },
               predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: try one button down, then both.", hints: [LATCH_HINT], waitFor: { when: tried } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}in a row, the current must pass both buttons, so both must be down. This one AND that one.`),
+            Object.assign(FINISH("In a row, the current must pass both buttons, so both must be down. This one AND that one."), { reply: "p" }),
           ],
           goals: [{ text: "Light the LED with both buttons down", when: (S) => down(S, "b1") && down(S, "b2") && lit(led(S)) }],
           bonus: [
@@ -118,7 +122,8 @@
       id: "7-4", title: "Either button", teaches: ["buttonsOr"], uses: ["buttonsAnd", "parallelV", "buttonLoop", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["When either one is down", "Only when both are down", "Never"], 0);
+        const P = V.predict(["When either one is down", "Only when both are down", "Never"], 0, [null,
+          "side by side, each button gives the current its own path. One is enough.", "each button, pressed, closes its own path round the loop."]);
         const led = (S) => part(S, "led1");
         const tried = (S, m) => {
           const a = down(S, "b1"), b = down(S, "b2"), on = lit(led(S));
@@ -134,10 +139,10 @@
           goalsFrom: 1,
           ui: { xray: true },
           beats: [
-            { id: "p", say: "Now the two buttons sit side by side: each one can close the loop on its own path. When will the LED light?", highlight: { parts: ["b1", "b2"] },
+            { id: "p", say: "Now the two buttons sit side by side. When will the LED light?", highlight: { parts: ["b1", "b2"] },
               predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: try each button on its own.", hints: [LATCH_HINT], waitFor: { when: tried } },
-            FINISH((C) => `${C.right("p") ? "Right: " : ""}side by side, either path will do. This one OR that one. A doorbell with two buttons works like this.`),
+            Object.assign(FINISH("Side by side, each button has its own path, and either will do. This one OR that one. A doorbell with two buttons works like this."), { reply: "p" }),
           ],
           goals: [{ text: "Light the LED with each button on its own", when: tried }],
           bonus: [
