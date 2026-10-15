@@ -53,7 +53,7 @@
           beats: [
             { id: "q", say: "Two circuits with the same parts. So why is the bottom LED dimmer than the top one?", highlight: { parts: ["led1", "led2"] },
               predict: P, waitFor: { predict: true } },
-            { id: "dial", say: "Let's measure. Turn the meter's dial to V, for volts. Volts measure how hard a battery pushes.",
+            { id: "dial", say: "Let's measure, with the multimeter. Turn its dial to V, for volts. Volts measure how hard a battery pushes.",
               hints: [{ say: "Click the V⎓ mark next to the meter's dial.", highlight: { ctl: "mode:V", id: "meter" } }], waitFor: { when: (S) => mode(S, "V") } },
             { id: "top", say: "Measure the top battery's push: one probe on its + rail, the other on its − rail.",
               hints: [RING(V.hs("+T10", "-T10"), "The top battery feeds the two rails along the top edge. Try the rings.")],
@@ -467,16 +467,16 @@
   ];
 
   K.chapter(2, "Measuring", L, {
-    lede: "So far you could only see whether an LED lit. Now you get a tool that measures what the eye cannot see.",
+    lede: "So far you could only see whether an LED lit. Now you get a tool that measures what the eye cannot see.", cover: "volts",
     questions: ["Why is one LED dimmer than another, with the same parts?", "Where does the battery's push go: which part takes how much?",
       "Does an LED use up current, so less comes out than goes in?"],
     words: [
       { w: "Multimeter", d: "A meter that measures push, current or resistance. Its dial chooses which.", sym: "VΩ" },
-      { w: "Probes", d: "The meter's two leads. The red one goes where you measure; the black one (COM) is what you compare with.", sym: "±" },
+      { w: "Probes", d: "The meter's two leads. The red one goes where you measure; the black one (COM) is what you compare with.", sym: "probes" },
       { w: "Volt (V)", d: "How hard the battery pushes. Measured across a part: one probe on each side of it.", sym: "V" },
       { w: "Milliamp (mA)", d: "Current is counted in amps; a milliamp is a thousandth of one. Measured through the meter: the current flows through it.", sym: "mA" },
-      { w: "Ohm (Ω)", d: "How much a resistor holds the current back. 1 kΩ (a kilo-ohm) is 1000 Ω.", sym: "Ω" },
-      { w: "Fuse", d: "A thin wire inside the meter that burns through when far too much current flows, to save the meter.", sym: "~" },
+      { w: "Ohm (Ω)", d: "How much a resistor holds the current back. 1 kΩ (a kilo-ohm) is 1000 Ω.", sym: "resistor" },
+      { w: "Fuse", d: "A thin wire inside the meter that burns through when far too much current flows, to save the meter.", sym: "fuse" },
     ],
   });
   // The meter checks and helpers, for the later chapters.

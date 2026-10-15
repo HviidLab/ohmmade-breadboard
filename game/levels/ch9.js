@@ -116,5 +116,35 @@
     },
   ];
 
-  K.chapter(9, "The transistor", L);
+  K.chapter(9, "The transistor", L, {
+    "lede": "A tiny current can control a big one. That is the transistor, the part that fills every computer.",
+    "cover": "npnSwitch",
+    "questions": [
+      "What does a tiny current into the base do?",
+      "Why does the base need its own resistor?",
+      "How can a small button switch a bigger current?"
+    ],
+    "words": [
+      {
+        "w": "Transistor",
+        "d": "A switch worked by a small current, with three legs: C, B and E.",
+        "sym": "npn"
+      },
+      {
+        "w": "Base (B)",
+        "d": "The control leg. A small current in here lets current flow from C to E.",
+        "sym": "npn"
+      },
+      {
+        "w": "Collector (C), emitter (E)",
+        "d": "The big current comes in at C and leaves at E.",
+        "sym": "npn"
+      },
+      {
+        "w": "Fully on",
+        "d": "With plenty of base current the transistor is like a closed switch: the LED's resistor sets the current.",
+        "sym": "switch"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

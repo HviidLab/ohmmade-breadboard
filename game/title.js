@@ -15,7 +15,7 @@
     const s = BB.LevelMap.summary(), next = BB.LevelMap.nextLevel(), fresh = s.done === 0;
     const hasBench = !!G.hasSavedSandbox();
     const host = $("title-screen");
-    host.innerHTML = `<div class="ts-inner">
+    host.innerHTML = `${BB.TitleArt ? BB.TitleArt.scene() : ""}<div class="ts-inner">
       <p class="ts-brand">A game about real electronics</p>
       <h1>Ohmmade <span>Breadboard</span></h1>
       <p class="ts-lede">Learn electronics by building it. Light an LED, watch the current flow, and find out what happens when you leave out the resistor. No experience needed.</p>

@@ -63,14 +63,16 @@
     const ch = BB.Levels.chapters.find((c) => c.n === n), it = ch.intro, first = ch.levels[0], learned = BB.Store.get().notebook || [];
     const earlier = new Set(BB.Levels.chapters.filter((c) => c.n < n).flatMap((c) => c.levels.flatMap((l) => l.teaches)));
     const knows = [...new Set(ch.levels.flatMap((l) => l.uses))].filter((id) => earlier.has(id)).map((id) => BB.Concepts.get(id));
-    const sym = (t) => `<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="17" fill="#fffdf6" stroke="#2b2a26" stroke-width="2.2"/>
-      <text x="22" y="${t.length > 1 ? 27 : 29}" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" font-size="${t.length > 1 ? 16 : 21}" fill="#2b2a26">${esc(t)}</text></svg>`;
     BB.Store.update((s) => { s.introSeen = [...new Set([...(s.introSeen || []), n])]; });
     const open_ = unlocked(first);
-    const host = show("notebook", `<div class="nb-book opener"><div class="nb-head"><p class="op-k">Chapter ${n}</p><h1>${esc(ch.title)}</h1></div>
-      <p class="op-lede"><span class="op-sp">Sparky:</span> ${esc(it.lede)}</p>
+    const spark = ((BB.CoachUI && BB.CoachUI.SPARK) || "").replace(/id="sp/g, 'id="osp').replace(/url\(#sp/g, "url(#osp");      // his own gradient ids
+    const cover = it.cover ? BB.Concepts.get(it.cover) : null;
+    const host = show("notebook", `<div class="nb-book opener">
+      <div class="op-top"><div class="op-titles"><p class="op-k">Chapter ${n} of ${BB.Levels.chapters.length}</p><h1>${esc(ch.title)}</h1>
+        <div class="op-say"><span class="op-spark ts-sparky">${spark}</span><p class="op-bubble">${esc(it.lede)}</p></div></div>
+        ${cover ? `<figure class="nb-card op-cover"><span class="nb-art">${BB.NotebookArt.diagram(cover.id)}</span><figcaption>${esc(cover.name)}</figcaption></figure>` : ""}</div>
       <section class="nb-page"><h2 class="nb-ch">In this chapter you find out</h2><ol class="op-q">${it.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></section>
-      <section class="nb-page"><h2 class="nb-ch">New words</h2><dl class="op-words">${it.words.map((w) => `<div>${sym(w.sym || w.w[0])}<dt>${esc(w.w)}</dt><dd>${esc(w.d)}</dd></div>`).join("")}</dl></section>
+      <section class="nb-page"><h2 class="nb-ch">New words</h2><dl class="op-words">${it.words.map((w) => `<div class="op-word">${BB.NotebookArt.symbol(w.sym || w.w[0])}<dt>${esc(w.w)}</dt><dd>${esc(w.d)}</dd></div>`).join("")}</dl></section>
       ${knows.length ? `<section class="nb-page"><h2 class="nb-ch">You already know</h2><ul class="op-knows">${knows.map((c) => `<li class="${learned.includes(c.id) ? "" : "op-new"}">${esc(c.name)}</li>`).join("")}</ul></section>` : ""}
       <div class="scr-row">${open_ ? `<button type="button" class="btn primary" id="op-go">Start ${first.id} · ${esc(first.title)} →</button>` : ""}<button type="button" class="btn" id="op-map">Level map</button></div></div>`,
       open_ ? "#op-go" : "#op-map");

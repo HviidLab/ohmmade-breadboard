@@ -214,5 +214,40 @@
     },
   ];
 
-  K.chapter(3, "Ohm's law", L);
+  K.chapter(3, "Ohm's law", L, {
+    "lede": "You can measure push, current and ohms. Now the three come together in one rule, so you can work things out before you build.",
+    "cover": "ohmsLaw",
+    "questions": [
+      "What happens to the current if you double the resistance?",
+      "And if you double the push?",
+      "Why does one resistor get hot while another stays cool?"
+    ],
+    "words": [
+      {
+        "w": "Ohm's law",
+        "d": "Current = push ÷ resistance. Know two of the three, and you can work out the third.",
+        "sym": "Ω"
+      },
+      {
+        "w": "Kilo-ohm (kΩ)",
+        "d": "1000 Ω. Handy: volts ÷ kΩ gives mA.",
+        "sym": "resistor"
+      },
+      {
+        "w": "Amp (A)",
+        "d": "The unit of current. 1 A = 1000 mA, so 180 mA is 0.18 A.",
+        "sym": "A"
+      },
+      {
+        "w": "Watt (W)",
+        "d": "How fast a part turns electrical energy into heat: push × current.",
+        "sym": "W"
+      },
+      {
+        "w": "Power",
+        "d": "Watts. A small resistor is made for ¼ W; much more and it burns.",
+        "sym": "fuse"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

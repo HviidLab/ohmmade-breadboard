@@ -175,5 +175,35 @@
     },
   ];
 
-  K.chapter(8, "Capacitors and time", L);
+  K.chapter(8, "Capacitors and time", L, {
+    "lede": "Until now everything happened at once. A capacitor stores energy and lets it go slowly, so circuits get a sense of time.",
+    "cover": "capTime",
+    "questions": [
+      "What does an LED do when the battery goes off but a capacitor still feeds it?",
+      "Why does filling a capacitor take time?",
+      "Which way round must a capacitor go?"
+    ],
+    "words": [
+      {
+        "w": "Capacitor",
+        "d": "A part that stores energy as charge on two plates. Think of a little bucket.",
+        "sym": "cap"
+      },
+      {
+        "w": "Microfarad (µF)",
+        "d": "The unit of capacitance, a millionth of a farad. More µF stores more.",
+        "sym": "cap"
+      },
+      {
+        "w": "Time (R × C)",
+        "d": "Resistance × capacitance: about two thirds full after that long. kΩ × µF gives milliseconds.",
+        "sym": "clock"
+      },
+      {
+        "w": "Electrolytic",
+        "d": "A capacitor with a + leg and a striped − leg. Backwards, it swells and vents.",
+        "sym": "cap"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

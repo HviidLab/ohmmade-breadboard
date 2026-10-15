@@ -256,5 +256,50 @@
     },
   ];
 
-  K.chapter(11, "The controller board", L);
+  K.chapter(11, "The controller board", L, {
+    "lede": "Meet a board with a tiny computer on it. Its pins switch and read, and a program decides what happens.",
+    "cover": "program",
+    "questions": [
+      "What does setting a pin HIGH or LOW do?",
+      "How does a board read a knob, or a button?",
+      "Why does an input need a pull-down resistor?"
+    ],
+    "words": [
+      {
+        "w": "Controller board",
+        "d": "A small computer with pins you can set and read, powered by USB.",
+        "sym": "chip"
+      },
+      {
+        "w": "Pin, HIGH and LOW",
+        "d": "A connection on the board. HIGH joins it to 5 V, LOW to 0 V.",
+        "sym": "chip"
+      },
+      {
+        "w": "GND",
+        "d": "Ground: the board's 0 V, like the battery's −.",
+        "sym": "battery"
+      },
+      {
+        "w": "IN (input)",
+        "d": "A pin set to read: above 3 V it reads HIGH, below 1.5 V LOW.",
+        "sym": "chip"
+      },
+      {
+        "w": "A0 (analog pin)",
+        "d": "Reads a push from 0 to 5 V as a number from 0 to 1023.",
+        "sym": "V"
+      },
+      {
+        "w": "Pull-down",
+        "d": "A resistor from an input to GND that holds it LOW until a button pulls it HIGH.",
+        "sym": "resistor"
+      },
+      {
+        "w": "Program",
+        "d": "Rules the board runs, written as code such as digitalWrite(13, HIGH);",
+        "sym": "chip"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

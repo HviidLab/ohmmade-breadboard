@@ -191,5 +191,35 @@
     },
   ];
 
-  K.chapter(7, "Buttons", L);
+  K.chapter(7, "Buttons", L, {
+    "lede": "A button is a switch your finger works. With two of them you can build little rules: this AND that, this OR that.",
+    "cover": "buttonsOr",
+    "questions": [
+      "Which of a push button's four legs are joined?",
+      "Why does a button sit across the centre gap?",
+      "How can either of two buttons light the same LED?"
+    ],
+    "words": [
+      {
+        "w": "Push button",
+        "d": "A switch that closes the loop while you press it, and springs back when you let go.",
+        "sym": "button"
+      },
+      {
+        "w": "Pair",
+        "d": "A button's four legs come in two joined pairs; pressing joins the pairs together.",
+        "sym": "button"
+      },
+      {
+        "w": "AND",
+        "d": "Buttons in series: every one must be down.",
+        "sym": "switch"
+      },
+      {
+        "w": "OR",
+        "d": "Buttons in parallel: any one will do.",
+        "sym": "switch"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

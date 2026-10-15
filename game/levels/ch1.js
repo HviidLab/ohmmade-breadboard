@@ -424,7 +424,52 @@
 
   BB.Levels = BB.Levels || {};
   BB.Levels.chapters = [];
-  chapter(1, "First Light", L);
+  chapter(1, "First Light", L, {
+    "lede": "Hi, I'm Sparky, a little LED. Let's make me light up, and find out why I do.",
+    "cover": "loop",
+    "questions": [
+      "What does a battery need before anything can light?",
+      "How does a breadboard join parts without any soldering?",
+      "Why does an LED need a resistor beside it?"
+    ],
+    "words": [
+      {
+        "w": "Current",
+        "d": "A flow of electricity through the parts. In the game you see it as amber dots.",
+        "sym": "A"
+      },
+      {
+        "w": "Loop (circuit)",
+        "d": "A closed path from the battery's + all the way back to its −. Current only flows round a closed one.",
+        "sym": "battery"
+      },
+      {
+        "w": "Strip",
+        "d": "Inside the breadboard, a metal strip joins each group of 5 holes.",
+        "sym": "gap"
+      },
+      {
+        "w": "Rail",
+        "d": "A long strip along the board's edge, for the battery's + or −.",
+        "sym": "+"
+      },
+      {
+        "w": "LED",
+        "d": "A little light that lets current through one way only: in at its long + leg.",
+        "sym": "led"
+      },
+      {
+        "w": "Resistor",
+        "d": "A part that holds the current back, so the LED doesn't burn out.",
+        "sym": "resistor"
+      },
+      {
+        "w": "Short circuit",
+        "d": "A path from + to − with nothing in it: a huge current, and everything goes dark.",
+        "sym": "switch"
+      }
+    ]
+  });
   // What later chapters build their levels with.
   BB.Levels.kit = { variant, chapter, start, xr, WIRE_COLORS, COLOR_WORD, lit, safe, part, anyLit, wires, wireHoles, onOff, FINISH };
   BB.Levels.all = () => BB.Levels.chapters.flatMap((c) => c.levels);

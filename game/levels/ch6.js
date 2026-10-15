@@ -155,5 +155,40 @@
     },
   ];
 
-  K.chapter(6, "Dividers and the knob", L);
+  K.chapter(6, "Dividers and the knob", L, {
+    "lede": "Two resistors can split the battery's push into any part you like. A knob does the same, and you can turn it.",
+    "cover": "divider",
+    "questions": [
+      "What push sits between two equal resistors?",
+      "How does a knob give any push from 0 to 6 V?",
+      "Why does a dimmer need a fixed resistor too?"
+    ],
+    "words": [
+      {
+        "w": "Voltage divider",
+        "d": "Two resistors in series. The point between them sits at part of the push.",
+        "sym": "resistor"
+      },
+      {
+        "w": "Middle point",
+        "d": "The strip between the two resistors, measured against the − rail.",
+        "sym": "V"
+      },
+      {
+        "w": "Potentiometer (knob)",
+        "d": "A resistor with a sliding middle leg, moved by turning the knob.",
+        "sym": "pot"
+      },
+      {
+        "w": "Wiper",
+        "d": "The knob's middle leg: it slides from one end to the other.",
+        "sym": "pot"
+      },
+      {
+        "w": "Dimmer",
+        "d": "A knob in an LED's loop: turn it to change the brightness.",
+        "sym": "led"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

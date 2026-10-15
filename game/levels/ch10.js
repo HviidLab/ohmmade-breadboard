@@ -140,5 +140,30 @@
     },
   ];
 
-  K.chapter(10, "Sensors", L);
+  K.chapter(10, "Sensors", L, {
+    "lede": "Circuits can feel the world. A light sensor turns brightness into resistance, and from there into a push you can use.",
+    "cover": "ldr",
+    "questions": [
+      "What happens to a light sensor's resistance in the dark?",
+      "How do you turn light into a push you can measure?",
+      "How does a night light know when to switch on?"
+    ],
+    "words": [
+      {
+        "w": "Light sensor (LDR)",
+        "d": "A resistor that reacts to light: low in the light, high in the dark.",
+        "sym": "ldr"
+      },
+      {
+        "w": "Covered",
+        "d": "Your hand over the sensor makes it dark: in the game, press and hold it.",
+        "sym": "ldr"
+      },
+      {
+        "w": "Night light",
+        "d": "A transistor switch fed from a light-sensor divider: on when it gets dark.",
+        "sym": "led"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

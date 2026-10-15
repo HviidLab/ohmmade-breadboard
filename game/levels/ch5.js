@@ -222,5 +222,35 @@
     },
   ];
 
-  K.chapter(5, "Series and parallel", L);
+  K.chapter(5, "Series and parallel", L, {
+    "lede": "With more than one part there are two ways to join them: one after another, or side by side. They behave very differently.",
+    "cover": "parallelI",
+    "questions": [
+      "Two resistors in a row: more current, or less?",
+      "How do parts in a row share out the push?",
+      "Side by side, does each part get the whole push?"
+    ],
+    "words": [
+      {
+        "w": "Series (in a row)",
+        "d": "One part after another: the same current goes through each of them.",
+        "sym": "resistor"
+      },
+      {
+        "w": "Parallel (side by side)",
+        "d": "Each part from the same + to the same −: each one gets the whole push.",
+        "sym": "battery"
+      },
+      {
+        "w": "Branch",
+        "d": "One path of a parallel circuit. The battery supplies all the branches at once.",
+        "sym": "switch"
+      },
+      {
+        "w": "Main line",
+        "d": "The path all the current takes before it splits into branches.",
+        "sym": "A"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

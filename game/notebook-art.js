@@ -336,5 +336,29 @@
       `<g filter="url(#ink${k})">${f()}</g></svg>`;
   }
 
-  BB.NotebookArt = { diagram, ids: () => Object.keys(D) };
+  // Small ink symbols for the chapter openers' word cards (viewBox 64 × 48): a meter with its letter, or a part's symbol.
+  const SYM = {
+    meter: (t) => ln(32, 4, 32, 10) + ln(32, 38, 32, 44) + circ(32, 24, 14, "#fffdf6") + tx(32, 24 + (t.length > 1 ? 5 : 6), t, { s: t.length > 1 ? 14 : 19 }),
+    resistor: () => ln(4, 24, 12, 24) + resH(12, 52, 24, 6) + ln(52, 24, 60, 24),
+    fuse: () => ln(4, 24, 14, 24) + `<rect x="14" y="16" width="36" height="16" rx="4" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` + `<path d="M16 24 q8 -8 16 0 t16 0" fill="none" stroke="${RED}" stroke-width="2"/>` + ln(50, 24, 60, 24),
+    probes: () => pl([[10, 6], [10, 30]], RED, 3) + `<path d="M6 30 h8 l-4 12 z" fill="${RED}"/>` + pl([[30, 6], [30, 30]], PEN, 3) + `<path d="M26 30 h8 l-4 12 z" fill="${PEN}"/>` + tx(48, 20, "+", { c: RED, s: 18 }) + tx(48, 40, "−", { s: 18 }),
+    battery: () => ln(32, 4, 32, 18) + battery(32, 24, false) + ln(32, 28, 32, 44) + tx(14, 22, "+", { c: RED, s: 16 }),
+    led: () => ln(32, 2, 32, 15) + ledV(32, 24, true) + ln(32, 31, 32, 46),
+    cap: () => ln(32, 4, 32, 20) + ln(18, 20, 46, 20, PEN, 3) + `<path d="M18 30 q14 -6 28 0" fill="none" stroke="${PEN}" stroke-width="3"/>` + ln(32, 28, 32, 44) + tx(14, 18, "+", { c: RED, s: 16 }),
+    switch: () => ln(4, 30, 18, 30) + circ(18, 30, 2.6, PEN) + ln(18, 30, 42, 16) + circ(46, 30, 2.6, PEN) + ln(46, 30, 60, 30),
+    button: () => ln(4, 32, 18, 32) + circ(18, 32, 2.6, PEN) + circ(46, 32, 2.6, PEN) + ln(46, 32, 60, 32) + ln(14, 22, 50, 22, PEN, 2.6) + ln(32, 22, 32, 10),
+    pot: () => ln(4, 30, 12, 30) + resH(12, 52, 30, 6) + ln(52, 30, 60, 30) + `<path d="M32 6 V20" stroke="${PEN}" stroke-width="2.2"/><path d="M27 15 L32 22 L37 15" fill="none" stroke="${PEN}" stroke-width="2.2"/>`,
+    ldr: () => circ(32, 26, 15, "#fffdf6") + resH(20, 44, 26, 4) + arrow(18, 8, 50, "#e0a21c") + arrow(30, 6, 60, "#e0a21c"),
+    npn: () => circ(36, 24, 15, "#fffdf6") + ln(30, 15, 30, 33, PEN, 3) + ln(30, 20, 41, 12) + ln(30, 28, 41, 36) + ln(10, 24, 30, 24) + arrow(40, 35, 40, PEN),
+    gap: () => `<rect x="6" y="8" width="20" height="32" rx="6" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/><rect x="38" y="8" width="20" height="32" rx="6" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/>` + ln(32, 4, 32, 44, RED, 2),
+    clock: () => circ(32, 24, 17, "#fffdf6") + ln(32, 24, 32, 12) + ln(32, 24, 41, 28),
+    chip: () => `<rect x="16" y="10" width="32" height="28" rx="4" fill="#2b2a26"/>` + [14, 22, 30].map((y) => ln(10, y, 16, y) + ln(48, y, 54, y)).join(""),
+  };
+  // A word card's symbol: a part's name, or any short text, which goes in a meter's circle.
+  function symbol(key) {
+    const k = ++uid, body = SYM[key] ? SYM[key]() : SYM.meter(String(key));
+    return `<svg viewBox="0 0 64 48" aria-hidden="true"><defs><filter id="ink${k}" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="${k % 9}"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter></defs><g filter="url(#ink${k})">${body}</g></svg>`;
+  }
+
+  BB.NotebookArt = { diagram, symbol, ids: () => Object.keys(D) };
 })(window.BB = window.BB || {});

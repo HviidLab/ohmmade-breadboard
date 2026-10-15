@@ -223,5 +223,35 @@
     },
   ];
 
-  K.chapter(4, "LED maths", L);
+  K.chapter(4, "LED maths", L, {
+    "lede": "LEDs are fussy: each colour wants its own push, and too much current pops them. Time to do the sums yourself.",
+    "cover": "chooseR",
+    "questions": [
+      "How much push does an LED keep, whatever the resistor?",
+      "How do you pick the resistor for the current you want?",
+      "Why does a blue LED need a different resistor from a red one?"
+    ],
+    "words": [
+      {
+        "w": "The LED's share",
+        "d": "The push an LED keeps for itself: about 2 V for red, 3 V for blue. The resistor gets the rest.",
+        "sym": "led"
+      },
+      {
+        "w": "Sizes",
+        "d": "Resistors come in fixed sizes, such as 220, 330, 390 and 470 Ω. Work it out, then round up to the next size.",
+        "sym": "resistor"
+      },
+      {
+        "w": "Colour",
+        "d": "Red, yellow, green, blue: each colour takes its own push.",
+        "sym": "led"
+      },
+      {
+        "w": "The 20 mA limit",
+        "d": "The most a small LED is made for. Far above it, it pops.",
+        "sym": "mA"
+      }
+    ]
+  });
 })(window.BB = window.BB || {});

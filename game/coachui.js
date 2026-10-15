@@ -473,5 +473,5 @@
   }
 
 
-  BB.CoachUI = { howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { SPARK, howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});
