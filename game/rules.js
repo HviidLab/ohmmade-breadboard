@@ -116,7 +116,7 @@
         }
         case "wire": {
           if (allow.place === false || allow.wire === false) return no("Not yet. Follow Sparky first.");
-          if (this.available(G, "wire") <= 0) return no("No wires left in the tray. Take one off the board to reuse it.");
+          if (this.available(G, "wire") <= 0) return no("No wire left. Take one off the board to use it again.");
           return OK;
         }
         case "body": return OK;                       // moving the battery pack or meter body changes nothing electrical

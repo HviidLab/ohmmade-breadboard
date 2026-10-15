@@ -407,9 +407,9 @@
     // the battery pack sits centred above the open part of the board, clear of the objective card
     const bats = lv.start.parts.filter((p) => p.type === "battery"), [r0, r1] = lv.region.rows;
     bats.forEach((bat, k) => { bat.bx = Math.round((xr(r0) + xr(r1)) / 2 - 115); bat.by = k ? BBShared.Y["-B"] + 60 : -150; });   // a second pack below the board
-    // the meter stands to the right of the open part of the board, its probes resting on the bench below it
+    // the meter stands to the right of the open part of the board, level with the battery, its probes resting below it
     const m = lv.start.parts.find((p) => p.type === "meter");
-    if (m) { const h = BB.Render ? BB.Render.meterSize()[1] : 330; m.bx = xr(r1) + 70; m.by = 100; m.loose = [[m.bx + 95, m.by + h + 40], [m.bx + 165, m.by + h + 40]]; }
+    if (m) { const h = BB.Render ? BB.Render.meterSize()[1] : 330; m.bx = xr(r1) + 70; m.by = -60; m.loose = [[m.bx + 95, m.by + h + 40], [m.bx + 165, m.by + h + 40]]; }
     // the controller board sits above the open part of the board, its sockets just over the top rails
     const u = lv.start.parts.find((p) => p.type === "uno");
     if (u) { u.bx = Math.round((xr(r0) + xr(r1)) / 2 - BB.Uno.W / 2); u.by = -190; }

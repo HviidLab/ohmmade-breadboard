@@ -53,16 +53,24 @@
   function init(game) {
     G = game;
     $("mentor-avatar").innerHTML = SPARK;
+    if (window.ResizeObserver) new ResizeObserver(() => requestAnimationFrame(outgrown)).observe($("mentor"));
     $("mentor-text").addEventListener("click", () => stopSpeaking());     // click the line to see all of it at once
     voiceOn = BB.Store.get().settings.voice !== false;
+    $("lv-voice").setAttribute("aria-pressed", String(voiceOn));
     $("lv-undo").addEventListener("click", () => G.undo());
+    $("lv-voice").addEventListener("click", () => setVoice(!voiceOn));
+    const zoom = (f) => { const r = $("canvas").getBoundingClientRect(); R.zoomAt(r.left + r.width / 2, r.top + r.height / 2, f); };
+    $("lv-zin").addEventListener("click", () => zoom(1.2));
+    $("lv-zout").addEventListener("click", () => zoom(1 / 1.2));
+    $("lv-fit").addEventListener("click", () => G.fitLevel());
     $("lv-pause").addEventListener("click", () => BB.LevelMap.pause());
     $("lv-xray").addEventListener("click", () => xray(!BB.Flow.xrayOn));
     window.addEventListener("keydown", (e) => {
       if (G.mode !== "level" || e.target.matches("input, select, textarea")) return;
+      const free = e.target === document.body || !!e.target.closest("#mentor");     // Enter belongs to the focused button, if any
       if (e.key === "Escape" && !G.paused) { e.preventDefault(); BB.LevelMap.pause(); }
-      else if (e.key === "Enter" && !G.paused && typing) { e.preventDefault(); stopSpeaking(); }
-      else if (e.key === "Enter" && !G.paused && $("mentor-next")) { e.preventDefault(); $("mentor-next").click(); }
+      else if (e.key === "Enter" && !G.paused && typing && free) { e.preventDefault(); stopSpeaking(); }
+      else if (e.key === "Enter" && !G.paused && $("mentor-next") && free) { e.preventDefault(); $("mentor-next").click(); }
       else if ((e.key === "x" || e.key === "X") && !G.paused && !$("lv-xray").hidden) xray(!BB.Flow.xrayOn);
     });
     // Hidden tuning overlay (the backquote key): per level, attempts, time and hints of the last finished attempt.
@@ -92,15 +100,18 @@
     R.marks(null); R.guide(null); spot(null);
     $("partcard").hidden = true;
   }
+  const COMPACT = 1150;                     // px: below this the tray turns into an icon strip (game.css)
   // Room the overlays take, so the bench is fitted into the free middle.
   function insets() {
     const st = $("stage").getBoundingClientRect();
     fittedFor = $("mentor").offsetHeight;
     // Sparky stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
     // The bottom keeps extra room for the bubble to grow when a hint is added.
-    const bub = $("mentor"), H = st.height;      // the bubble's home height, wherever Sparky is now
-    const bot = Math.min(st.top + H - 18 - bub.offsetHeight, $("hotbar").getBoundingClientRect().top);
-    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 64, 40), left: 12 + baseW() + 4, right: 12 });   // Sparky's home column
+    const bub = $("mentor"), H = st.height, hb = $("hotbar").getBoundingClientRect();      // the bubble's home height, wherever Sparky is now
+    const compact = window.innerWidth <= COMPACT;                // a narrow screen: the tray is a strip down the right edge
+    const bot = compact ? st.top + H - 18 - bub.offsetHeight : Math.min(st.top + H - 18 - bub.offsetHeight, hb.top);
+    const short = window.innerHeight <= 620, ob = $("objective").getBoundingClientRect();        // a short screen: the bench keeps right of the objective card
+    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 16, 40), left: Math.max(12 + baseW() + 4, short ? ob.right - st.left + 10 : 0), right: compact ? hb.width + 26 : 12 });   // Sparky's home column
   }
 
   // ---------- Sparky speaks: the line types out, with a gibberish syllable every couple of letters ----------
@@ -146,7 +157,7 @@
     };
     tick();
   }
-  function setVoice(on) { voiceOn = !!on; BB.Store.update((s) => { s.settings.voice = voiceOn; }); }
+  function setVoice(on) { voiceOn = !!on; BB.Store.update((s) => { s.settings.voice = voiceOn; }); $("lv-voice").setAttribute("aria-pressed", String(voiceOn)); }
 
   // ---------- the coach's hooks ----------
   // A new line from Sparky. Parts already on screen (the same line with a hint added) stay; new parts are spoken.
@@ -167,6 +178,8 @@
     parts.forEach((t, k) => { if (same(k)) spans[k + off].textContent = t; else toSpeak.push({ el: spans[k + off], text: t }); });
     if (offer.note) { const n = spans[spans.length - 1]; if (sameReply && same(0)) n.textContent = offer.note; else toSpeak.push({ el: n, text: offer.note }); }
     shownParts = parts; shownReply = rp;
+    const all = [rp, ...parts, offer.note && `Real bench: ${offer.note}`].filter(Boolean).join(" ");       // for screen readers: the whole line, once
+    if ($("mentor-sr").textContent !== all) $("mentor-sr").textContent = all;
     speak(toSpeak);
     relayout();
     const act = $("mentor-act");
@@ -202,7 +215,7 @@
   const grow = (r, m) => ({ left: r.left - m, top: r.top - m, right: r.right + m, bottom: r.bottom + m });
   const meets = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   const union = (rs) => ({ left: Math.min(...rs.map((r) => r.left)), top: Math.min(...rs.map((r) => r.top)), right: Math.max(...rs.map((r) => r.right)), bottom: Math.max(...rs.map((r) => r.bottom)) });
-  const baseW = () => Math.min(Math.max(window.innerWidth * 0.165, 170), 240);
+  const baseW = () => Math.min(Math.max(Math.min(window.innerWidth * 0.165, window.innerHeight * 0.3), 130), 240);     // as in game.css
 
   // Screen boxes (relative to the stage) of the marked things: [main, ...others]. Sparky goes to the first one named.
   function targetBoxes() {
@@ -256,9 +269,15 @@
     }
     bub.classList.remove("away");                       // home: lower left, full size, bubble beside him, pointing from there
     go({ sx: 12, sy: H - homeH - 10, w: homeW, bx: homeW + 22, by: H - 18 - bub.offsetHeight, side: "right", aim, home: true });
-    // A longer line (an answer, a note) made the bubble taller than the room the bench was fitted around: fit it again.
-    const B = { left: homeW + 22, right: homeW + 22 + bub.offsetWidth, top: H - 18 - bub.offsetHeight, bottom: H - 18 };
-    if (meets(B, benchBox(st)) && bub.offsetHeight > fittedFor + 4) { fittedFor = bub.offsetHeight; G.fitLevel(); }
+    outgrown();
+  }
+  // A longer line, an answer, a note or an aside made the bubble at home taller than the room the bench was fitted
+  // around, so it would cover the bench: fit the bench again (called on every change of the bubble's size too).
+  function outgrown() {
+    if (!lv || !atHome) return;
+    const st = $("stage").getBoundingClientRect(), bub = $("mentor"), b = rel(bub.getBoundingClientRect(), st);
+    const bench = benchBox(st), seen = { left: Math.max(bench.left, 0), top: Math.max(bench.top, 0), right: Math.min(bench.right, st.width), bottom: Math.min(bench.bottom, st.height) };
+    if (meets(b, seen) && bub.offsetHeight > fittedFor + 4) { fittedFor = bub.offsetHeight; G.fitLevel(); }
   }
   let fittedFor = 0;                       // the bubble height the bench was last fitted around
   function go(p) {
@@ -269,7 +288,8 @@
     a.style.transition = dur ? `${tr}, width ${dur}s ease-in-out` : "none";
     b.style.transition = tr;               // the bubble's width must not animate: Sparky measures it to find a place
     Object.assign(a.style, { left: `${p.sx}px`, top: `${p.sy}px`, width: `${p.w}px`, bottom: "auto" });
-    Object.assign(b.style, { left: `${p.bx}px`, top: `${p.by}px`, bottom: "auto" });
+    // at home the bubble is anchored by its bottom, so a longer line (an aside, a hint) grows it upwards, never off the screen
+    Object.assign(b.style, p.home ? { left: `${p.bx}px`, top: "auto", bottom: "18px" } : { left: `${p.bx}px`, top: `${p.by}px`, bottom: "auto" });
     b.classList.toggle("tail-right", p.side === "left");
     atHome = !!p.home;
     clearTimeout(walkTimer);
@@ -384,6 +404,10 @@
     if (part.type === "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["New fuse", "fresh", () => G.replace(part.id)]);
     if ((part.type === "led" || part.type === "cap") && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
     if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push([part.type === "uno" ? "Fresh board" : part.type === "battery" ? "Fresh batteries" : "Fresh one", "fresh", () => G.replace(part.id)]);
+    if (dead) {                            // the exact reason, with its numbers
+      const ev = [...G.sim.events].reverse().find((q) => q.partId === part.id && q.kind === "destroyed");
+      if (ev) acts.push(["Why?", "why", () => aside(ev.text, 12000, "bad")]);
+    }
     if (part.type !== "meter" && part.type !== "battery" && G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
     const key = JSON.stringify([part.id, dead, acts.map((a) => a[1])]);
     if (key !== partFor) {
@@ -391,10 +415,21 @@
       card.innerHTML = `<p class="pc-name">${esc(BB.Parts.name(part))}${dead ? ` <span class="pc-dead">${part.type === "meter" ? "fuse blown" : part.type === "uno" ? "pin damaged" : part.type === "battery" ? "overheated" : "burned out"}</span>` : ""}</p><div class="pc-act"></div>`;
       const box = card.querySelector(".pc-act");
       for (const [lbl, cls, fn] of acts) { const b = document.createElement("button"); b.type = "button"; b.className = `btn pc-${cls}`; b.textContent = lbl; b.addEventListener("click", fn); box.appendChild(b); }
-      if (!acts.length) box.innerHTML = '<span class="pc-fixed">Fixed in this level</span>';
+      if (!acts.length) box.innerHTML = `<span class="pc-fixed">${esc(howTo(part))}</span>`;
     }
     card.hidden = false;
     placePartCard();
+  }
+  // How the player can use a part here, in a few words (for the part card and the tooltip).
+  function howTo(part) {
+    const can = (kind) => G.can({ kind, id: part.id, ctl: "use" }).ok;
+    if (part.type === "pot" && can("ctl")) return "Drag the knob up or down to turn it";
+    if (part.type === "ldr" && can("ctl")) return "Press and hold it to cover it (Shift-click keeps it covered)";
+    if (part.type === "button" && can("ctl")) return part.latch ? "Click it to press it down, again to let it up" : "Press it (Shift-click keeps it down)";
+    if (part.type === "battery" && can("ctl")) return "Click the switch to turn it on or off";
+    if (part.legs.length === 2 && can("legs")) return "Drag an end to move that end";
+    if (can("move")) return "Drag it to move it";
+    return "Stays as it is in this level";
   }
   function placePartCard() {
     const card = $("partcard");
@@ -416,8 +451,23 @@
     if (marks) R.marks([].concat(marks).filter((t) => !t.ui));
     placePartCard();
   }
+  // What the meter's own note would say (red lead in the wrong socket, OL, Err), said by Sparky once it has lasted a second.
+  let meterSaid = null, meterSince = 0;
+  function meterNote() {
+    const m = G.doc.parts.find((p) => p.type === "meter");
+    if (!m || !m.legs[0] || !m.legs[1]) return null;
+    const rd = G.sim.read(m.id) || {}, mode = m.mode || "V";
+    if (m.socket === "mA" && mode !== "mA" && mode !== "off") return "Careful: the red lead is still in the mA socket, so the meter is almost a wire. Move it back to VΩ.";
+    if (rd.display === "OL") return "OL means over the limit: the meter finds no path it can measure between the probes.";
+    return rd.note || null;
+  }
+  function meterWatch() {
+    const n = meterNote(), now = performance.now();
+    if (n !== meterSaid) { meterSaid = n; meterSince = now; return; }
+    if (n && meterSince && now - meterSince > 1000) { meterSince = 0; aside(n, 7000); }
+  }
   // Ten times a second from the main loop.
-  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); }
+  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); meterWatch(); }
 
   // The playtest data as a small overlay (the backquote key); the pause menu and the map show it in full.
   function telemetry() {
@@ -431,5 +481,5 @@
   }
 
 
-  BB.CoachUI = { relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});

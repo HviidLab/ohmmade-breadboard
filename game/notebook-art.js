@@ -314,6 +314,19 @@
       ln(162, 82, 190, 82) + ln(190, 82, 190, 96) + ledV(190, 103) + ln(190, 110, 190, 120) + tx(110, 124, "the program decides", { s: 15, c: "#a3360f" }),
   };
 
+  // The symbols circuit drawings use (the Notebook's first card): battery, resistor, LED, capacitor, switch, meter.
+  D.symbols = () => {
+    const at = [[36, 28], [110, 28], [184, 28], [36, 84], [110, 84], [184, 84]], w = (x, y) => ln(x, y - 18, x, y - 9) + ln(x, y + 9, x, y + 18);
+    const [b, r, l, c, sw, m] = at;
+    return ln(b[0], b[1] - 18, b[0], b[1] - 5) + ln(b[0], b[1] + 4, b[0], b[1] + 18) + battery(b[0], b[1]) + tx(b[0], b[1] + 36, "battery", { s: 15 }) +
+      resV(r[0], r[1] - 18, r[1] + 18, 5) + tx(r[0], r[1] + 36, "resistor", { s: 15 }) +
+      w(l[0], l[1]) + ledV(l[0], l[1], false) + tx(l[0], l[1] + 36, "LED", { s: 15 }) +
+      ln(c[0], c[1] - 18, c[0], c[1] - 4) + ln(c[0] - 12, c[1] - 4, c[0] + 12, c[1] - 4, PEN, 3) + ln(c[0] - 12, c[1] + 4, c[0] + 12, c[1] + 4, PEN, 3) +
+        ln(c[0], c[1] + 4, c[0], c[1] + 18) + tx(c[0] - 20, c[1] - 1, "+", { c: RED, s: 16 }) + tx(c[0], c[1] + 36, "capacitor", { s: 15 }) +
+      ln(sw[0], sw[1] - 18, sw[0], sw[1] - 8) + circ(sw[0], sw[1] - 8, 2.4, PEN) + ln(sw[0], sw[1] - 8, sw[0] + 10, sw[1] + 6) + circ(sw[0], sw[1] + 8, 2.4, PEN) +
+        ln(sw[0], sw[1] + 8, sw[0], sw[1] + 18) + tx(sw[0], sw[1] + 36, "switch", { s: 15 }) +
+      ln(m[0], m[1] - 18, m[0], m[1] - 14) + ln(m[0], m[1] + 14, m[0], m[1] + 18) + meter(m[0], m[1], "V") + tx(m[0], m[1] + 36, "meter", { s: 15 });
+  };
   function diagram(id) {
     const f = D[id];
     if (!f) return "";

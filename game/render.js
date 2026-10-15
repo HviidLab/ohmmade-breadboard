@@ -11,7 +11,7 @@
   const BOARD = { x: 18, y: 56, w: xr(ROWS) + 52 - 18, h: 444 };
   const C = {
     leg: "#c7ccd1", legHi: "#f4f6f8", board: "#f3efe6", boardEdge: "#d9d0bd", strip: "#e1dbcd", hole: "#3b4048",
-    slot: "#e6dece", slotEdge: "#cfc4ad", gap: "#e2dbcb", label: "#a59b86",
+    slot: "#e6dece", slotEdge: "#cfc4ad", gap: "#e2dbcb", label: "#6b6250",
     pos: "#d64545", gnd: "#3a78d6", res: "#dcc293", resEdge: "#a98b55", led: "#e8202a", cap: "#2f4fa3",
     pot: "#2a6fc2", npn: "#202326", btn: "#3b4046", wires: ["#2fae5a", "#f08c2a", "#f2c94c", "#3a8ee6", "#e9ecef", "#c2410c"],
   };
@@ -71,7 +71,7 @@
     el("rect", { x: -1400, y: -1100, width: 4600, height: 2700, fill: "url(#bench)" }, world);
     el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "url(#matgrid)" }, world);
     // layers, bottom to top; only the board and the parts take the pointer
-    for (const k of ["board", "xray", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
+    for (const k of ["board", "xray", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui", "kb"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
     drawBoard();
     apply();
   }
@@ -111,14 +111,28 @@
   // Levels: fit a world box into the part of the stage that the overlays leave free.
   const insets = { top: 0, right: 0, bottom: 0, left: 0 };
   function setInsets(i) { Object.assign(insets, { top: 0, right: 0, bottom: 0, left: 0 }, i || {}); }
-  function fitBox(x0, y0, x1, y1) {
-    lastBox = [x0, y0, x1, y1];
+  // On a small screen the holes would get too small to hit: then keep at least MIN_PITCH screen pixels between holes,
+  // centred on `focus` (the open board), and the rest is a pan or the zoom buttons away.
+  let MIN_PITCH = 16;
+  function fitBox(x0, y0, x1, y1, focus) {
+    lastBox = [x0, y0, x1, y1, focus];
     const r = svg.getBoundingClientRect();
     const W = Math.max(r.width - insets.left - insets.right, 100), H = Math.max(r.height - insets.top - insets.bottom, 100);
     view.k = Math.max(0.2, Math.min(2.2, W / (x1 - x0), H / (y1 - y0)));
+    if (focus && view.k * P < MIN_PITCH) {
+      const k = view.k = MIN_PITCH / P;
+      // what does not fit: keep the board's left end and its bottom row in view, and as much above and right as there is room for
+      if ((x1 - x0) * k > W) { x0 = Math.max(x0, focus[0]); x1 = x0 + W / k; }
+      if ((y1 - y0) * k > H) { y0 = Math.max(y0, Math.min(focus[1] - 20, focus[3] - H / k)); y1 = y0 + H / k; }
+    }
     view.tx = insets.left - x0 * view.k + (W - (x1 - x0) * view.k) / 2;
     view.ty = insets.top - y0 * view.k + (H - (y1 - y0) * view.k) / 2;
     apply();
+  }
+  // World box of a level's open board rows, without the battery and meter around them.
+  function boardBox(region) {
+    const [r0, r1] = region.rows || [1, ROWS];
+    return [xr(r0) - 50, Y["+T"] - 30, xr(r1) + 40, (region.rails === "all" ? Y["-B"] : region.cols === "a-j" ? Y.j : Y.e) + 34];
   }
   // World box around a level's open board area and its battery pack.
   function regionBox(region, doc) {
@@ -192,13 +206,13 @@
       slots.push(`M${x + 10} ${t}a10 10 0 0 1 10 10v${h - 20}a10 10 0 0 1 -20 0v${-(h - 20)}a10 10 0 0 1 10 -10z`);
     }
     el("path", { d: slots.join(""), fill: C.slot, stroke: C.slotEdge, "stroke-width": 1.1 }, g);
-    for (const c of "abcdefghij") el("text", { x: BOARD.x + 12, y: Y[c] + 4, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, g).textContent = c;
+    for (const c of "abcdefghij") el("text", { x: BOARD.x + 12, y: Y[c] + 4, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, g).textContent = c;
     const d = [];                                        // round holes, one path
     for (let r = 1; r <= ROWS; r++) for (const c of COLS) d.push(`M${xr(r) - 3.2} ${Y[c]}a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0 -6.4 0z`);
     el("path", { d: d.join(""), fill: C.hole }, g);
     for (let r = 1; r <= ROWS; r++) if (r === 1 || r % 5 === 0) {
-      el("text", { x: xr(r), y: Y.a - 18, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, g).textContent = r;
-      el("text", { x: xr(r), y: Y.j + 24, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 10 }, g).textContent = r;
+      el("text", { x: xr(r), y: Y.a - 18, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 12, "font-weight": 600 }, g).textContent = r;
+      el("text", { x: xr(r), y: Y.j + 24, "text-anchor": "middle", fill: C.label, "font-family": "IBM Plex Mono, monospace", "font-size": 12, "font-weight": 600 }, g).textContent = r;
     }
   }
 
@@ -260,6 +274,7 @@
         el("path", { d: r.track, stroke: "rgba(4, 10, 20, .35)", "stroke-width": 7.5, fill: "none", "stroke-linecap": "round", transform: "translate(1.5 2.5)" }, g);
         el("path", { d: r.track, stroke: dead ? "#2a2018" : "rgba(10, 16, 24, .55)", "stroke-width": 7, fill: "none", "stroke-linecap": "round" }, g);
         r.path = el("path", { d: r.track, stroke: dead ? "#4a3a2a" : col, "stroke-width": 4.6, fill: "none", "stroke-linecap": "round", "stroke-dasharray": dead ? "3 4" : null }, g);
+        el("path", { d: r.track, stroke: "transparent", "stroke-width": 16, fill: "none" }, g);            // easier to grab than the thin wire
         el("path", { d: r.track, stroke: "#fff", "stroke-width": 1.3, fill: "none", opacity: 0.3, transform: "translate(-.6 -.9)" }, g);
         for (const p of [a, b]) el("circle", { cx: p[0], cy: p[1], r: 2.8, fill: "#d5dbe1", stroke: "#6b7580", "stroke-width": 0.8 }, g);
         r.glow = el("path", { d: r.track, stroke: "#ff8a3a", "stroke-width": 10, fill: "none", opacity: 0, filter: "url(#soft)" }, g);
@@ -322,9 +337,10 @@
         r.body = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 9, fill: dead ? "#2b2f36" : "#2f6fd0", stroke: "#173a75", "stroke-width": 1.4 }, g);
         const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
         const knob = el("g", { class: "ctl", "data-ctl": "knob", "data-id": part.id }, g);
+        el("circle", { cx, cy, r: 22, fill: "transparent" }, knob);
         el("circle", { cx, cy, r: 14, fill: "#eef1f4", stroke: "#8f9aa5", "stroke-width": 1.4 }, knob);
         el("circle", { cx: cx - 4, cy: cy - 5, r: 4, fill: "#fff", opacity: 0.7 }, knob);
-        const ang = (-135 + 270 * (part.pos ?? 0.5)) * Math.PI / 180;
+        const ang = (135 - 270 * (part.pos ?? 0.5)) * Math.PI / 180;
         r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 10, y2: cy - Math.cos(ang) * 10, stroke: "#26303a", "stroke-width": 3, "stroke-linecap": "round" }, knob);
         break;
       }
@@ -381,6 +397,7 @@
     el("text", { x: sx, y: by + H - 14, "text-anchor": "middle", fill: "#93a6b8", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, body).textContent = `${cells}×AA`;
     if (dead) el("text", { x: bx + W / 2 - 20, y: by + H / 2 + 5, "text-anchor": "middle", fill: "#ffb08a", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 600 }, body).textContent = "LEAKING";
     const ly = by > Y.j ? by + 10 : by + H - 8;          // below the board, the leads leave from the pack's top edge
+    [["+", bx + W * 0.3], ["−", bx + W * 0.45]].forEach(([t, x]) => { el("text", { x: x + 9, y: ly + (by > Y.j ? -3 : 0), fill: t === "+" ? "#ff9a9a" : "#c9d3dd", "font-family": "IBM Plex Mono, monospace", "font-size": 13, "font-weight": 700 }, body).textContent = t; });
     leads(g, [[bx + W * 0.3, ly], [bx + W * 0.45, ly]], pts, part, ["#e04848", "#151a20"], 60, r);
   }
 
@@ -409,9 +426,10 @@
       r.leads[k] = d;
       el("path", { d, stroke: cols[k], "stroke-width": 3, fill: "none", "stroke-linecap": "round", opacity: 0.95 }, g);
       const pr = el("g", { class: "probe", "data-probe": k, "data-id": part.id, style: "cursor:grab" }, g);
-      el("circle", { cx: tip[0], cy: tip[1] + 10, r: 22, fill: "transparent" }, pr);          // a big area to grab it by
+      el("rect", { x: tip[0] - 11, y: tip[1] + 3, width: 22, height: 30, rx: 8, fill: "transparent" }, pr);          // grab it by its handle, not over the next holes
       el("path", { d: `M${tip[0]} ${tip[1]} l-4 8 v16 h8 v-16z`, fill: cols[k], stroke: "#000", "stroke-width": 0.8 }, pr);
       el("circle", { cx: tip[0], cy: tip[1], r: 3, fill: "#e9ecef" }, pr);
+      el("text", { x: tip[0], y: tip[1] + 22, "text-anchor": "middle", fill: "#fff", "font-family": "IBM Plex Mono, monospace", "font-size": 10, "font-weight": 700 }, pr).textContent = k ? "−" : "+";   // not by colour alone
     });
   }
 
@@ -453,6 +471,7 @@
     lockCtls(body, part);
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
     el("circle", { cx: from[0][0], cy: from[0][1], r: 6, fill: "#e04848" }, body);
+    el("circle", { cx: from[0][0], cy: from[0][1], r: 13, fill: "transparent", "data-plug": part.id, style: "cursor:grab" }, g);     // drag the red plug to another socket
     el("circle", { cx: from[1][0], cy: from[1][1], r: 6, fill: "#151a20" }, body);
     probes(g, part, pts.map((p, k) => p || part.loose?.[k] || [bx + 60 + k * 70, by - 40]), from, r);
   }
@@ -499,6 +518,7 @@
       el("text", { x: sx, y: SY - 19, "text-anchor": "middle", fill: col, "font-family": mono, "font-size": name.length > 3 ? 9 : 10.5, "font-weight": 700 }, body).textContent = U.label(name);
       if (U.DIGITAL.includes(name)) {
         const t = el("g", { class: "ctl", "data-ctl": `pin:${name}`, "data-id": part.id }, body);
+        el("rect", { x: sx - 13.5, y: SY - 66, width: 27, height: 32, fill: "transparent" }, t);       // a bigger target than the badge
         const rect = el("rect", { x: sx - 11.5, y: SY - 58, width: 23, height: 20, rx: 5, "stroke-width": 1.2 }, t);
         const txt = el("text", { x: sx, y: SY - 44, "text-anchor": "middle", fill: "#f4f7f9", "font-family": mono, "font-size": 10, "font-weight": 700 }, t);
         r.badges[name] = { rect, txt };
@@ -640,6 +660,14 @@
     drawBody(g, Object.assign({ type, value: 330, pos: 0.5, color: C.wires[0] }, part || {}, { legs: pts.map(() => null) }), pts, false);
   }
   function clearGhost() { L.ui.replaceChildren(); }
+  // The keyboard cursor: a ring on one hole (or board socket); `held` when something is being carried to it.
+  function cursor(pt, held) {
+    L.kb.replaceChildren();
+    if (!pt) return;
+    const [x, y] = pt.startsWith("U.") ? BB.Uno.socketXY(pt) : xy(pt);
+    el("circle", { cx: x, cy: y, r: 12, fill: "none", stroke: held ? "#ffb547" : "#36c5ff", "stroke-width": 3, "stroke-dasharray": held ? null : "5 3" }, L.kb);
+    el("circle", { cx: x, cy: y, r: 16, fill: "none", stroke: "#0b1422", "stroke-width": 1.5, opacity: 0.6 }, L.kb);
+  }
 
   // Faint outline of a workbook layout, to copy from.
   function guide(parts) {
@@ -654,5 +682,5 @@
     }
   }
 
-  BB.Render = { init, drawParts, unoLive, region, marks, fitBox, regionBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

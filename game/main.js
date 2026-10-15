@@ -37,12 +37,13 @@
     doc: null, sim: null, sel: null, speed: 1, paused: false, seen: 0, mode: "sandbox", trace: [], run: null,
     level: null, rules: null, coach: null,
 
-    redraw() { try { R.drawParts(G.doc, G.sim, G.sel); BB.CoachUI.redrawn(); } catch (err) { BB.reportError(err, "drawing"); } },
+    redraw() { try { BB.Input.beforeRedraw(); R.drawParts(G.doc, G.sim, G.sel); BB.CoachUI.redrawn(); BB.Input.afterRedraw(); } catch (err) { BB.reportError(err, "drawing"); } },
     recompile() { G.sim.compile(); G.redraw(); },
     refreshPanels(force) { try { H.partList(G); H.inspector(G, force); BB.CoachUI.refresh(); } catch (err) { BB.reportError(err, "panels"); } },
     save() { if (G.mode !== "sandbox") return; St.update((s) => { s.sandbox = G.doc.serialize(); }); },
     hasSavedSandbox() { return !!St.get().sandbox; },
     load(docData) {
+      if (BB.Input.reset) BB.Input.reset();
       G.doc = new BB.Doc(docData);
       G.sim = new BB.Sim(G.doc);
       G.seen = 0; G.trace = []; G.sel = null;
@@ -143,7 +144,7 @@
       requestAnimationFrame(() => G.fitLevel());
       try { history.replaceState(null, "", `#level-${lv.id}/${seed}`); } catch (e) { /* ignore */ }
     },
-    fitLevel() { if (G.mode !== "level") return; BB.CoachUI.insets(); R.fitBox(...R.regionBox(G.level.region, G.doc)); BB.CoachUI.relayout(); },
+    fitLevel() { if (G.mode !== "level") return; BB.CoachUI.insets(); R.fitBox(...R.regionBox(G.level.region, G.doc), R.boardBox(G.level.region)); BB.CoachUI.relayout(); },
     finishLevel() {
       const lv = G.level, res = G.coach.finish();
       St.update((s) => {
@@ -282,6 +283,14 @@
       b.setAttribute("aria-pressed", String(on)); b.textContent = on ? "Sound on" : "Sound off";
       St.update((s) => { s.settings.sound = on; });
     },
+  };
+
+  // Make everything except `host` (and the elements around it on its way up) inert, or nothing (on = false).
+  BB.inertAround = (host, on) => {
+    for (const n of document.querySelectorAll("[inert]")) n.inert = false;
+    for (let node = host; on && node && node !== document.body; node = node.parentElement) {
+      for (const sib of node.parentElement.children) if (sib !== node && sib.tagName !== "SCRIPT") sib.inert = true;
+    }
   };
 
   // The last few things the player did, for bug reports.
@@ -441,7 +450,8 @@
       // Does Sparky (or his bubble) cover the open bench: the board's open rows, the battery or the meter?
       sparkyOnBench: () => {
         if (!G.level) return false;
-        const [x0, y0, x1, y1] = R.regionBox(G.level.region, G.doc), a = R.toScreen(x0, y0), b = R.toScreen(x1, y1);
+        const [x0, y0, x1, y1] = R.regionBox(G.level.region, G.doc), st = $("stage").getBoundingClientRect();
+        const a = R.toScreen(x0, y0).map((v, i) => Math.max(v, i ? st.top : st.left)), b = R.toScreen(x1, y1).map((v, i) => Math.min(v, i ? st.bottom : st.right));   // the part on screen
         const meets = (r) => r.left < b[0] && a[0] < r.right && r.top < b[1] && a[1] < r.bottom;
         return ["mentor-avatar", "mentor"].filter((id) => meets(document.getElementById(id).getBoundingClientRect()));
       },

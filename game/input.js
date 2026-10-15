@@ -9,7 +9,7 @@
 
   function holeUnder(cx, cy) {
     if (!inStage(cx, cy)) return null;     // holes hidden behind the side panels or the level's overlays are out of reach
-    const [wx, wy] = R.toWorld(cx, cy), rad = SNAP / R.view.k;
+    const [wx, wy] = R.toWorld(cx, cy), rad = Math.max(SNAP / R.view.k, 0.48 * BBShared.P);      // a drop between holes goes to the nearer one
     const h = R.holeAt(wx, wy, rad);
     if (h && G.rules && !G.rules.inRegion(h)) return null;      // closed part of the board in this level
     if (h || !BB.Uno.present) return h;
@@ -24,13 +24,21 @@
     svg.addEventListener("pointerdown", safe(down, "pointer down"));
     window.addEventListener("pointermove", safe(move, "pointer move"));
     window.addEventListener("pointerup", safe(up, "pointer up"));
-    svg.addEventListener("wheel", (e) => { e.preventDefault(); R.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+    svg.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const k = e.target.closest && e.target.closest('[data-ctl="knob"]');          // over a knob, the wheel turns it
+      if (k) { const p = G.doc.get(k.dataset.id); if (p) { G.set(p.id, "pos", Math.max(0, Math.min(1, (p.pos ?? 0.5) + (e.deltaY < 0 ? -1 : 1) * (e.shiftKey ? 0.004 : 0.02)))); G.commitSoft(); } return; }
+      R.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+    }, { passive: false });
     svg.addEventListener("pointerleave", () => { if (!st) { BB.HUD.tooltip(null); R.highlight(null); } });
     window.addEventListener("keydown", key);
     floater = document.createElement("div");
     floater.className = "drag-float"; floater.hidden = true;
     document.body.appendChild(floater);
     BB.HUD.buildDrawer(startNew);
+    svg.addEventListener("focus", () => { if (svg.matches(":focus-visible")) kbMode = true; if (!cur) cur = startHole(); show(); });
+    svg.addEventListener("pointerdown", () => { if (kbMode) { kbMode = false; kb = null; R.cursor(null); } }, true);
+    svg.addEventListener("blur", () => { if (!kb) { R.cursor(null); R.highlight(null); R.clearGhost(); } });
   }
 
   // ---------- keeping the dragged thing visible ----------
@@ -96,12 +104,11 @@
     if (d.type === "meter" && G.doc.parts.some((p) => p.type === "meter")) { BB.HUD.toast("There is already a multimeter on the bench."); return; }
     if (d.type === "uno" && G.doc.parts.some((p) => p.type === "uno")) { BB.HUD.toast("There is already a controller board on the bench."); return; }
     if (G.rules && !G.check(d.type === "wire" ? { kind: "wire" } : Object.assign({ kind: "place" }, d))) return;
-    st = { kind: "new", d, legs: null, ok: false, x: e ? e.clientX : 0, y: e ? e.clientY : 0 };
-    if (!e) { // keyboard: drop near the middle of the visible board
-      const r = svg.getBoundingClientRect();
-      st.x = r.left + r.width / 2; st.y = r.top + r.height / 2;
-      preview(st.x, st.y); finish(); return;
+    if (!e) {                // keyboard: carry it to the cursor on the board, Enter puts it down there
+      kb = { kind: "new", d }; kbMode = true; svg.focus({ preventScroll: true }); if (!cur) cur = startHole(); show();
+      return;
     }
+    st = { kind: "new", d, legs: null, ok: false, x: e.clientX, y: e.clientY };
   }
 
   function down(e) {
@@ -122,7 +129,7 @@
       else if (ctl === "press") {                      // held down while the mouse is; Shift-click, or a latching button, stays down
         if (e.shiftKey || part.latch) G.set(id, "pressed", !part.pressed, true); else { G.set(id, "pressed", true); st = { kind: "press", id }; }
       }
-      else if (ctl === "knob") st = { kind: "knob", id, y: e.clientY, pos0: part.pos ?? 0.5 };
+      else if (ctl === "knob") st = { kind: "knob", id, x: e.clientX, y: e.clientY, pos0: part.pos ?? 0.5 };
       else if (ctl === "cover") {                      // the light sensor: covered while held (Shift-click: stays covered)
         const room = part.room ?? 200;
         if (e.shiftKey) G.set(id, "lux", (part.lux ?? room) <= 5 ? room : 1, true);
@@ -132,6 +139,7 @@
       else if (ctl === "program") G.cycleProgram(id);
       capture(e); return;
     }
+    if ((n = at("[data-plug]"))) { const id = n.dataset.plug; G.select(id); st = { kind: "plug", id }; capture(e); return; }
     if ((n = at("[data-probe]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "probe", id })) return; G.doc.snapshot(); st = { kind: "probe", id, k: +n.dataset.probe, was: (G.doc.get(id).legs || [])[+n.dataset.probe] || null }; capture(e); return; }
     if ((n = at("[data-handle]"))) { const id = n.dataset.id; G.select(id); if (!G.check({ kind: "legs", id })) return; st = { kind: "leg", id, k: +n.dataset.handle, legs: null, ok: false }; capture(e); return; }
     // board header sockets: drawing a wire wins over dragging the board
@@ -151,6 +159,9 @@
       // grab the leg nearest to the pointer
       let grab = 0, bd = Infinity;
       part.legs.forEach((pt, k) => { if (!pt || pt.startsWith("U.")) return; const [x, y] = R.xy(pt); const d = Math.hypot(x - wx, y - wy); if (d < bd) { bd = d; grab = k; } });
+      // a long part (wire, resistor, light sensor) pressed right at one end: that end moves, no need to select it first
+      const span = part.legs.length === 2 && part.legs.every((l) => l && !l.startsWith("U.")) ? Math.hypot(...[0, 1].map((i) => R.xy(part.legs[0])[i] - R.xy(part.legs[1])[i])) : 0;
+      if (span > 1.5 * BBShared.P && bd < 0.55 * BBShared.P && G.can({ kind: "legs", id }).ok) { st = { kind: "leg", id, k: grab, legs: null, ok: false }; capture(e); return; }
       st = { kind: "move", id, grab, x: e.clientX, y: e.clientY, moved: false, legs: null, ok: false, removeOnly: !canMove, canRemove };   // removeOnly: it may only go back to the tray
       capture(e); return;
     }
@@ -168,8 +179,12 @@
 
   // Where a part dropped from the drawer or tray puts its legs. In levels, a resistor dropped on a top rail
   // stands from the rail into the board below it (rail → hole a), the way a beginner's circuit starts.
+  // The same for a light sensor; the leg in the board goes into the first free hole of that column (a, then b, …).
   function dropLegs(type, hole) {
-    if (G.mode === "level" && type === "resistor" && /^[+-]T\d+$/.test(hole)) return [hole, `a${BBShared.parse(hole).row}`];
+    if (G.mode === "level" && (type === "resistor" || type === "ldr") && /^[+-]T\d+$/.test(hole)) {
+      const row = BBShared.parse(hole).row, occ = G.doc.occupancy();
+      return [hole, `${"abcde".split("").find((c) => !occ.has(`${c}${row}`)) || "a"}${row}`];
+    }
     return Gr.footprint(type, hole);
   }
 
@@ -269,7 +284,11 @@
         G.redraw();
         break;
       }
-      case "knob": G.set(st.id, "pos", Math.max(0, Math.min(1, st.pos0 - (e.clientY - st.y) / 160))); break;
+      case "knob": {              // up or right turns it clockwise (towards the first leg's end); Shift turns it finely
+        const d = (e.clientX - st.x) - (e.clientY - st.y);
+        G.set(st.id, "pos", Math.max(0, Math.min(1, st.pos0 - d / (e.shiftKey ? 1200 : 300))));
+        break;
+      }
     }
   }
 
@@ -289,10 +308,22 @@
         if (s.moved && s.ok && s.legs && bothInRail(G.doc.get(s.id).type, s.legs)) G.refuse(RAIL_BOTH);
         else if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id)); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
         else if (s.moved && s.removeOnly) G.refuse("Drop it on the parts tray to take it out.");
+        else if (s.moved && !s.legs && G.doc.get(s.id).legs.length === 2 && G.can({ kind: "legs", id: s.id }).ok) G.refuse("To move just one end, press right on that end and drag it.");
         else if (s.moved) G.refuse(G.doc.validate(G.doc.get(s.id).type, s.legs || [null], s.id).why || "It does not fit there.");
         break;
-      case "leg": if (s.ok && s.legs && bothInRail(G.doc.get(s.id).type, s.legs)) G.refuse(RAIL_BOTH); else if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id), 1); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
+      case "leg": {
+        const part = G.doc.get(s.id), moved = s.legs && s.legs[s.k] !== part.legs[s.k];
+        if (s.ok && s.legs && bothInRail(part.type, s.legs)) G.refuse(RAIL_BOTH);
+        else if (s.ok && moved) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.sound.move(part, 1); G.edit(() => { part.legs = s.legs; }); G.emit("move", { id: s.id }); }
+        else if (s.legs && moved) G.refuse(G.doc.validate(part.type, s.legs, s.id).why || "It does not fit there.");
+        break;
+      }
       case "press": G.set(s.id, "pressed", false); break;
+      case "plug": {             // dropped on a socket: the red lead goes in there
+        const sock = document.elementsFromPoint(e.clientX, e.clientY).map((x) => x.closest && x.closest('[data-ctl^="socket:"]')).find(Boolean);
+        if (sock && G.check({ kind: "ctl", id: s.id, ctl: sock.dataset.ctl })) G.set(s.id, "socket", sock.dataset.ctl.slice(7), true);
+        break;
+      }
       case "cover": { const p = G.doc.get(s.id); if (p) G.set(s.id, "lux", p.room ?? 200, true); break; }
       case "knob": G.commitSoft(); break;
       case "probe": {
@@ -335,6 +366,14 @@
   }
 
   // ---------- hover ----------
+  // What a control on a part does, for its tooltip.
+  function CTL_TIP(c) {
+    if (c.startsWith("mode:")) return `Click to turn the dial to ${{ off: "OFF", V: "V (volts)", mA: "mA (current)", ohm: "Ω (ohms)", cont: "the beep" }[c.slice(5)] || c.slice(5)}`;
+    if (c.startsWith("socket:")) return `Click, or drag the red plug here, to put the red lead in the ${c.slice(7) === "VO" ? "VΩ" : "mA"} socket`;
+    if (c.startsWith("pin:")) return `Click to switch ${c.slice(4)}: IN, LOW or HIGH`;
+    return { switch: "Click to switch the battery on or off", cells: "Click to put two cells in or take them out", knob: "Drag up or right to turn it up, down or left to turn it down. Shift: finely. The wheel works too.",
+      press: "Press it. Shift-click keeps it down.", cover: "Press and hold to cover it. Shift-click keeps it covered.", program: "Click to change the program" }[c] || null;
+  }
   let lastHover = 0;
   function hover(e) {
     if (e.target.closest && !e.target.closest("#canvas")) return;
@@ -343,9 +382,11 @@
     lastHover = now;
     const partEl = e.target.closest && e.target.closest("[data-part]");
     const hole = holeUnder(e.clientX, e.clientY);
-    if (G.mode === "level") {          // no voltages yet: the part's name, and the strip under the pointer once strips are taught
+    if (G.mode === "level") {          // no voltages yet: the part's name and how to use it, and the strip under the pointer once strips are taught
       R.highlight(hole && G.level.ui && G.level.ui.xray ? hole : null);
-      BB.HUD.tooltip(!hole && partEl ? BB.Parts.name(G.doc.get(partEl.dataset.part) || { type: "wire" }) : null, e.clientX, e.clientY);
+      const ctl = e.target.closest && e.target.closest("[data-ctl]"), part = partEl && G.doc.get(partEl.dataset.part);
+      const tip = ctl && CTL_TIP(ctl.dataset.ctl) || (!hole && part ? `${BB.Parts.name(part)}\n${BB.CoachUI.howTo(part)}` : null);
+      BB.HUD.tooltip(tip, e.clientX, e.clientY);
       return;
     }
     if (hole) {
@@ -364,6 +405,9 @@
   // ---------- keyboard ----------
   function key(e) {
     if (e.target.matches("input, select, textarea") || G.paused) return;
+    if (e.target === svg && boardKey(e)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+    const ctlEl = e.target.closest && e.target.closest("[data-ctl]");
+    if (ctlEl && ctlKey(ctlEl, e)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? G.redo() : G.undo(); return; }
     if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); G.redo(); return; }
@@ -378,5 +422,152 @@
     if (arrows[e.key]) { e.preventDefault(); G.nudge(G.sel, ...arrows[e.key]); }
   }
 
-  BB.Input = { init, startNew };
+  // ---------- keyboard play ----------
+  // With the board focused, a cursor sits on one hole: the arrow keys move it, Enter picks up what is there (one end of a
+  // part, a probe tip) or starts a wire from a free hole, and Enter again puts it down at the cursor. Escape cancels.
+  // A tray item chosen with Enter is carried to the cursor the same way; 1 and 2 pick up the red and the black probe.
+  // The controls on the parts (dial, sockets, switch, knob, buttons, pins) are focusable and work with Enter or the arrows.
+  let cur = null, kb = null, kbMode = false;          // kbMode: the keyboard is in use (the mouse turns it off); kb: what is carried: {kind: "wire", from} | {kind: "leg", id, k} | {kind: "new", d} | {kind: "probe", id, k}
+  const open_ = (h) => !!h && (!G.rules || G.rules.inRegion(h));
+  const sockets = () => (BB.Uno.present ? BB.Uno.SOCKETS.map((s) => `U.${s.name}`).filter((h) => BB.Uno.usable(h)) : []);
+  function startHole() {
+    const t = BB.CoachUI.probeTargets && BB.CoachUI.probeTargets()[0];
+    if (t && open_(t)) return t;
+    const r = G.mode === "level" ? G.level.region.rows : [10, 20];
+    return `c${Math.round((r[0] + r[1]) / 2)}`;
+  }
+  const nearestTo = (x, list, at) => list.reduce((b, h) => (Math.abs(at(h) - x) < Math.abs(at(b) - x) ? h : b), list[0]);
+  function moveCursor(dr, dc) {
+    if (cur.startsWith("U.")) {                               // along the board's sockets, or down to the top rail
+      const ss = sockets(), k = ss.indexOf(cur);
+      if (dr) { cur = ss[Math.max(0, Math.min(ss.length - 1, k + dr))]; return; }
+      if (dc > 0) { const x = BB.Uno.socketXY(cur)[0]; cur = nearestTo(x, Array.from({ length: Gr.ROWS }, (_, i) => `+T${i + 1}`).filter(open_), (h) => R.xy(h)[0]) || cur; }
+      return;
+    }
+    const g = Gr.grid(cur);
+    if (dc < 0 && g.col === 0 && sockets().length) { cur = nearestTo(R.xy(cur)[0], sockets(), (h) => BB.Uno.socketXY(h)[0]); return; }
+    for (let n = 1, row = g.row + dr, col = g.col + dc; n < 16; n++, row += dr, col += dc) {        // skip closed holes
+      const p = Gr.point(row, col);
+      if (!p) return;
+      if (open_(p)) { cur = p; return; }
+    }
+  }
+  // What the cursor is on, said for screen readers.
+  function say(text) { const n = document.getElementById("kb-sr"); if (n) n.textContent = text; }
+  function show() {
+    if (kb && kb.id && !G.doc.get(kb.id)) kb = null;          // what was carried is gone (Undo, a new level)
+    if (!kbMode) return;
+    R.cursor(cur, !!kb); R.clearGhost(); R.highlight(cur && !cur.startsWith("U.") ? cur : null);
+    if (!cur) return;
+    const occ = G.doc.occupancy().get(cur), what = occ ? `, ${BB.Parts.name(G.doc.get(occ.id))}` : "";
+    if (kb && kb.kind === "wire") R.wireGhost(kb.from, cur.startsWith("U.") ? BB.Uno.socketXY(cur) : R.xy(cur));
+    else if (kb && kb.kind === "leg") { const p = G.doc.get(kb.id), legs = p.legs.slice(); legs[kb.k] = cur; R.ghost(p.type, legs, G.doc.validate(p.type, legs, p.id).ok, p); }
+    else if (kb && kb.kind === "new" && !["meter", "uno", "battery"].includes(kb.d.type)) {
+      const legs = dropLegs(kb.d.type, cur);
+      R.ghost(kb.d.type, legs, !!legs && G.doc.validate(kb.d.type, legs).ok, { value: kb.d.value || BB.HUD.defaults.resistor, color: kb.d.color || BB.HUD.defaults.ledColor });
+    }
+    const label = cur.startsWith("U.") ? `board socket ${BB.Uno.label(cur.slice(2))}` : `hole ${cur}`;
+    say(`${label}${what}${kb ? `. Carrying ${kb.kind === "new" ? BB.Parts.name(Object.assign({ value: 330 }, kb.d)) : kb.kind === "probe" ? (kb.k ? "the black probe" : "the red probe") : kb.kind === "wire" ? "a wire" : "one end"}: Enter puts it here.` : ""}`);
+  }
+  function pickUp() {
+    const m = G.doc.parts.find((p) => p.type === "meter"), pk = m ? m.legs.indexOf(cur) : -1;
+    if (pk >= 0) { if (G.check({ kind: "probe", id: m.id })) kb = { kind: "probe", id: m.id, k: pk }; return; }
+    const occ = G.doc.occupancy().get(cur);
+    if (occ) {
+      G.select(occ.id);
+      if (G.can({ kind: "legs", id: occ.id }).ok) { kb = { kind: "leg", id: occ.id, k: occ.leg }; return; }
+      const b = document.querySelector("#partcard button");             // Remove, Flip, Fresh one…
+      if (b) b.focus(); else G.refuse(G.can({ kind: "legs", id: occ.id }).say);
+      return;
+    }
+    if (G.rules && !G.check({ kind: "wire" })) return;
+    kb = { kind: "wire", from: cur };
+  }
+  function putDown() {
+    const c = kb;
+    if (c.kind === "wire") {
+      if (cur === c.from) return;
+      const v = G.doc.validate("wire", [c.from, cur]);
+      if (!v.ok) { G.refuse(v.why); return; }
+      kb = null;
+      G.add({ type: "wire", legs: [c.from, cur], color: R.C.wires[wireColor++ % R.C.wires.length] });
+    } else if (c.kind === "leg") {
+      const p = G.doc.get(c.id), legs = p.legs.slice(); legs[c.k] = cur;
+      const v = G.doc.validate(p.type, legs, p.id);
+      if (!v.ok) { G.refuse(v.why); return; }
+      if (bothInRail(p.type, legs)) { G.refuse(RAIL_BOTH); return; }
+      kb = null;
+      G.sound.move(p, 1); G.edit(() => { p.legs = legs; }); G.emit("move", { id: p.id });
+    } else if (c.kind === "probe") {
+      if (!G.check({ kind: "hole", hole: cur })) return;
+      kb = null;
+      const m = G.doc.get(c.id), was = m.legs[c.k];
+      G.doc.snapshot(); m.legs[c.k] = cur; m.loose = m.loose || [null, null]; m.loose[c.k] = null;
+      G.recompile(); G.commitSoft();
+      if (m.legs[c.k] !== was) G.emit("probe", { id: c.id });
+    } else if (c.kind === "new") {
+      const [x, y] = R.toScreen(...(cur.startsWith("U.") ? BB.Uno.socketXY(cur) : R.xy(cur)));
+      const legs = c.d.type === "battery" ? [`+T${Gr.grid(cur).row}`, `-T${Math.min(Gr.grid(cur).row + 1, Gr.ROWS)}`] : dropLegs(c.d.type, cur);
+      kb = null;
+      st = { kind: "new", d: c.d, legs, ok: !!legs && (["meter", "uno"].includes(c.d.type) || G.doc.validate(c.d.type, legs).ok), x, y, at: R.xy(cur.startsWith("U.") ? "c30" : cur) };
+      finish();
+    }
+  }
+  function boardKey(e) {
+    if (e.key === "Tab" || e.key === "Shift") return false;
+    kbMode = true;
+    const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (!cur) cur = startHole();
+    if (arrows[e.key] && !(e.ctrlKey || e.metaKey)) { moveCursor(...arrows[e.key]); show(); return true; }
+    if (e.key === "Enter" || e.key === " ") { if (kb) putDown(); else pickUp(); show(); return true; }
+    if (e.key === "Escape" && kb) { kb = null; show(); return true; }
+    if (e.key === "1" || e.key === "2") {
+      const m = G.doc.parts.find((p) => p.type === "meter");
+      if (m && G.check({ kind: "probe", id: m.id })) { kb = { kind: "probe", id: m.id, k: +e.key - 1 }; show(); }
+      return true;
+    }
+    const occ = G.doc.occupancy().get(cur);
+    if ((e.key === "Delete" || e.key === "Backspace") && occ) { G.remove(occ.id); show(); return true; }
+    if ((e.key === "r" || e.key === "R") && occ) { G.rotate(occ.id); show(); return true; }
+    return false;
+  }
+  // A focused control on a part: Enter or Space uses it (a push button and the light sensor toggle), the arrows turn a knob.
+  function ctlKey(n, e) {
+    const id = n.dataset.id, ctl = n.dataset.ctl, part = G.doc.get(id);
+    if (!part) return false;
+    const go = e.key === "Enter" || e.key === " ";
+    if (ctl === "knob") {
+      const d = { ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1 }[e.key];
+      if (!d) return false;
+      if (G.check({ kind: "ctl", id, ctl })) { G.set(id, "pos", Math.max(0, Math.min(1, (part.pos ?? 0.5) + d * (e.shiftKey ? 0.004 : 0.02)))); G.commitSoft(); }
+      return true;
+    }
+    if (!go) return false;
+    G.select(id);
+    if (!G.check({ kind: "ctl", id, ctl })) return true;
+    if (ctl === "switch") G.set(id, "on", part.on === false, true);
+    else if (ctl === "cells") G.set(id, "cells", (part.cells || 4) === 4 ? 2 : 4, true);
+    else if (ctl.startsWith("mode:")) G.set(id, "mode", ctl.slice(5), true);
+    else if (ctl.startsWith("socket:")) G.set(id, "socket", ctl.slice(7), true);
+    else if (ctl === "press") G.set(id, "pressed", !part.pressed, true);
+    else if (ctl === "cover") { const room = part.room ?? 200; if ((part.lux ?? room) > 5) part.room = part.lux ?? room; G.set(id, "lux", (part.lux ?? room) <= 5 ? part.room ?? 200 : 1, true); }
+    else if (ctl.startsWith("pin:")) G.cyclePin(id, ctl.slice(4));
+    else if (ctl === "program") G.cycleProgram(id);
+    return true;
+  }
+  // After every redraw: the controls can be reached with Tab and are named; the one that had the focus gets it back.
+  let focusKey = null;
+  function beforeRedraw() { const a = document.activeElement; focusKey = a && a.dataset && a.dataset.ctl && svg.contains(a) ? [a.dataset.ctl, a.dataset.id] : null; }
+  function afterRedraw() {
+    for (const n of svg.querySelectorAll("[data-ctl]")) {
+      if (!n.dataset.id || n.dataset.id.startsWith("ghost-")) continue;
+      n.setAttribute("tabindex", n.classList.contains("locked") ? "-1" : "0"); n.setAttribute("role", "button");
+      n.setAttribute("aria-label", CTL_TIP(n.dataset.ctl) || n.dataset.ctl);
+    }
+    if (focusKey) { const n = svg.querySelector(`[data-ctl="${focusKey[0]}"][data-id="${focusKey[1]}"]`); if (n) n.focus({ preventScroll: true }); }
+    if (kbMode && (document.activeElement === svg || kb)) show();
+  }
+
+  function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level, the sandbox)
+  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, get carrying() { return !!kb; } };
 })(window.BB = window.BB || {});

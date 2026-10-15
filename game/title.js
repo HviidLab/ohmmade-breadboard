@@ -21,7 +21,7 @@
       <p class="ts-lede">Learn electronics by building it. Light an LED, watch the current flow, and find out what happens when you leave out the resistor. No experience needed.</p>
       <div class="ts-actions">
         ${next ? `<button type="button" class="ts-go" id="ts-go"><span class="ts-k">${fresh ? "Start" : "Continue"}</span><span class="ts-m">${next.id} · ${next.title}</span></button>`
-               : `<button type="button" class="ts-go" id="ts-go"><span class="ts-k">All ${s.total} levels done</span><span class="ts-m">Level map</span></button>`}
+               : `<button type="button" class="ts-go" id="ts-go"><span class="ts-k">All ${s.total} levels done</span><span class="ts-m">The finale and your certificate</span></button>`}
         <div class="ts-more">
           <button type="button" class="ts-alt" id="ts-map"><span class="ts-k">Level map</span><span class="ts-s">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</span></button>
           <button type="button" class="ts-alt" id="ts-sandbox"><span class="ts-k">Sandbox</span><span class="ts-s">${hasBench ? "Your bench, as you left it" : "Every part, no goals"}</span></button>
@@ -35,16 +35,20 @@
       </ol>
     </div>`;
     host.hidden = false;
+    BB.inertAround(host, true);       // the game behind is out of reach
     G.paused = true;
     BB.HUD.toast(null);
-    $("ts-go").addEventListener("click", () => { hide(); if (next) G.enterLevel(next); else BB.LevelMap.showMap(); });
+    $("ts-go").addEventListener("click", () => { hide(); if (next) G.enterLevel(next); else BB.LevelMap.finale(); });
     $("ts-map").addEventListener("click", () => { hide(); BB.LevelMap.showMap(); });
     $("ts-sandbox").addEventListener("click", () => { hide(); G.enterSandbox(); });
     $("ts-go").focus();
     try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignore */ }
   }
 
-  function hide() { $("title-screen").hidden = true; G.paused = false; }
+  function hide() {
+    $("title-screen").hidden = true; G.paused = false;
+    if (!BB.LevelMap.isOpen()) BB.inertAround(null, false);
+  }
 
   BB.Title = { init, show, hide, isOpen: () => !$("title-screen").hidden };
 })(window.BB = window.BB || {});

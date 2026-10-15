@@ -76,7 +76,7 @@
     // Check whether legs are a valid placement for a part of `type` (ignoring part `exceptId`).
     validate(type, legs, exceptId) {
       if (type === "meter") return { ok: true };
-      if (legs.some((l) => l === null || l === undefined)) return { ok: false, why: "A leg is off the board." };
+      if (legs.some((l) => l === null || l === undefined)) return { ok: false, why: "Drop it right on the board's holes." };
       if (new Set(legs).size !== legs.length) return { ok: false, why: "Two legs in the same hole." };
       const occ = this.occupancy(exceptId);
       const busy = legs.find((l) => occ.has(l));

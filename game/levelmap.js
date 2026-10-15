@@ -29,11 +29,16 @@
 
   // ---------- screens ----------
   let open = null;
+  // Everything behind an open screen is inert: no focus, no clicks, not read out.
+  function behind(on, host) { BB.inertAround(host, on); }
+  const LABEL = { levelmap: "Level map", complete: "Level complete", pause: "Paused", notebook: "My Notebook" };
   function show(id, html, focus) {
     hideAll();
     const host = $(id);
     host.innerHTML = html;
     host.hidden = false;
+    host.setAttribute("role", "dialog"); host.setAttribute("aria-modal", "true"); host.setAttribute("aria-label", LABEL[id] || id);
+    behind(true, host);
     open = id;
     G.paused = true;
     const f = focus && host.querySelector(focus);
@@ -43,6 +48,7 @@
   function hideAll() {
     for (const id of ["levelmap", "complete", "pause", "notebook"]) $(id).hidden = true;
     open = null;
+    behind(false);
   }
   function close() { hideAll(); G.paused = false; }
   const on = (host, sel, fn) => { const b = host.querySelector(sel); if (b) b.addEventListener("click", fn); };
@@ -60,10 +66,11 @@
     const host = show("levelmap", `<div class="scr-inner">
       <div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</p></div>
       ${ch}
-      <section class="lm-coming"><h2>Coming next</h2><ul>${COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)).map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>
-      <div class="scr-row"><button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-playtest">Playtest data</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
+      ${(() => { const later = COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)); return later.length ? `<section class="lm-coming"><h2>Coming next</h2><ul>${later.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>` : ""; })()}
+      <div class="scr-row">${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}<button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-playtest">Playtest data</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
     host.querySelectorAll(".lm-node").forEach((b) => b.addEventListener("click", () => play(BB.Levels.get(b.dataset.id))));
     on(host, "#lm-notebook", () => notebook("map"));
+    on(host, "#lm-finale", finale);
     on(host, "#lm-playtest", () => playtest("map"));
     on(host, "#lm-title", () => { hideAll(); BB.Title.show(); });
     try { history.replaceState(null, "", "#map"); } catch (e) { /* ignore */ }
@@ -80,12 +87,57 @@
         ${lv.challenge ? `<li class="${res.challenge ? "got" : ""}">${res.challenge ? "★" : "☆"} ${esc(lv.challenge.text)}</li>` : ""}</ul>
       ${concept ? `<div class="cc-learned"><p class="cc-lh">What you learned</p>${lv.teaches.length ? `<span class="nb-art">${BB.NotebookArt.diagram(lv.teaches[0])}</span>` : ""}
         <h2>${esc(concept.name)}</h2><p>${esc(concept.text)}</p>${lv.teaches.length ? '<p class="cc-nb">Added to your Notebook</p><span class="cc-stamp">New!</span>' : ""}</div>` : ""}
-      ${lastOfChapter ? `<p class="cc-chapter">Chapter ${lv.chapter} complete!</p>` : ""}
-      <div class="scr-row">${next && !lastOfChapter ? '<button type="button" class="btn primary" id="cc-next">Next level →</button>' : '<button type="button" class="btn primary" id="cc-map">Level map</button>'}
-      <button type="button" class="btn" id="cc-again">Play again</button>${next && !lastOfChapter ? '<button type="button" class="btn" id="cc-map">Level map</button>' : ""}</div></div>`, "#cc-next, #cc-map");
+      ${lastOfChapter ? chapterEnd(lv.chapter, next) : ""}
+      <div class="scr-row">${!next ? '<button type="button" class="btn primary" id="cc-finale">The finale →</button>'
+        : lastOfChapter ? `<button type="button" class="btn primary" id="cc-next">Start chapter ${next.chapter} →</button><button type="button" class="btn" id="cc-nb">Notebook</button>`
+        : '<button type="button" class="btn primary" id="cc-next">Next level →</button>'}
+      <button type="button" class="btn" id="cc-again">Play again</button><button type="button" class="btn" id="cc-map">Level map</button></div></div>`, "#cc-next, #cc-finale, #cc-map");
     on(host, "#cc-next", () => play(next));
+    on(host, "#cc-finale", finale);
+    on(host, "#cc-nb", () => notebook("map", lv.chapter));
     on(host, "#cc-again", () => play(BB.Levels.get(lv.id)));      // a new variant of the same level
     on(host, "#cc-map", showMap);
+    BB.Effects.chime && BB.Effects.chime(3);
+  }
+
+  // The end of a chapter: its stars, the ideas it added to the Notebook, and what comes next.
+  function chapterEnd(n, next) {
+    const ch = BB.Levels.chapters.find((c) => c.n === n), prog = progress();
+    const got = ch.levels.reduce((k, l) => k + ((prog[l.id] || {}).stars || 0), 0);
+    const ideas = ch.levels.flatMap((l) => l.teaches).map((id) => BB.Concepts.get(id).name);
+    const nextCh = next && BB.Levels.chapters.find((c) => c.n === next.chapter);
+    return `<div class="cc-chapter"><p class="cc-ch-h">Chapter ${n} complete: ${esc(ch.title)}</p>
+      <p>${got} of ${3 * ch.levels.length} ★ · ${ideas.length} ideas in your Notebook: ${esc(ideas.join(", "))}.</p>
+      ${nextCh ? `<p>Next: Chapter ${nextCh.n}, ${esc(nextCh.title)}.</p>` : ""}</div>`;
+  }
+
+  // ---------- the finale, after the last level ----------
+  // A recap of the chapters, the stars, a certificate to print (the name stays on this computer), and real next steps.
+  function finale() {
+    const prog = progress(), s = summary(prog), name = BB.Store.get().settings.certName || "";
+    const rows = BB.Levels.chapters.map((c) => `<li><span>Chapter ${c.n}</span>${esc(c.title)}<b>${c.levels.reduce((k, l) => k + ((prog[l.id] || {}).stars || 0), 0)} of ${3 * c.levels.length} ★</b></li>`).join("");
+    const host = show("complete", `<div class="cc-card finale" role="dialog" aria-labelledby="fn-h">
+      <p class="cc-kicker">All ${s.total} levels done</p><h1 id="fn-h">You built it all</h1>
+      <p class="fn-lede">From one closed loop to a night light run by a program. Sparky is proud of you: you think like an electronics engineer now.</p>
+      <ol class="fn-recap">${rows}</ol><p class="fn-total">${s.stars} of ${3 * s.total} ★</p>
+      <div class="cert" id="cert"><p class="cert-k">Ohmmade Breadboard</p><p class="cert-t">Certificate</p><p>This shows that</p>
+        <p class="cert-name" id="cert-name">${esc(name || "…")}</p><p>built and understood every circuit in all ${BB.Levels.chapters.length} chapters,<br>with ${s.stars} of ${3 * s.total} stars.</p>
+        <p class="cert-d">${new Date().toISOString().slice(0, 10)}</p></div>
+      <div class="scr-row fn-name"><label for="fn-in">Your name for the certificate</label><input id="fn-in" type="text" maxlength="40" value="${esc(name)}" autocomplete="off">
+        <button type="button" class="btn" id="fn-print">Print it</button></div>
+      <div class="fn-next"><h2>Do it for real</h2>
+        <p>A starter kit with: a breadboard (830 holes), a 4 × AA box with a switch, resistors from 100 Ω to 100 kΩ, red, yellow, green and blue LEDs,
+        push buttons, a 10 kΩ knob, a light sensor, NPN transistors (such as BC547 or 2N2222), 100 µF and 1000 µF capacitors, jumper wires and a multimeter.</p>
+        <p>The controller board showed you its code. Real boards, such as Arduino, run code like those lines; start with the blink and the button programs.</p>
+        <p>Keep the Safe bench card in your Notebook close. And the sandbox is always open for new ideas.</p></div>
+      <div class="scr-row"><button type="button" class="btn primary" id="fn-sandbox">Open the sandbox</button><button type="button" class="btn" id="fn-nb">Notebook</button>
+        <button type="button" class="btn" id="fn-map">Level map</button></div></div>`, "#fn-sandbox");
+    const input = host.querySelector("#fn-in");
+    input.addEventListener("input", () => { host.querySelector("#cert-name").textContent = input.value || "…"; BB.Store.update((st) => { st.settings.certName = input.value; }); });
+    on(host, "#fn-print", () => window.print());
+    on(host, "#fn-sandbox", () => { close(); BB.Title.hide(); G.enterSandbox(); });
+    on(host, "#fn-nb", () => notebook("finale"));
+    on(host, "#fn-map", showMap);
     BB.Effects.chime && BB.Effects.chime(3);
   }
 
@@ -100,6 +152,7 @@
       <button type="button" class="btn" id="pz-notebook">Notebook</button>
       <button type="button" class="btn" id="pz-sound" aria-pressed="${sound}">Sound: ${sound ? "on" : "off"}</button>
       <button type="button" class="btn" id="pz-voice" aria-pressed="${BB.CoachUI.voiceOn}">Sparky's voice: ${BB.CoachUI.voiceOn ? "on" : "off"}</button>
+      <button type="button" class="btn" id="pz-keys">Keys</button>
       <button type="button" class="btn" id="pz-playtest">Playtest data</button>
       <button type="button" class="btn" id="pz-title">Title screen</button></div></div>`, "#pz-resume");
     on(host, "#pz-resume", close);
@@ -109,7 +162,29 @@
     on(host, "#pz-sound", () => { G.setSound(BB.Effects.muted); pause(); });
     on(host, "#pz-voice", () => { BB.CoachUI.setVoice(!BB.CoachUI.voiceOn); pause(); });
     on(host, "#pz-playtest", () => playtest("pause"));
+    on(host, "#pz-keys", keys);
     on(host, "#pz-title", () => { hideAll(); BB.Title.show(); });
+  }
+
+  // Playing with the keyboard.
+  function keys() {
+    const row = (k, t) => `<tr><th>${k}</th><td>${t}</td></tr>`;
+    const host = show("pause", `<div class="cc-card pause-card" role="dialog" aria-labelledby="ky-h"><h1 id="ky-h">Keys</h1>
+      <table class="keys">${[
+        row("Tab", "Move between Sparky's buttons, the top buttons, the parts tray, the board and the controls on the parts"),
+        row("Enter", "Sparky's Continue; on a tray part: carry it to the board"),
+        row("Arrow keys", "On the board: move the cursor from hole to hole (up from the top rail: the controller board's sockets)"),
+        row("Enter on the board", "Pick up what is under the cursor (one end of a part, a probe tip) or start a wire; Enter again puts it down"),
+        row("1, 2", "Pick up the red or the black probe"),
+        row("R · Delete", "Flip · take off the part under the cursor"),
+        row("Esc", "Put down nothing (cancel); with nothing carried: the menu"),
+        row("Enter, Space", "On a control: use it (dial, socket, switch, button, light sensor, pin)"),
+        row("Arrow keys on a knob", "Turn it (Shift: finely)"),
+        row("+ · − · F", "Zoom in · out · show the whole level"),
+        row("Ctrl+Z", "Undo"),
+      ].join("")}</table>
+      <div class="scr-row"><button type="button" class="btn primary" id="ky-back">Back</button></div></div>`, "#ky-back");
+    on(host, "#ky-back", pause);
   }
 
   // ---------- the Notebook: an inventor's notebook on graph paper (art style 2) ----------
@@ -128,18 +203,24 @@
     return `${isNew ? '<span class="nb-new">New!</span>' : ""}<span class="nb-art">${BB.NotebookArt.diagram(c.id)}</span>
       <h2>${esc(c.name)}</h2><p>${esc(c.text)}</p>`;
   }
-  function notebook(from) {
+  function notebook(from, chapter) {
     const st = BB.Store.get(), learned = st.notebook || [], seen = st.nbSeen || [];
     const card = (c) => {
       if (!learned.includes(c.id)) { const lv = teacher(c.id); return `<li><div class="nb-card locked"><span class="nb-q">?</span><p>You will learn this in level ${lv ? lv.id : "…"}.</p></div></li>`; }
       return `<li><button type="button" class="nb-card" data-id="${c.id}" aria-label="${esc(c.name)}: open it large">${ideaCard(c, !seen.includes(c.id))}</button></li>`;
     };
-    const pages = BB.Levels.chapters.map((ch) => `<section class="nb-page"><h2 class="nb-ch">Chapter ${ch.n} · ${esc(ch.title)}</h2>
-      <ol class="nb-grid">${ch.levels.flatMap((l) => l.teaches).map((id) => card(BB.Concepts.get(id))).join("")}</ol></section>`).join("");
+    const prog = progress();
+    // each chapter's summary card once its last level is done; the circuit symbols at the start of chapter 1
+    const summary_ = (ch) => ch.levels.filter((l) => l.card && (prog[l.id] || {}).done).map((l) => `<li class="nb-wide"><div class="nb-card nb-sum"><h2>${esc(l.card.name)}</h2><p>${esc(l.card.text)}</p></div></li>`).join("");
+    const symbols = `<li><div class="nb-card nb-sym"><span class="nb-art">${BB.NotebookArt.diagram("symbols")}</span><h2>Circuit symbols</h2>
+      <p>Circuit drawings use symbols. The battery's long plate is +; the LED's triangle points the way current flows.</p></div></li>`;
+    const pages = BB.Levels.chapters.map((ch) => `<section class="nb-page" id="nb-ch${ch.n}"><h2 class="nb-ch">Chapter ${ch.n} · ${esc(ch.title)}</h2>
+      <ol class="nb-grid">${summary_(ch)}${ch.n === 1 ? symbols : ""}${ch.levels.flatMap((l) => l.teaches).map((id) => card(BB.Concepts.get(id))).join("")}</ol></section>`).join("");
     const host = show("notebook", `<div class="nb-book"><div class="nb-head"><h1>My Notebook</h1>
       <p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div>${SAFE}${pages}
       <div class="scr-row"><button type="button" class="btn primary" id="nb-back">Back</button></div></div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
-    on(host, "#nb-back", () => (from === "pause" ? pause() : from === "map" ? showMap() : (hideAll(), BB.Title.show())));
+    on(host, "#nb-back", () => (from === "pause" ? pause() : from === "map" ? showMap() : from === "finale" ? finale() : (hideAll(), BB.Title.show())));
+    if (chapter) { const pg = host.querySelector(`#nb-ch${chapter}`); if (pg) pg.scrollIntoView({ block: "start" }); }
     host.querySelectorAll(".nb-card[data-id]").forEach((b) => b.addEventListener("click", () => zoom(host, b.dataset.id)));
     BB.Store.update((s) => { s.nbSeen = learned.slice(); });          // seen now: the stamps go next time
   }
@@ -217,11 +298,11 @@
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !open) return;
     const host = $(open), zoomed = host.querySelector(".nb-zoom:not([hidden])");
-    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? null : host.querySelector("#nb-back, #pt-back, #lm-title");
+    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back") : host.querySelector("#nb-back, #pt-back, #lm-title");
     if (open !== "pause" && !back) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (back) back.click(); else close();
   }, true);
 
-  BB.LevelMap = { init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
+  BB.LevelMap = { finale, init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
 })(window.BB = window.BB || {});

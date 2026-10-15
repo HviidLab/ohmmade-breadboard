@@ -9,7 +9,8 @@
   let enabled = true, tracks = [], xrayOn = false, xrayDrawn = false;
 
   // Speed in world units per second: 10 mA ≈ 70, 20 mA ≈ 100; capped so a short circuit is a blur, not a jump.
-  const speed = (i) => Math.min(70 * Math.sqrt(i / 0.01), 420);
+  const calm = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const speed = (i) => (calm() ? Math.min(20 * Math.sqrt(i / 0.01), 40) : Math.min(70 * Math.sqrt(i / 0.01), 420));     // reduced motion: slow, never racing
 
   // One track = one path and a function giving the current along it (positive = in the path's direction).
   function track(d, current) {
