@@ -176,7 +176,7 @@
           goals: [{ text: "A resistor across the rails that stays cool", when: cool, hold: 1 }],
           challenge: { text: "Pull the 33 Ω out before it smokes", when: (S, m) => { if (S.parts("resistor").some((q) => q.part.value === 33 && (q.rt.level || 0) >= 2)) m.smoke = true; return false; },
             final: (C, m) => !m.smoke && !C.broken.has("resistor") },
-          solution: [{ choose: "right" }, { place: { type: "resistor", value: 33 }, at: V.hs("+T10", "-T13"), wait: 1.5 }, { remove: "resistor" }, { wait: 0.4 }, { next: 1 },
+          solution: [{ choose: "right" }, { place: { type: "resistor", value: 33 }, at: V.hs("+T10", "-T13") }, { wait: 1 }, { remove: "resistor" }, { wait: 0.4 }, { next: 1 },
             { place: { type: "resistor", value: 1000 }, at: V.hs("+T10", "-T13") }, { wait: 1.6 }, { next: 1 }],
         };
       },
