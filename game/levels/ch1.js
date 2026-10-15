@@ -46,6 +46,7 @@
     V.rows = ([a, b]) => [a + V.dr, b + V.dr];
     // A prediction with its choices shuffled (except in the original); the right answer follows its choice, and so
     // does `why`: for each wrong choice, one line that names the belief behind it (Sparky says it after the answer).
+    V.pick = (a) => (orig ? a[0] : pick(a));                         // one of several versions of a puzzle
     V.predict = (choices, answer, why = []) => {
       if (orig) return { choices, answer, why };
       const order = choices.map((c, k) => [R(), k]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
@@ -369,7 +370,13 @@
       id: "1-10", title: "Two lights", teaches: [], uses: ["loop", "strip", "rail", "gap", "polarity", "resistor", "short"],
       card: { name: "Two circuits, one battery", text: "Each LED gets its own resistor. Both share the same rails, so one battery lights them all." },
       layouts: [{}], colors: ["red", "yellow", "green", "blue"], colors2: ["green", "red", "yellow", "blue"], values: [330, 470],
-      make: (V) => ({
+      make: (V) => {
+        // each lit LED has its own path from + to −, with one resistor in it: joined to each rail directly, by a wire or by the resistor
+        const link = (S, net, rail) => (net === rail ? "direct" : wires(S).some((q) => q.nets.includes(net) && q.nets.includes(rail)) ? "wire"
+          : S.parts("resistor").some((q) => q.ok && q.nets.includes(net) && q.nets.includes(rail)) ? "res" : null);
+        const own = (S, q) => { const a = link(S, q.nets[0], "bb:+T"), k = link(S, q.nets[1], "bb:-T"); return !!a && !!k && (a === "res") !== (k === "res"); };
+        const sep = (S) => { const ls = S.parts("led").filter(safe); return ls.length >= 2 && ls.every((q) => own(S, q)); };
+        return {
         region: { rows: [1, 40], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
         rules: { tray: [{ type: "resistor", value: V.ohms, n: 2 }, { type: "led", color: V.c1, n: 1 }, { type: "led", color: V.c2, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
@@ -379,15 +386,17 @@
           { id: "build", say: "Build it.",
             hints: [{ say: "Build two LED circuits side by side. Both can use the same rails." },
               { show: [V.RES("h1", "+T8", "a8"), V.LED("h2", "c8", "c9"), V.WIRE("h3", "e9", "-T9"), V.RES("h4", "+T16", "a16"), V.LED("h5", "c16", "c17", V.c2), V.WIRE("h6", "e17", "-T17")] }],
-            waitFor: { when: (S) => S.parts("led").filter(safe).length >= 2 } },
+            waitFor: { when: sep } },
           FINISH("Two lights, one battery. That is Chapter 1 done!"),
         ],
-        goals: [{ text: "Light both LEDs safely", when: (S) => S.parts("led").filter(safe).length >= 2, hold: 0.6 }],
-        challenge: { text: "Use at most one wire", when: (S) => S.parts("led").filter(safe).length >= 2 && wires(S).length <= 1 },
+        goals: [{ text: "Light both LEDs safely, each in its own loop", when: sep, hold: 0.6 }],
+        react: [{ when: (S) => (S.parts("led").filter((q) => lit(q)).length >= 2 && !sep(S) ? "You built them in a row: one loop. That works too (more in chapter 5), but here each LED needs its own path from + to −." : null) }],
+        challenge: { text: "Use at most one wire", when: (S) => sep(S) && wires(S).length <= 1 },
         solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T8", "a8"] }, { place: { type: "led", color: V.c1 }, at: ["c8", "c9"] },
           { place: { type: "led", color: V.c2 }, at: ["c16", "-T16"] }, { place: { type: "resistor", value: V.ohms }, at: ["+T16", "a16"] }, { wire: ["e9", "-T9"] },
           { wait: 1 }, { next: 1 }],
-      }),
+        };
+      },
     },
   ];
 

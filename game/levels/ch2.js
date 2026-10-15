@@ -273,6 +273,11 @@
             FINISH("Choosing the resistor sets the current. That is how you make an LED just as bright as you want."),
           ],
           goals: [{ text: "The brightest LED under 15 mA", when: pick }],
+          react: [{ when: (S, C) => {
+            if (!C.beat || C.beat.id !== "use" || !reads(S)) return null;
+            const i = Math.abs(M(S).value);
+            return i < 0.0099 ? `Lit, but only ${fmtmA(i)}: you can go brighter and still stay under 15 mA.` : i > 0.0151 ? `${fmtmA(i)}: over 15 mA. Hold it back a little more.` : null;
+          } }],
           challenge: { text: "Pick it on the first try", final: (C) => (C.count.place || 0) <= 3,
               when: (S) => { rec(220)(S); return false; } },
           solution: [{ choose: "right" }, { remove: "res1" }, RES(470), { wait: 0.6 }, { remove: "resistor" }, RES(1000), { wait: 0.6 }, { next: 1 },
@@ -424,14 +429,14 @@
       id: "2-10", title: "Detective", teaches: [], uses: ["volts", "across", "break", "continuity", "loop", "strip", "rail", "polarity", "resistor"], shifts: [0, 4, 8],
       card: { name: "Measure first", text: "Before you change anything, measure. Where most of the push shows up, or a wire stays quiet, there is your fault." },
       colors: ["red", "yellow", "green"],
-      // the fault: a wire broken inside, the LED the wrong way round, or the LED one strip off. Probes that show it; the one-change fix.
+      // the fault: the LED one strip off (seed 0: it needs the meter most), a wire broken inside, or the LED the wrong way round. Probes that show it; the one-change fix.
       layouts: [
+        { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c8"), V.WIRE("wire1", "e8", "-T8")],
+          show: ["b6", "b7"], fix: { wire: ["d6", "d7"] }, hint: "Follow the loop strip by strip. Is each part's leg in the same strip as the next part?" },
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"), Object.assign(V.WIRE("wire1", "e7", "-T7"), { broken: true })],
           show: ["b7", "-T9"], fix: { wire: ["d7", "-T12"] }, hint: "Is every wire really joining its two ends? The beep can tell." },
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c6"), V.WIRE("wire1", "e7", "-T7")],
           show: ["b6", "b7"], fix: { flip: "led1" }, hint: "Look at each LED leg. Which way should the long + leg face?" },
-        { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c8"), V.WIRE("wire1", "e8", "-T8")],
-          show: ["b6", "b7"], fix: { wire: ["d6", "d7"] }, hint: "Follow the loop strip by strip. Is each part's leg in the same strip as the next part?" },
       ],
       make: (V) => {
         const show = V.hs(...V.L.show).map(net), changes = (C) => ["place", "remove", "flip", "move"].reduce((n, k) => n + (C.count[k] || 0), 0);

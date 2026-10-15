@@ -191,25 +191,31 @@
       card: { name: "Series and parallel", text: "In a row, parts share one current and share out the push. Side by side, each gets the whole push and the currents add up." },
       layouts: [{}],
       make: (V) => {
-        const two = (S) => { const ls = S.parts("led").filter((q) => q.ok && q.rd.I >= 0.008 && q.rd.I <= 0.011); return ls.length === 2 && S.parts("resistor").filter((q) => q.ok).length === 1; };
+        const W = V.pick([{ lo: 8, hi: 11, aim: 10, r: 220 }, { lo: 4, hi: 7, aim: 5, r: 390 }, { lo: 12, hi: 16, aim: 14, r: 150 }]);     // the current window, and an answer
+        const two = (S) => { const ls = S.parts("led").filter((q) => q.ok && q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000); return ls.length === 2 && S.parts("resistor").filter((q) => q.ok).length === 1; };
         return {
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
-          start: start(V.BAT("+T3", "-T4")),
-          rules: { tray: [{ type: "led", color: "red", n: 2 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 390, n: 1 },
-            { type: "wire", n: 2 }], banner: true },
+          start: start(V.BAT("+T3", "-T4"), METER("mA", "mA")),
+          rules: { tray: [{ type: "led", color: "red", n: 2 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 150, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 390, n: 1 }, { type: "resistor", value: 470, n: 1 },
+            { type: "wire", n: 2 }], allow: allow({ replace: ["meter"] }), banner: true },
           ui: { xray: true },
           beats: [
-            { id: "brief", say: V.say("Christmas lights: two red LEDs in a row, with one resistor, each at 8 to 11 mA.",
-              "Two red LEDs one after the other, one resistor for both, and 8 to 11 mA through them."), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say(`Christmas lights: two red LEDs in a row, with one resistor, each at ${W.lo} to ${W.hi} mA.`,
+              `Two red LEDs one after the other, one resistor for both, and ${W.lo} to ${W.hi} mA through them.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it. Ask for a hint if you get stuck.",
-              hints: [{ say: "In a row, the two LEDs take 2 V each: 4 V. What is left for the resistor?" }, { say: "It gets 6 − 4 = 2 V. Which size lets about 10 mA through: 2 V ÷ 10 mA = …?" },
-                { show: [V.RES("h1", "+T6", "a6", 220), V.LED("h2", "c6", "c7", "red"), V.LED("h3", "d7", "d8", "red"), V.WIRE("h4", "e8", "-T8")] }],
+              hints: [{ say: "In a row, the two LEDs take 2 V each: 4 V. What is left for the resistor?" }, { say: `It gets 6 − 4 = 2 V. Which size lets about ${W.aim} mA through: 2 V ÷ ${W.aim} mA = …?` },
+                { show: [V.RES("h1", "+T6", "a6", W.r), V.LED("h2", "c6", "c7", "red"), V.LED("h3", "d7", "d8", "red"), V.WIRE("h4", "e8", "-T8")] }],
               waitFor: { when: two, hold: 0.8 } },
             FINISH("LEDs in a row add up their pushes, so the resistor gets less. Chapter 5 done!"),
           ],
-          goals: [{ text: "Two red LEDs in a row, each 8 to 11 mA, one resistor", when: two, hold: 0.8 }],
+          goals: [{ text: `Two red LEDs in a row, each ${W.lo} to ${W.hi} mA, one resistor`, when: two, hold: 0.8 }],
+          react: [{ when: (S) => {
+            const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 0.002);
+            if (ls.length !== 2 || two(S)) return null;
+            return `Both lit, but at ${fmtI(ls[0].rd.I)}. You need ${W.lo} to ${W.hi} mA: the meter can check it.`;
+          } }],
           challenge: { text: "Use only one wire", when: (S) => two(S) && S.parts("wire").length <= 1 },
-          solution: [{ next: 1 }, { place: { type: "resistor", value: 220 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] },
+          solution: [{ next: 1 }, { place: { type: "resistor", value: W.r }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] },
             { place: { type: "led", color: "red" }, at: ["d7", "d8"] }, { wire: ["e8", "-T8"] }, { wait: 1.2 }, { next: 1 }],
         };
       },

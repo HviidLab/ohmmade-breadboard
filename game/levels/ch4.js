@@ -181,33 +181,42 @@
       layouts: [{}],
       make: (V) => {
         const COLS = ["red", "yellow", "green"], seen = {};
-        const okI = (q) => q.ok && q.rd.I >= 0.008 && q.rd.I <= 0.012;
+        // the current window, the tray that fits it, and one answer (red, yellow, green)
+        const W = V.pick([
+          { lo: 8, hi: 12, aim: 10, tray: [[220, 1], [330, 2], [390, 2], [470, 1]], sol: [470, 390, 390] },
+          { lo: 5, hi: 8, aim: 6, tray: [[390, 1], [470, 1], [560, 2], [680, 2], [1000, 1]], sol: [680, 560, 560] },
+          { lo: 11, hi: 15, aim: 13, tray: [[220, 1], [270, 2], [330, 2], [470, 1]], sol: [330, 270, 270] },
+        ]);
+        const okI = (q) => q.ok && q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000;
         const all = (S) => COLS.every((c) => S.parts("led").some((q) => q.part.color === c && okI(q)));
         return {
           region: { rows: [1, 26], cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), METER("V")),
           rules: { tray: [{ type: "led", color: "red", n: 1 }, { type: "led", color: "yellow", n: 1 }, { type: "led", color: "green", n: 1 },
-            { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 330, n: 2 }, { type: "resistor", value: 390, n: 2 }, { type: "resistor", value: 470, n: 1 },
-            { type: "wire", n: 3 }], allow: allow({ replace: ["meter"] }), banner: true },
+            ...W.tray.map(([value, n]) => ({ type: "resistor", value, n })), { type: "wire", n: 3 }], allow: allow({ replace: ["meter"] }), banner: true },
           ui: { xray: true },
           beats: [
-            { id: "brief", say: V.say("A traffic light of your own: a red, a yellow and a green LED, each with between 8 and 12 mA.",
-              "Build three lights, red, yellow and green, each with 8 to 12 mA through it."), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say(`A traffic light of your own: a red, a yellow and a green LED, each with between ${W.lo} and ${W.hi} mA.`,
+              `Build three lights, red, yellow and green, each with ${W.lo} to ${W.hi} mA through it.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Each LED needs its own resistor. Ask for a hint if you get stuck.",
-              hints: [{ say: "Each LED gets its own loop: + rail, resistor, LED, − rail. Resistor = (6 − LED) V ÷ 10 mA, rounded up." },
+              hints: [{ say: `Each LED gets its own loop: + rail, resistor, LED, − rail. Resistor = (6 − LED) V ÷ ${W.aim} mA, rounded up.` },
                 { say: "Red takes about 2 V, yellow 2.1 V, green 2.2 V. Work out each one, then take the next size up in the tray." },
-                { show: [V.RES("h1", "+T6", "a6", 470), V.LED("h2", "c6", "c7", "red"), V.WIRE("h3", "e7", "-T7"), V.RES("h4", "+T12", "a12", 390), V.LED("h5", "c12", "c13", "yellow"),
-                  V.WIRE("h6", "e13", "-T13"), V.RES("h7", "+T18", "a18", 390), V.LED("h8", "c18", "c19", "green"), V.WIRE("h9", "e19", "-T19")] }],
+                { show: [V.RES("h1", "+T6", "a6", W.sol[0]), V.LED("h2", "c6", "c7", "red"), V.WIRE("h3", "e7", "-T7"), V.RES("h4", "+T12", "a12", W.sol[1]), V.LED("h5", "c12", "c13", "yellow"),
+                  V.WIRE("h6", "e13", "-T13"), V.RES("h7", "+T18", "a18", W.sol[2]), V.LED("h8", "c18", "c19", "green"), V.WIRE("h9", "e19", "-T19")] }],
               waitFor: { when: all, hold: 0.8 } },
             FINISH("Three colours, three resistors, one battery. LED maths done!"),
           ],
-          goals: [{ text: "Red, yellow and green, each 8 to 12 mA", when: all, hold: 0.8 }],
-          challenge: { text: "No LED above 12 mA at any moment", final: () => !seen.over,
-              when: (S) => { if (S.parts("led").some((q) => q.ok && q.rd.I > 0.0125)) seen.over = true; return false; } },
+          goals: [{ text: `Red, yellow and green, each ${W.lo} to ${W.hi} mA`, when: all, hold: 0.8 }],
+          react: [{ when: (S) => {             // a light that is on but off the target
+            const q = S.parts("led").find((x) => x.ok && x.rd.I > 0.002 && !okI(x));
+            return q ? `The ${q.part.color} LED is lit, but at ${fmtI(q.rd.I)}. Aim for ${W.lo} to ${W.hi} mA.` : null;
+          } }],
+          challenge: { text: `No LED above ${W.hi} mA at any moment`, final: () => !seen.over,
+              when: (S) => { if (S.parts("led").some((q) => q.ok && q.rd.I > W.hi / 1000 + 0.0005)) seen.over = true; return false; } },
           solution: [{ next: 1 },
-            { place: { type: "resistor", value: 470 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] }, { wire: ["e7", "-T7"] },
-            { place: { type: "resistor", value: 390 }, at: ["+T12", "a12"] }, { place: { type: "led", color: "yellow" }, at: ["c12", "c13"] }, { wire: ["e13", "-T13"] },
-            { place: { type: "resistor", value: 390 }, at: ["+T18", "a18"] }, { place: { type: "led", color: "green" }, at: ["c18", "c19"] }, { wire: ["e19", "-T19"] },
+            { place: { type: "resistor", value: W.sol[0] }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] }, { wire: ["e7", "-T7"] },
+            { place: { type: "resistor", value: W.sol[1] }, at: ["+T12", "a12"] }, { place: { type: "led", color: "yellow" }, at: ["c12", "c13"] }, { wire: ["e13", "-T13"] },
+            { place: { type: "resistor", value: W.sol[2] }, at: ["+T18", "a18"] }, { place: { type: "led", color: "green" }, at: ["c18", "c19"] }, { wire: ["e19", "-T19"] },
             { wait: 1.2 }, { next: 1 }],
         };
       },

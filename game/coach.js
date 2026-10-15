@@ -12,6 +12,8 @@
 // wrong choice, said once, above the beat's own line. A beat's `note` is a "Real bench" safety line shown under it.
 // Stars: ★1 the level is done; ★2 a clean build (nothing broke and no short circuit, except what level.demo allows:
 // {led: 1, short: true}); ★3 the level's challenge: { text, when: (S, mem, coach) => bool, final: (coach, mem) => bool }.
+// level.react = [{ when: (S, coach) => text | null, hold }]: Sparky remarks on a near miss (lit, but the wrong current;
+// a series chain where separate loops were asked). Said once a state has lasted `hold` seconds; again after it changed.
 (function (BB) {
   "use strict";
 
@@ -42,6 +44,7 @@
       this.lost = {};                      // part type -> how many burned out (or blew, or were damaged)
       this.shortT = 0;                     // seconds of short circuit
       this.hintsUsed = 0;
+      this.reacts = (level.react || []).map(() => ({ t: 0, said: null }));
       this.pred = {};                      // beat id -> chosen answer
       this.count = {};                     // event type -> how many times
       this.broken = new Set();             // types of parts that failed during this attempt
@@ -97,6 +100,15 @@
         try { ok = !!ch.when(S, this.chMem, this); } catch (e) { ok = false; }
         if (ok) { this.challenge = true; this.h.challenge(); }
       }
+      (this.lv.react || []).forEach((r, k) => {
+        if (this.finished) return;
+        let text = null;
+        try { text = r.when(S, this) || null; } catch (e) { text = null; }
+        const st = this.reacts[k];
+        if (!text) { st.t = 0; st.said = null; return; }
+        st.t += dt;
+        if (st.t >= (r.hold ?? 1.5) && st.said !== text) { st.said = text; this.h.aside(text); }
+      });
       if (this.done) return;
       this.beatT += dt; this.idle += dt;
       const w = this.beat.waitFor;

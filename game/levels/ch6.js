@@ -121,30 +121,34 @@
       layouts: [{}],
       make: (V) => {
         // a strip (not a rail) that the meter reads at 2 V against the − rail, and which part of the circuit
-        const two = (S) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), 1.85, 2.15); };
+        // the target push, and the resistor pair that makes it (+ side, − side)
+        const T = V.pick([{ v: 2, up: 22000, lo: 10000 }, { v: 4, up: 10000, lo: 22000 }, { v: 1.5, up: 22000, lo: 6800 }]);
+        const k = (r) => `${r / 1000} kΩ`;
+        const two = (S) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), T.v - 0.15, T.v + 0.15); };
         const byKnob = (S) => two(S) && S.parts("pot").some((q) => q.nets[1] === net(M(S).red));
         return {
+          title: `Exactly ${T.v} V`,
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), METER("V")),
-          rules: { tray: [{ type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 22000, n: 1 },
+          rules: { tray: [{ type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 22000, n: 1 }, { type: "resistor", value: 6800, n: 1 },
             { type: "pot", n: 1 }, { type: "wire", n: 3 }], allow: allow({}), banner: true },
           ui: { xray: true },
           beats: [
-            { id: "brief", say: V.say("Make exactly 2 V on a strip (between 1.85 and 2.15 V against the − rail). Resistors or the knob: your choice.",
-              "Your task: a strip at 2 V against the − rail. Use two resistors, or the knob, or both ways."), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say(`Make exactly ${T.v} V on a strip (within 0.15 V, against the − rail). Resistors or the knob: your choice.`,
+              `Your task: a strip at ${T.v} V against the − rail. Use two resistors, or the knob, or both ways.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it, then measure your strip against the − rail. Ask for a hint if you need one.",
-              hints: [{ say: "With two resistors: 6 V × lower ÷ total = 2 V, so the one on the + side must be twice the one on the − side." },
-                { say: "Which pair in the tray is close to 2 : 1? Or wire the knob's ends to + and −, and turn it." },
-                { say: "22 kΩ on the + side, 10 kΩ on the − side: 6 × 10 ÷ 32 ≈ 1.9 V." }],
+              hints: [{ say: `With two resistors, the − side's share is ${T.v} V and the + side's ${6 - T.v} V. Their sizes go in the same ratio.` },
+                { say: `Which pair in the tray is close to ${6 - T.v} : ${T.v}? Or wire the knob's ends to + and −, and turn it.` },
+                { say: `${k(T.up)} on the + side, ${k(T.lo)} on the − side: 6 × ${T.lo / 1000} ÷ ${(T.up + T.lo) / 1000} ≈ ${(6 * T.lo / (T.up + T.lo)).toFixed(1)} V.` }],
               waitFor: { when: two, hold: 0.6 } },
             FINISH("A middle point at any push you like: two resistors for a fixed one, a knob for one you can change."),
           ],
-          goals: [{ text: "A strip at 2 V", when: two, hold: 0.6 }],
+          goals: [{ text: `A strip at ${T.v} V`, when: two, hold: 0.6 }],
           challenge: { text: "Do it both ways: resistors and the knob", when: (S, m) => { if (two(S)) { if (byKnob(S)) m.k = true; else m.r = true; } return !!m.k && !!m.r; } },
           solution: [{ next: 1 },
-            { place: { type: "resistor", value: 22000 }, at: ["+T6", "a6"] }, { place: { type: "resistor", value: 10000 }, at: ["c6", "c10"] }, { wire: ["e10", "-T10"] },
+            { place: { type: "resistor", value: T.up }, at: ["+T6", "a6"] }, { place: { type: "resistor", value: T.lo }, at: ["c6", "c10"] }, { wire: ["e10", "-T10"] },
             { probe: ["d6", "-T12"] }, { wait: 1 },
-            { place: { type: "pot" }, at: ["c16", "c17", "c18"] }, { wire: ["a16", "+T16"] }, { wire: ["a18", "-T18"] }, { knob: "pot", pos: 0.667 },
+            { place: { type: "pot" }, at: ["c16", "c17", "c18"] }, { wire: ["a16", "+T16"] }, { wire: ["a18", "-T18"] }, { knob: "pot", pos: 1 - T.v / 6 },
             { probe: ["e17", "-T20"] }, { wait: 1 }, { next: 1 }],
         };
       },

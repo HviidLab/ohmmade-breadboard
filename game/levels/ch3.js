@@ -186,24 +186,29 @@
       card: { name: "Ohm's law at work", text: "Current = push ÷ resistance. To get the current you want, choose the resistance, or the push." },
       layouts: [{}],
       make: (V) => {
-        const three = (S) => between(S, 0.0029, 0.0031);
+        // the target current; each one can be made two ways: a resistor on 6 V, or another on 3 V (two cells out)
+        const T = V.pick([{ mA: 3, r6: 2000, r3: 1000 }, { mA: 1.5, r6: 3900, r3: 2000 }]), tA = T.mA / 1000;
+        const three = (S) => between(S, tA * 0.966, tA * 1.034);
         return {
+          title: `Exactly ${T.mA} mA`,
           region: REGION(V),
           start: start(Object.assign(V.BAT("+T3", "-T4"), { cellSwap: true }), LOOP_METER(V)),
-          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 4700, n: 1 }],
+          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 3900, n: 1 },
+            { type: "resistor", value: 4700, n: 1 }],
             allow: allow({ ctl: ["meter", "bat"], replace: ["meter"] }), banner: true },
           ui: { xray: true },
           beats: [
-            { id: "brief", say: V.say("Make exactly 3 mA flow through the meter. There is more than one way to do it.",
-              "Your task: exactly 3 mA through the meter. Find a way, then maybe a second one."), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Put a resistor from the + rail into the meter's strip. Ask for a hint if you need one.",
-              hints: [{ say: "Current = push ÷ resistance. 6 V ÷ what = 3 mA?" }, { say: "Or change the push: take two cells out. 3 V ÷ what = 3 mA?" }],
+            { id: "brief", say: V.say(`Make exactly ${T.mA} mA flow through the meter. There is more than one way to do it.`,
+              `Your task: exactly ${T.mA} mA through the meter. Find a way, then maybe a second one.`), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "The meter waits in strip 6, ready to count. Build the rest. Ask for a hint if you need one.",
+              hints: [{ say: `Current = push ÷ resistance. 6 V ÷ what = ${T.mA} mA?` }, { say: `Or change the push: take two cells out. 3 V ÷ what = ${T.mA} mA?` },
+                { say: "One leg of the resistor on the + rail, the other in strip 6, the meter's strip." }],
               waitFor: { when: three, hold: 0.6 } },
             FINISH("Two ways to the same current: choose the resistance, or choose the push."),
           ],
-          goals: [{ text: "Make exactly 3 mA flow", when: three, hold: 0.6 }],
+          goals: [{ text: `Make exactly ${T.mA} mA flow`, when: three, hold: 0.6 }],
           challenge: { text: "Find both ways", when: (S, m) => { if (three(S)) m[cells(S)] = true; return !!m[2] && !!m[4]; } },
-          solution: [{ next: 1 }, PLACE(V, 2000), { wait: 1 }, { remove: "resistor" }, { cells: "bat" }, PLACE(V, 1000), { wait: 1 }, { next: 1 }],
+          solution: [{ next: 1 }, PLACE(V, T.r6), { wait: 1 }, { remove: "resistor" }, { cells: "bat" }, PLACE(V, T.r3), { wait: 1 }, { next: 1 }],
         };
       },
     },

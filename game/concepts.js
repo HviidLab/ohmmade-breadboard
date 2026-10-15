@@ -23,7 +23,7 @@
     { id: "twiceR", name: "Twice the resistance", text: "Double the resistance and the current halves: 1 kΩ lets 6 mA through, 2 kΩ only 3 mA. They go opposite ways, in step." },
     { id: "twiceV", name: "Twice the push", text: "Double the push and the current doubles: the same resistor lets 3 mA through on 3 V, and 6 mA on 6 V." },
     { id: "ohmsLaw", name: "Ohm's law", text: "Current = push ÷ resistance. A handy form: volts ÷ kΩ = mA. So 6 V across 2 kΩ makes 3 mA." },
-    { id: "findR", name: "Finding a resistance", text: "Turn the rule round: resistance = push ÷ current. 6 V pushing 4 mA means 1.5 kΩ. Know two of the three, work out the third." },
+    { id: "findR", name: "Finding a resistance", text: "Turn the rule round: resistance = push ÷ current. For example, 6 V pushing 4 mA means 1.5 kΩ. Know two of the three, work out the third." },
     { id: "power", name: "Power and heat", text: "A resistor turns electrical energy into heat. How fast is its power: push × current, in watts (W). A small resistor handles ¼ W: 6 V × 6 mA = 0.036 W is fine, 1 W burns it." },
     { id: "ledDrop", name: "The LED's share", text: "Over the usual range of currents an LED keeps about the same push: about 2 V for red. The resistor takes the rest of the battery's volts." },
     { id: "ledCurrent", name: "Working out the LED's current", text: "LED current = (battery − LED) ÷ resistor. With 6 V, a red LED (2 V) and 220 Ω: 4 V ÷ 0.22 kΩ ≈ 18 mA." },

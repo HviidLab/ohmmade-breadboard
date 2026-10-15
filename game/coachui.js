@@ -315,7 +315,7 @@
     aside(`Challenge done: ${lv.challenge.text} ★`, 4000, "good");
     mood("happy", 1600);
   }
-  const hooks = () => ({ say, highlight, ghost, xray, challenge, aside: (t) => aside(t, 4000), beat: () => { G.redraw(); refresh(); } });
+  const hooks = () => ({ say, highlight, ghost, xray, challenge, aside: (t) => aside(t, 6000), beat: () => { G.redraw(); refresh(); } });
 
   // A short line under the mentor's own: refusals, failures, the short-circuit guard.
   function aside(text, ms = 6000, kind = "") {
