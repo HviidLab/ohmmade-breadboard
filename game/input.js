@@ -140,7 +140,7 @@
     if ((n = at("[data-body]"))) {
       const id = n.dataset.body, part = G.doc.get(id);
       G.select(id); G.doc.snapshot();
-      st = { kind: "body", id, dx: wx - (part.bx ?? 0), dy: wy - (part.by ?? 0) };
+      st = { kind: "body", id, dx: wx - (part.bx ?? 0), dy: wy - (part.by ?? 0), x: e.clientX, y: e.clientY };
       capture(e); return;
     }
     if ((n = at("[data-part]"))) {
@@ -171,6 +171,13 @@
   function dropLegs(type, hole) {
     if (G.mode === "level" && type === "resistor" && /^[+-]T\d+$/.test(hole)) return [hole, `a${BBShared.parse(hole).row}`];
     return Gr.footprint(type, hole);
+  }
+
+  // In levels a two-leg part with both legs in one rail does nothing (both ends join the same thing): say so instead.
+  const RAIL_BOTH = "Both legs would be in the same rail, so the part would do nothing. Put one leg in a strip.";
+  function bothInRail(type, legs) {
+    if (G.mode !== "level" || type === "wire" || !legs || legs.length !== 2 || !legs.every((l) => l && /^[+-][TB]\d+$/.test(l))) return false;
+    return BBShared.net(legs[0]) === BBShared.net(legs[1]);
   }
 
   // ---------- moving ----------
@@ -237,6 +244,7 @@
         break;
       }
       case "probe": {
+        st.dragged = true;
         const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         let hole = holeUnder(e.clientX, e.clientY);
         const ring = G.mode === "level" && BB.CoachUI.probeTargets()[st.k];       // near the ring Sparky marked: snap into it
@@ -254,6 +262,8 @@
         break;
       }
       case "body": {
+        if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) < 4) return;
+        st.moved = true;
         const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         part.bx = wx - st.dx; part.by = wy - st.dy;
         G.redraw();
@@ -276,11 +286,12 @@
         break;
       case "move":
         if (s.moved && G.mode === "level" && overHotbar(e.clientX, e.clientY)) { G.remove(s.id); break; }
-        if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id)); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
+        if (s.moved && s.ok && s.legs && bothInRail(G.doc.get(s.id).type, s.legs)) G.refuse(RAIL_BOTH);
+        else if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id)); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
         else if (s.moved && s.removeOnly) G.refuse("Drop it on the parts tray to take it out.");
         else if (s.moved) G.refuse(G.doc.validate(G.doc.get(s.id).type, s.legs || [null], s.id).why || "It does not fit there.");
         break;
-      case "leg": if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id), 1); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
+      case "leg": if (s.ok && s.legs && bothInRail(G.doc.get(s.id).type, s.legs)) G.refuse(RAIL_BOTH); else if (s.ok && s.legs) { BB.trail(`leg ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id), 1); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); } break;
       case "press": G.set(s.id, "pressed", false); break;
       case "cover": { const p = G.doc.get(s.id); if (p) G.set(s.id, "lux", p.room ?? 200, true); break; }
       case "knob": G.commitSoft(); break;
@@ -289,10 +300,11 @@
         if (m && s.was && s.was !== now) G.sound.out(m, 1);                 // a probe tip leaves its hole
         if (m && now && now !== s.was) setTimeout(() => G.sound.in(m, 1), s.was ? 110 : 0);
         if (m) BB.trail(`probes red ${m.legs[0] || "loose"}, black ${m.legs[1] || "loose"}`);
+        if (m && now === s.was && !s.dragged) { G.doc.unsnapshot(); break; }      // a click on a probe: nothing to undo
         G.commitSoft();
         if (m && now !== s.was) G.emit("probe", { id: s.id });
         break; }
-      case "body": G.commitSoft(); break;
+      case "body": if (s.moved) G.commitSoft(); else G.doc.unsnapshot(); break;
     }
   }
 
@@ -315,14 +327,8 @@
       if (s.x >= r.left && s.x <= r.right && s.y >= r.top && s.y <= r.bottom && !(G.mode === "level" && overHotbar(s.x, s.y))) G.refuse((s.legs && G.doc.validate(d.type, s.legs).why) || "Drop it onto the breadboard holes.");
       return;
     }
-    const part = { type: d.type, legs: s.legs };
-    if (d.type === "resistor") part.value = d.value ?? BB.HUD.defaults.resistor;
-    if (d.tag) part.tag = d.tag;
-    if (d.type === "led") part.color = d.color ?? BB.HUD.defaults.ledColor;
-    if (d.type === "cap") part.value = d.value;
-    if (d.type === "pot") part.pos = 0.5;
-    if (d.type === "ldr") part.lux = 200;
-    if (d.type === "button") { part.pairs = "across"; part.pressed = false; if (G.level && G.level.rules && G.level.rules.latchButtons) part.latch = true; }
+    if (bothInRail(d.type, s.legs)) { G.refuse(RAIL_BOTH); return; }
+    const part = BB.Rules.partOf(Object.assign({}, d, { value: d.value ?? (d.type === "resistor" ? BB.HUD.defaults.resistor : undefined), color: d.color ?? BB.HUD.defaults.ledColor }), s.legs, G.level);
     if (d.type === "battery") { part.on = true; const [x] = R.xy(s.legs[0]); part.bx = x - 90; part.by = -170; }
     if (d.type === "wire") part.color = R.C.wires[wireColor++ % R.C.wires.length];
     G.add(part);

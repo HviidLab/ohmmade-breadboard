@@ -54,9 +54,12 @@
       this.parts = d.parts || [];
       this.nextId = d.nextId || this.parts.length + 1;
     }
-    snapshot() { this.undoStack.push(this.serialize()); if (this.undoStack.length > 100) this.undoStack.shift(); this.redoStack = []; }
-    undo() { if (!this.undoStack.length) return false; this.redoStack.push(this.serialize()); this.load(this.undoStack.pop()); return true; }
-    redo() { if (!this.redoStack.length) return false; this.undoStack.push(this.serialize()); this.load(this.redoStack.pop()); return true; }
+    // `pending`: the top snapshot belongs to the action going on now, so a guard may take that action back (and only that).
+    snapshot() { this.undoStack.push(this.serialize()); if (this.undoStack.length > 100) this.undoStack.shift(); this.redo0 = this.redoStack; this.redoStack = []; this.pending = true; }
+    // The action changed nothing after all: forget its snapshot and keep Redo.
+    unsnapshot() { if (!this.pending) return; this.undoStack.pop(); this.redoStack = this.redo0 || []; this.pending = false; }
+    undo() { if (!this.undoStack.length) return false; this.redoStack.push(this.serialize()); this.load(this.undoStack.pop()); this.pending = false; return true; }
+    redo() { if (!this.redoStack.length) return false; this.undoStack.push(this.serialize()); this.load(this.redoStack.pop()); this.pending = false; return true; }
 
     get(id) { return this.parts.find((p) => p.id === id); }
 

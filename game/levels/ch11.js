@@ -167,8 +167,9 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["LOW", "HIGH", "HIGH and LOW at random"], 2);
-        const floated = (S, m) => { if (pressed(S) || !S.uno.floating("D2")) return false; m[S.uno.read("D2")] = true; return !!m.HIGH && !!m.LOW; };
-        const steady = (S) => !pressed(S) && !S.uno.floating("D2") && S.uno.read("D2") === "LOW";
+        let once = false;                    // D2 has floated: only after that does holding it LOW count
+        const floated = (S, m) => { if (pressed(S) || !S.uno.floating("D2")) return false; m[S.uno.read("D2")] = true; if (m.HIGH && m.LOW) once = true; return !!m.HIGH && !!m.LOW; };
+        const steady = (S) => once && !pressed(S) && !S.uno.floating("D2") && S.uno.read("D2") === "LOW";
         return {
           region: REGION(V),
           start: start(BOARD({ watch: ["D2"] }), ...POWER(V), ...BUTTON(V)),

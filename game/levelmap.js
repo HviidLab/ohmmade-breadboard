@@ -203,10 +203,15 @@
     });
   }
 
-  // Esc closes the pause menu and the Notebook.
+  // Esc closes the open screen: the pause menu, a large Notebook card, the Notebook or the playtest data (back to where
+  // they came from), the level map (to the title screen).
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !open) return;
-    if (open === "pause") { e.preventDefault(); e.stopImmediatePropagation(); close(); }
+    const host = $(open), zoomed = host.querySelector(".nb-zoom:not([hidden])");
+    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? null : host.querySelector("#nb-back, #pt-back, #lm-title");
+    if (open !== "pause" && !back) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (back) back.click(); else close();
   }, true);
 
   BB.LevelMap = { init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };

@@ -22,6 +22,17 @@
     ], nextId: 2 };
   }
 
+  // The saved sandbox bench, or the starter bench if there is none or it cannot be read.
+  function savedBench() {
+    const s = St.get().sandbox;
+    if (!s) return starter();
+    try {
+      const d = JSON.parse(s);
+      if (Array.isArray(d.parts) && d.parts.every((p) => p && typeof p.type === "string" && BB.Parts.TYPES[p.type] && Array.isArray(p.legs))) return d;
+    } catch (e) { /* fall through */ }
+    return starter();
+  }
+
   const G = BB.Game = {
     doc: null, sim: null, sel: null, speed: 1, paused: false, seen: 0, mode: "sandbox", trace: [], run: null,
     level: null, rules: null, coach: null,
@@ -48,7 +59,9 @@
     // In early levels a short circuit is undone at once, with a word from Sparky. So is a meter set for mA put
     // where it would blow its fuse, until the level about the fuse.
     guard() {
-      if (!G.rules) return;
+      const own = G.doc.pending;          // only the action just done may be taken back, never an earlier one
+      G.doc.pending = false;
+      if (!G.rules || !own) return;
       if (G.rules.guardMeter && BB.Rules.meterOverload(G.doc, G.sim) && G.doc.undo()) {
         if (G.sel && !G.doc.get(G.sel)) G.sel = null;
         G.recompile();
@@ -105,7 +118,7 @@
       St.update((s) => { s.variants = s.variants || {}; s.variants[fam.id] = seed; });
       if (G.mode === "sandbox") G.save();
       G.leaveLevel();
-      G.mode = "level"; G.level = lv; G.paused = false; G.speed = 1;
+      G.mode = "level"; G.level = lv; G.paused = false; G.setSpeed(1);
       document.body.classList.add("mode-level");
       G.rules = new BB.Rules.LevelRules(lv);
       R.setCtlLock((part, ctl) => ["meter", "uno"].includes(part.type) && ctl !== "program" && !G.can({ kind: "ctl", id: part.id, ctl }).ok);   // dimmed until taught
@@ -128,14 +141,15 @@
       G.coach.start();
       G.fitLevel();
       requestAnimationFrame(() => G.fitLevel());
-      try { history.replaceState(null, "", `#level-${lv.id}${seed ? `/${seed}` : ""}`); } catch (e) { /* ignore */ }
+      try { history.replaceState(null, "", `#level-${lv.id}/${seed}`); } catch (e) { /* ignore */ }
     },
-    fitLevel() { if (G.mode !== "level") return; BB.CoachUI.insets(); R.fitBox(...R.regionBox(G.level.region, G.doc)); },
+    fitLevel() { if (G.mode !== "level") return; BB.CoachUI.insets(); R.fitBox(...R.regionBox(G.level.region, G.doc)); BB.CoachUI.relayout(); },
     finishLevel() {
       const lv = G.level, res = G.coach.finish();
       St.update((s) => {
         const old = s.levels[lv.id] || {};
-        s.levels[lv.id] = { done: true, stars: Math.max(old.stars || 0, res.stars), bonus: res.bonus.map((b, k) => b || !!(old.bonus && old.bonus[k])) };
+        const bonus = res.bonus.map((b, k) => b || !!(old.bonus && old.bonus[k]));
+        s.levels[lv.id] = { done: true, stars: Math.max(old.stars || 0, res.stars, 1 + bonus.filter(Boolean).length), bonus };
         for (const c of lv.teaches) if (!s.notebook.includes(c)) s.notebook.push(c);
         const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 1 };
         t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele };
@@ -151,7 +165,7 @@
       G.paused = false;
       if (G.mode !== "sandbox") {
         G.mode = "sandbox"; G.run = null;
-        G.load(St.get().sandbox || starter());
+        G.load(savedBench());
         requestAnimationFrame(() => R.fit());
       }
       try { history.replaceState(null, "", "#sandbox"); } catch (e) { /* ignore */ }
@@ -171,6 +185,8 @@
         const off = part.legs.find((l) => l && !G.rules.inRegion(l));
         if (off) { G.refuse("That part of the board is not open yet."); return null; }
       }
+      const fit = G.doc.validate(part.type, part.legs);
+      if (!fit.ok) { G.refuse(fit.why); return null; }
       G.doc.snapshot(); const p = G.doc.add(part); G.sel = p.id; BB.trail(`add ${p.id} ${p.legs.join(" ")}`);
       sound.in(p);
       G.commit();
@@ -236,6 +252,10 @@
       if (!G.check({ kind: "replace", id })) return;
       BB.trail(`replace ${id}`);
       const part = G.doc.get(id);
+      if (part && part.type !== "meter" && G.sim.failsAgain(id)) {          // the fault is still there: keep the spare
+        G.refuse(part.type === "uno" ? "A fresh board would be damaged again at once. Fix the circuit first." : "A fresh one would burn out again at once. Fix the circuit first.");
+        return;
+      }
       if (part && part.type === "meter") {      // to change a fuse you take the probes off, so a new fuse does not blow at once
         const bx = part.bx ?? 0, by = part.by ?? 0, h = R.meterSize()[1];
         part.legs = [null, null];
@@ -251,6 +271,11 @@
     undo() { BB.trail("undo"); if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); G.emit("undo", {}); } },
     redo() { BB.trail("redo"); if (G.doc.redo()) { G.commit(); G.emit("undo", {}); } },
     clear() { G.edit(() => { G.doc.parts = G.doc.parts.filter((p) => p.type === "battery" || p.type === "meter"); }); },
+    // The sandbox's speed buttons always show the speed the bench runs at.
+    setSpeed(v) {
+      G.speed = v;
+      for (const x of $("speed").querySelectorAll("button")) x.setAttribute("aria-pressed", String(+x.dataset.v === v));
+    },
     setSound(on) {
       BB.Effects.setMuted(!on);
       const b = $("sound");
@@ -291,13 +316,20 @@
     if (h === "#map") return BB.LevelMap.showMap();
     if (h === "#sandbox") return G.enterSandbox();
     BB.Title.show();
+    if (/^#level-/i.test(h)) H.toast("There is no such level. Pick one on the level map.", 5000);
+  }
+  // A link changed by hand (or the Back button) goes where it says. The game's own replaceState does not fire this.
+  function rerouted() {
+    const h = location.hash, now = G.mode === "level" && G.level ? `#level-${G.level.id}/${G.level.seed}` : G.mode === "sandbox" && !BB.LevelMap.isOpen() && !BB.Title.isOpen() ? "#sandbox" : null;
+    if (h === now) return;
+    BB.LevelMap.hideAll(); G.paused = false; BB.Title.hide();
+    route();
   }
 
   function boot() {
     R.init($("canvas"));
     BB.Effects.init();
-    const saved = St.get().sandbox;
-    G.doc = new BB.Doc(saved || starter());
+    G.doc = new BB.Doc(savedBench());
     G.sim = new BB.Sim(G.doc);
     BB.Input.init(G);
     BB.CoachUI.init(G);
@@ -306,6 +338,13 @@
     requestAnimationFrame(() => { if (G.mode !== "level") R.fit(); });
     window.addEventListener("resize", () => (G.mode === "level" ? G.fitLevel() : R.refit()));
     window.addEventListener("pagehide", () => G.keepUnfinished());
+    window.addEventListener("hashchange", () => { try { rerouted(); } catch (err) { BB.reportError(err, "link"); } });
+    // Another tab changed the saved sandbox bench: show that one, so neither tab overwrites the other.
+    window.addEventListener("storage", (e) => {
+      if (e.key !== St.KEY || G.mode !== "sandbox") return;
+      const theirs = St.get().sandbox;
+      if (theirs && theirs !== G.doc.serialize()) { G.load(savedBench()); H.toast("The bench was changed in another tab. This tab shows it now.", 6000); }
+    });
     if (St.get().settings.sound === false) G.setSound(false);
 
     $("undo").addEventListener("click", G.undo);
@@ -315,8 +354,7 @@
     $("sound").addEventListener("click", (e) => G.setSound(e.currentTarget.getAttribute("aria-pressed") !== "true"));
     $("speed").addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b) return;
-      G.speed = +b.dataset.v;
-      for (const x of $("speed").querySelectorAll("button")) x.setAttribute("aria-pressed", x === b);
+      G.setSpeed(+b.dataset.v);
     });
     BB.Title.init(G);
     route();
@@ -415,9 +453,9 @@
         const own = (ref) => (G.doc.get(ref) ? ref : ([...G.doc.parts].reverse().find((p) => p.type === ref && G.rules.own(p.id)) || {}).id);
         const meter = () => (G.doc.parts.find((p) => p.type === "meter") || {}).id;
         if (st.next) G.coach.next();
-        else if (st.choose !== undefined) G.coach.choose(st.choose === "right" ? G.coach.beat.predict.answer : st.choose);
+        else if (st.choose !== undefined) { const p = G.coach.beat && G.coach.beat.predict; if (!p) return "No question to answer now."; G.coach.choose(st.choose === "right" ? p.answer : st.choose); }
         else if (st.wire) G.add({ type: "wire", legs: st.wire.slice(), color: R.C.wires[0] });
-        else if (st.place) G.add(Object.assign({}, st.place, { legs: st.at.slice() }));
+        else if (st.place) G.add(BB.Rules.partOf(BB.Rules.itemOf(BB.Rules.keyOf(st.place)), st.at.slice(), G.level));     // as the tray gives it
         else if (st.remove) G.remove(own(st.remove));
         else if (st.flip) G.rotate(own(st.flip));
         else if (st.ctl) G.set(st.ctl, "on", G.doc.get(st.ctl).on === false, true);

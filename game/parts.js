@@ -123,7 +123,10 @@
                 const I = src.current(S.v);         // test current out through the red probe
                 const R = I > 1e-9 ? V / I : Infinity;
                 out.value = R;
-                if (!(R < 40e6) || V > m.ohmV * 0.999) out.display = "OL";
+                if (I < -1e-9 || R < 0) {           // something else pushes current into the probes: the circuit is powered
+                  out.display = "Err";
+                  out.note = "Power is on: switch it off to measure ohms.";
+                } else if (!(R < 40e6) || V > m.ohmV * 0.999) out.display = "OL";
                 if (mode === "cont") out.beep = R < 50;
               }
             }

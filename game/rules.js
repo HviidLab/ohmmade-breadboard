@@ -19,17 +19,33 @@
   const no = (say) => ({ ok: false, say });
   const listed = (v, id) => v === "*" || (Array.isArray(v) && v.includes(id));
 
-  // Parts of the same kind share a tray slot: all wires; resistors by value (and tag: "Resistor A"); LEDs by colour.
+  // Parts of the same kind share a tray slot: all wires; resistors and capacitors by value (a resistor also by tag:
+  // "Resistor A"); LEDs by colour.
   function keyOf(p) {
     if (p.type === "resistor") return `resistor:${p.value}${p.tag ? `:${p.tag}` : ""}`;
+    if (p.type === "cap") return `cap:${p.value ?? CAP}`;
     if (p.type === "led") return `led:${p.color || "red"}`;
     return p.type;
   }
   function itemOf(key) {
     const [type, x, tag] = key.split(":");
     if (type === "resistor") return tag ? { type, value: +x, tag } : { type, value: +x };
+    if (type === "cap") return { type, value: +x };
     if (type === "led") return { type, color: x };
     return { type };
+  }
+  const CAP = 1e-4;            // farads, for a capacitor that comes without a value
+  // A new part as the player gets it from the tray or drawer (item: {type, value, color, tag}), plugged in at `legs`.
+  function partOf(item, legs, level) {
+    const part = { type: item.type, legs };
+    if (item.type === "resistor") part.value = item.value ?? 330;
+    if (item.tag) part.tag = item.tag;
+    if (item.type === "led") part.color = item.color ?? "red";
+    if (item.type === "cap") part.value = item.value ?? CAP;
+    if (item.type === "pot") part.pos = 0.5;
+    if (item.type === "ldr") part.lux = 200;
+    if (item.type === "button") { part.pairs = "across"; part.pressed = false; if (level && level.rules && level.rules.latchButtons) part.latch = true; }
+    return part;
   }
 
   const FIXED = {
@@ -139,5 +155,5 @@
     return Math.abs((sim.read(m.id) || {}).Ishunt || 0) > BB.Devices.PARAMS.meter.fuseA;
   }
 
-  BB.Rules = { LevelRules, keyOf, itemOf, meterOverload };
+  BB.Rules = { LevelRules, keyOf, itemOf, partOf, meterOverload };
 })(window.BB = window.BB || {});

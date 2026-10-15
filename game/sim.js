@@ -182,6 +182,18 @@
       for (const st of Object.values(rt.stress)) st.reset();
       this.compile();
     }
+    // Would a fresh `partId` fail again within `sec` seconds, with the circuit as it is now? Tried on a copy.
+    failsAgain(partId, sec = 3) {
+      const sim = new Sim(new BB.Doc(JSON.stringify({ parts: this.doc.parts })));
+      for (const [id, rt] of this.rt) {
+        const r = sim.rt.get(id);
+        if (r && id !== partId) { r.destroyed = rt.destroyed; r.broken = Object.assign({}, rt.broken); }
+      }
+      sim.compile();
+      for (let t = 0; t < sec; t += 0.05) sim.advance(0.05);
+      const rt = sim.rt.get(partId) || {};
+      return !!(rt.destroyed || (BB.Uno && BB.Uno.damaged(rt)));
+    }
   }
 
   BB.Sim = Sim;

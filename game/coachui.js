@@ -290,7 +290,10 @@
     spotEl = node;
     if (node) node.classList.add("spot");
   }
-  function ghost(parts) { R.guide(parts && parts.map((p) => Object.assign({}, p, { id: `ghost-${p.id}` }))); }
+  function ghost(parts) {
+    R.guide(parts && parts.map((p) => Object.assign({}, p, { id: `ghost-${p.id}` })));
+    document.querySelectorAll('[data-id^="ghost-"]').forEach((n) => { n.removeAttribute("data-ctl"); n.removeAttribute("data-id"); });    // a hint's picture is not a control
+  }
   function xray(on) {
     BB.Flow.xray(on);
     $("lv-xray").setAttribute("aria-pressed", String(!!on));
@@ -365,7 +368,7 @@
     if (!part || part.type === "battery" || (part.type === "meter" && !dead)) { card.hidden = true; partFor = null; return; }
     const acts = [];
     if (part.type === "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["New fuse", "fresh", () => G.replace(part.id)]);
-    if (part.type === "led" && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
+    if ((part.type === "led" || part.type === "cap") && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
     if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push([part.type === "uno" ? "Fresh board" : "Fresh one", "fresh", () => G.replace(part.id)]);
     if (part.type !== "meter" && G.can({ kind: "remove", id: part.id }).ok) acts.push(["Remove", "remove", () => G.remove(part.id)]);
     const key = JSON.stringify([part.id, dead, acts.map((a) => a[1])]);
@@ -413,7 +416,6 @@
     document.body.appendChild(box);
   }
 
-  window.addEventListener("resize", () => { if (lv) walk(targetBox()); });
 
-  BB.CoachUI = { probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});
