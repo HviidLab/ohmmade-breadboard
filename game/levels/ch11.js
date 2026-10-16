@@ -1,5 +1,5 @@
 // Chapter 11: The controller board. A pin is a switch you set (HIGH is 5 V, LOW is 0 V) that gives only about 20 mA;
-// an analog pin reads a push as a number from 0 to 1023; a pin set to IN reads HIGH or LOW, floats without a pull-down,
+// an analog pin reads a voltage as a number from 0 to 1023; a pin set to IN reads HIGH or LOW, floats without a pull-down,
 // and a program joins what the board reads to what it sets. Then a challenge: a night light run by a program.
 // The board is generic (no trademarks). It sits above the breadboard; its pins are set by clicking their badges.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
@@ -43,10 +43,10 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "A controller board, powered by USB. Its pin D13 feeds the LED. Set D13 HIGH, which joins it to 5 V inside the board: the LED…",
+            { id: "p", say: "A controller board, running on USB. Its pin D13 feeds the LED. Set D13 HIGH, which joins it to 5 V inside the board: the LED…",
               highlight: { part: "board" }, predict: P, waitFor: { predict: true } },
             { id: "high", say: "Find out: click D13's badge on the board. H means HIGH, L means LOW.", hints: [PIN], waitFor: { when: hi, hold: 0.3 } },
-            { id: "low", reply: "p", say: "HIGH joined D13 to 5 V, so a current flowed. Now set it LOW, which joins it to 0 V.",
+            { id: "low", reply: "p", say: "HIGH joined D13 to 5 V, so a current flowed. Now set it LOW, which joins it to GND, the board's 0 V.",
               waitFor: { when: lo, hold: 0.3 } },
             FINISH("A pin is a switch you control: HIGH gives 5 V, LOW gives 0 V. In the code a real board runs: digitalWrite(13, HIGH);"),
           ],
@@ -62,7 +62,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["The LED just lights", "The pin is damaged", "Nothing happens"], 1, ["with no resistor, far more current flows than a pin can give.", null,
-          "HIGH pushes 5 V through the LED with nothing to hold the current down."]), seen = {};
+          "HIGH puts 5 V across the LED with nothing to hold the current down."]), seen = {};
         const hurt = (S) => { const p = S.uno.pin("D13"); return !!p && p.damaged; };
         const fixed = (S) => {
           const p = S.uno.pin("D13"), ok = !!p && !p.damaged && p.mode === "HIGH" && led(S) && Math.abs(p.I) < 0.02 && S.parts("resistor").some((q) => q.part.value === 330);
@@ -97,8 +97,8 @@
       id: "11-3", title: "Reading a knob", teaches: ["analogRead"], uses: ["pinOut", "potKnob", "divider", "volts", "strip", "rail"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["About 512", "About 1023", "About 2.5"], 0, [null, "1023 is the full 5 V. Half the push reads about half of that: 512.",
-          "A0 doesn't show volts. It turns the push into a number: 2.5 V reads about 512."]), seen = {};
+        const P = V.predict(["About 512", "About 1023", "About 2.5"], 0, [null, "1023 is the full 5 V. Half of 5 V reads about half of that: 512.",
+          "A0 doesn't show a voltage. It turns the voltage into a number: 2.5 V reads about 512."]), seen = {};
         const wired = (S) => S.parts("wire").some((w) => w.legs.includes("U.A0") && w.nets.includes(V.n("bb:L17")));
         const a0 = (S) => (wired(S) ? S.uno.analog("A0") : null);
         const mid = (S) => { const v = a0(S); if (v !== null && v > 400 && v < 624) seen.mid = v; return v !== null && v > 400 && v < 624; };
@@ -118,7 +118,7 @@
               waitFor: { when: mid, hold: 0.3 } },
             { id: "turn", reply: "p", say: () => `Half of 5 V reads ${seen.mid || 512}, about half of 1023. Now turn the knob all the way, both ways.`,
               waitFor: { when: ends } },
-            FINISH("A0 turns its push into a number: 0 V reads 0, 5 V reads 1023. In code: analogRead(A0). That's how a board reads a knob."),
+            FINISH("A0 turns its voltage into a number: 0 V reads 0, 5 V reads 1023. In code: analogRead(A0). That's how a board reads a knob."),
           ],
           goals: [{ text: "Read the knob at both ends", when: ends }],
           challenge: { text: "Then set A0 between 500 and 524", when: (S, m) => { if (ends(S, m)) m.both = true; const v = a0(S); return !!m.both && v !== null && v >= 500 && v <= 524; } },
@@ -131,7 +131,7 @@
       id: "11-4", title: "A pin that reads", teaches: ["pinIn"], uses: ["pinOut", "buttonLoop", "buttonLegs", "resistor", "strip", "rail", "gap"], shifts: [0, 3],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["HIGH", "LOW", "5 V"], 0, [null, "the button joins D2 to 5 V, and anything above 3 V reads HIGH.", "a pin set to IN reads HIGH or LOW, not volts: 5 V reads HIGH."]);
+        const P = V.predict(["HIGH", "LOW", "5 V"], 0, [null, "the button joins D2 to 5 V, and anything above 3 V reads HIGH.", "a pin set to IN reads HIGH or LOW, not a voltage: 5 V reads HIGH."]);
         const high = (S) => pressed(S) && S.uno.read("D2") === "HIGH", low = (S) => !pressed(S) && S.uno.read("D2") === "LOW";
         return {
           region: REGION(V),
@@ -140,12 +140,12 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "D2 is set to IN: it doesn't push, it reads. The button joins D2 to 5 V. Press it, and the screen will say D2 reads…",
+            { id: "p", say: "D2 is set to IN: it doesn't set a voltage, it reads one. The button joins D2 to 5 V. Press it, and the screen will say D2 reads…",
               highlight: { lcd: "board" }, predict: P, waitFor: { predict: true } },
             { id: "press", say: "Find out: press and hold the button, and watch the board's screen.", hints: [PRESS], waitFor: { when: high, hold: 0.2 } },
             { id: "name", reply: "p", say: "5 V reads HIGH. Now let go: the 10 kΩ joins D2 to GND, so it reads LOW.",
               waitFor: { when: low, hold: 0.3 } },
-            FINISH("A pin set to IN reads its push: above 3 V is HIGH, below 1.5 V is LOW. In code: pinMode(2, INPUT), then digitalRead(2)."),
+            FINISH("A pin set to IN reads its voltage: above 3 V is HIGH, below 1.5 V is LOW. In code: pinMode(2, INPUT), then digitalRead(2)."),
           ],
           goals: [{ text: "Make D2 read HIGH", when: high }, { text: "And LOW again", when: (S, m) => { if (high(S)) m.h = true; return !!m.h && low(S); } }],
           challenge: { text: "Then make D2 read HIGH with a wire instead of the button", when: (S, m, C) => !pressed(S) && S.uno.read("D2") === "HIGH" && S.parts("wire").some((q) => !["p5", "pg", "w5", "wd"].includes(q.id)) },
@@ -216,7 +216,7 @@
     },
     {
       id: "11-7", title: "Night light, by program", teaches: [], uses: ["program", "analogRead", "pinOut", "pinLimit", "ldrDivider", "ldr", "divider", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
-      card: { name: "The controller board", text: "A board's pins set a push (HIGH or LOW) or read one (IN, or a number on A0). Its program joins what it reads to what it sets." },
+      card: { name: "The controller board", text: "A board's pins set a voltage (HIGH or LOW) or read one (IN, or a number on A0). Its program joins what it reads to what it sets." },
       layouts: [{}],
       make: (V) => {
         const seen = {};
@@ -267,7 +267,7 @@
     "words": [
       {
         "w": "Controller board",
-        "d": "A small computer with pins you can set and read, powered by USB.",
+        "d": "A small computer with pins you can set and read, running on USB.",
         "sym": "chip"
       },
       {
@@ -276,8 +276,8 @@
         "sym": "chip"
       },
       {
-        "w": "GND",
-        "d": "Ground: the board's 0 V, like the battery's −.",
+        "w": "GND (ground)",
+        "d": "The board's 0 V point, like the battery's −.",
         "sym": "battery"
       },
       {
@@ -287,7 +287,7 @@
       },
       {
         "w": "A0 (analog pin)",
-        "d": "Reads a push from 0 to 5 V as a number from 0 to 1023.",
+        "d": "Reads a voltage from 0 to 5 V as a number from 0 to 1023.",
         "sym": "V"
       },
       {

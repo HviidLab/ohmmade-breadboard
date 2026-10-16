@@ -47,9 +47,9 @@
       layouts: [{}],
       make: (V) => {
         const P1 = V.predict(["At once", "It takes a few seconds", "It never fills"], 1, ["the resistor holds the current back, so the bucket fills slowly.", null,
-          "current flows in until the capacitor's push nearly matches the battery's: then it is full."]);
-        const P2 = V.predict(["At the start", "Near the end", "The same all the way"], 0, [null, "near the end it is slowest: the capacitor pushes back, so less push is left for the resistor.",
-          "as it fills, its own push grows, so less is left across the resistor, and less current flows in."]);
+          "current flows in until the capacitor's voltage nearly matches the battery's: then it is full."]);
+        const P2 = V.predict(["At the start", "Near the end", "The same all the way"], 0, [null, "near the end it is slowest: the capacitor pushes back, so less voltage is left across the resistor.",
+          "as it fills, its own voltage grows, so less is left across the resistor, and less current flows in."]);
         const full = (S) => vc(S, "c1") > 5;
         return {
           region: REGION(V),
@@ -58,15 +58,15 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its push. Switch on: will it be full at once?",
+            { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its voltage. Switch on: will it be full at once?",
               highlight: { part: "c1" }, predict: P1, waitFor: { predict: true } },
             { id: "fill", say: "Find out: switch the battery on, and watch the meter and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: full } },
             { id: "p2", reply: "p1", say: "A few seconds. When did it fill fastest?", predict: P2, waitFor: { predict: true } },
-            Object.assign(FINISH("Fast at first, slower as it fills: its own push grows, so less is left across the resistor, and less current flows in."), { reply: "p2" }),
+            Object.assign(FINISH("Fast at first, slower as it fills: its own voltage grows, so less is left across the resistor, and less current flows in."), { reply: "p2" }),
           ],
           goals: [{ text: "Fill the capacitor above 5 V", when: full }],
-          challenge: { text: "Switch off, and see it hold its push for 2 seconds", when: (S, m) => {
+          challenge: { text: "Switch off, and see it hold its voltage for 2 seconds", when: (S, m) => {
               const v = vc(S, "c1");
               if (onOff(S) || v < 1) { m.t0 = undefined; return false; }
               if (m.t0 === undefined) { m.t0 = S.t; m.v0 = v; }

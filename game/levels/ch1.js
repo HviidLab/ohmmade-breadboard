@@ -77,8 +77,8 @@
           start: start(V.BAT(...V.L.bat), V.RES("res1", ...V.L.res), V.LED("led1", ...V.L.led)),
           rules: { tray: [{ type: "wire", n: 1 }], guardShorts: true },
           beats: [
-            { id: "bat", say: V.say("This is a battery. It pushes current, a flow of electricity, out of its red + lead and wants it back at its black − lead.",
-              "Meet the battery. Current, a flow of electricity, leaves through its red + lead and must come home through the black − lead."), highlight: { part: "bat" }, waitFor: { next: true } },
+            { id: "bat", say: V.say("This is a battery. It pushes current, a flow of charge, out of its red + lead and wants it back at its black − lead.",
+              "Meet the battery. Current, a flow of charge, leaves through its red + lead and must come home through the black − lead."), highlight: { part: "bat" }, waitFor: { next: true } },
             { id: "gap", say: V.say("Here the path is broken. Nothing can flow, so the LED stays dark.", "See this break? With the path broken, nothing flows and the LED stays dark."),
               highlight: { nets: [V.n(`bb:L${g1}`), V.n(`bb:L${g2}`)] }, waitFor: { next: true } },
             { id: "wire", say: "Drag from a hole in this marked group of holes to a hole in that one. That makes a wire.", highlight: { nets: [V.n(`bb:L${g1}`), V.n(`bb:L${g2}`)] },
@@ -163,7 +163,7 @@
       // the missing link: from the LED to the − rail, or from the + rail to the LED
       layouts: [
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7")], need: 7, rail: "-T", word: "blue − rail",
-          feed: "The resistor takes its current from the red one.", sol: ["e7", "-T30"] },
+          feed: "The resistor's current comes from the red one.", sol: ["e7", "-T30"] },
         { parts: (V) => [V.LED("led1", "c8", "c9"), V.RES("res1", "a9", "-T9")], need: 8, rail: "+T", word: "red + rail",
           feed: "The resistor gives its current back to the blue one.", sol: ["+T30", "e8"] },
       ],
@@ -232,7 +232,7 @@
       make: (V) => {
         const [b1, b2] = V.L.back, flips = (b1 ? 1 : 0) + (b2 ? 1 : 0), w1 = COLOR_WORD[V.c1], w2 = COLOR_WORD[V.c2];
         const led1 = b1 ? V.LED("led1", "c7", "c6") : V.LED("led1", "c6", "c7"), led2 = b2 ? V.LED("led2", "d8", "d7", V.c2) : V.LED("led2", "d7", "d8", V.c2);
-        const look = "look at each long + leg: it must point back towards the resistor, where the current comes from.";
+        const look = "look at each longer + leg: it must point back towards the resistor, where the current comes from.";
         const both = b1 && b2, P = both ? V.predict(["Yes", "No"], 1, ["in one loop every part must let the current through. One backwards LED still blocks it for both.", null])
           : V.predict([`The ${w1} one`, `The ${w2} one`, "Both"], b1 ? 0 : 1, b1 ? [null, look, "only one is backwards. " + look] : [look, null, "only one is backwards. " + look]);
         const on = (S) => lit(part(S, "led1"), 0.002) && lit(part(S, "led2"), 0.002);
@@ -243,7 +243,7 @@
           ui: { strips: true },
           beats: [
             { id: "dark", say: "Two LEDs in one loop, and both are dark. An LED is one-way: current can only go in at its + leg.", highlight: { parts: ["led1", "led2"] }, waitFor: { next: true } },
-            { id: "leg", say: "The + leg is the long one, marked + here. It must face the + side of the loop (here, the resistor's side).", highlight: { holes: [led1.legs[0], led2.legs[0]] }, waitFor: { next: true } },
+            { id: "leg", say: "The + leg is the longer one, marked + here. It must face the + side of the loop (here, the resistor's side).", highlight: { holes: [led1.legs[0], led2.legs[0]] }, waitFor: { next: true } },
             both ? { id: "p", say: `If you flip just the ${w1} LED, will the lights come on?`, highlight: { part: "led1" }, predict: P, waitFor: { predict: true } }
               : { id: "p", say: "One of them is the wrong way round. Which one?", highlight: { parts: ["led1", "led2"] }, predict: P, waitFor: { predict: true } },
             { id: "flip", reply: "p", say: both ? "Click an LED and press Flip (or the R key). Make both face the right way." : "Click the LED that is the wrong way round and press Flip (or the R key).",
@@ -314,8 +314,8 @@
       ],
       make: (V) => {
         const P = V.predict(["The LED gets brighter", "The LED goes dark", "Nothing"], 1,
-          ["more current flows, but through the wire. The battery can't keep up its push, so the LED gets almost none.", null,
-            "the wire lets a huge current flow, and the battery can't keep up its push."]);
+          ["more current flows, but through the wire. The battery can't keep pushing that hard, so the LED gets almost none.", null,
+            "the wire lets a huge current flow, and the battery can't keep pushing that hard."]);
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V)),
@@ -329,8 +329,8 @@
               waitFor: { when: (S) => S.shortNow(), hold: 0.05 } },
             { id: "pull", say: "Short circuit! The LED went dark, and the wire and the batteries are heating up. Pull the wire out, quick!",
               waitFor: { when: (S) => !S.shortNow(), hold: 0.05 } },
-            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and their push collapsed: the rails fell to almost 0 V."
-              : "Phew! A huge current poured through the wire, the battery's push collapsed, the rails fell to almost 0 V, and the LED went dark.")),
+            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and the push between the rails collapsed to almost 0 V."
+              : "Phew! A huge current poured through the wire, the push between the rails collapsed to almost 0 V, and the LED went dark.")),
             { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and some batteries can catch fire." }),
           ],
           goals: [{ text: "Light the LED, with no short circuit", when: (S) => anyLit(S) && !S.shortNow(), hold: 0.6 }],
@@ -435,7 +435,7 @@
     "words": [
       {
         "w": "Current",
-        "d": "A flow of electricity through the parts. In the game you see it as amber dots.",
+        "d": "A flow of charge through the parts. In the game you see it as amber dots.",
         "sym": "A"
       },
       {
@@ -455,7 +455,7 @@
       },
       {
         "w": "LED",
-        "d": "A little light that lets current through one way only: in at its long + leg.",
+        "d": "A little light that lets current through one way only: in at its longer + leg.",
         "sym": "led"
       },
       {
@@ -465,7 +465,7 @@
       },
       {
         "w": "Short circuit",
-        "d": "A path from + to − with nothing in it: a huge current, and everything goes dark.",
+        "d": "A path from + to − with only wire in it: a huge current, and everything goes dark.",
         "sym": "switch"
       }
     ]

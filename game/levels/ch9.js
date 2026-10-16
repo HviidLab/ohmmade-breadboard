@@ -103,7 +103,7 @@
                   V.WIRE("h5", "a14", "-T14"), V.WIRE("h6", "+T17", "a17"), { id: "h7", type: "button", legs: ["e17", "f17", "e19", "f19"], pairs: "across" },
                   V.RES("h8", "a19", "b13", 10000)] }],
               waitFor: { when: tested } },
-            FINISH("A push of a tiny button, a big current in the LED. Chapter 9 done!"),
+            FINISH("A press of a tiny button, a big current in the LED. Chapter 9 done!"),
           ],
           goals: [{ text: "LED off with the button up, on with it down", when: tested }],
           challenge: { text: "Keep the base current under 2 mA", final: () => !seen.big },

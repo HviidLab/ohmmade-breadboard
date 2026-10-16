@@ -1,6 +1,6 @@
-// Chapter 4: LED maths. The LED keeps about the same push whatever the current, so the resistor takes the rest:
+// Chapter 4: LED maths. The voltage across the LED stays about the same whatever the current, the rest is across the resistor:
 // LED current = (battery − LED) ÷ resistor. That lets you choose a resistor for the current you want, for every colour
-// (they need different pushes), and keep below the LED's 20 mA limit. Then a challenge: three colours, one current.
+// (they need different voltages), and keep below the LED's 20 mA limit. Then a challenge: three colours, one current.
 // Same rules as Chapters 2 and 3: a question in every level, predict first, the goal and not the holes, hints on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
@@ -27,9 +27,9 @@
       colors: ["red", "yellow", "green"],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["Drop to a third", "Stay about the same", "Grow"], 1, ["an LED is not like a resistor: it keeps about 2 V whatever the current. The resistor takes the change.", null,
-          "less current does not give the LED more push. It keeps about 2 V; the resistor takes the change."]);
-        const P2 = V.predict(["About 4 V", "About 2 V", "About 6 V"], 0, [null, "the LED keeps its 2 V, and the resistor takes the rest: 6 − 2 = 4 V.", "the shares add up to 6 V, and the LED keeps 2 V: the resistor gets 4 V."]), seen = {};
+        const P1 = V.predict(["Drop to a third", "Stay about the same", "Grow"], 1, ["an LED is not like a resistor: it stays at about 2 V whatever the current. The change shows up across the resistor.", null,
+          "less current does not give the LED more voltage. It stays at about 2 V; the change shows up across the resistor."]);
+        const P2 = V.predict(["About 4 V", "About 2 V", "About 6 V"], 0, [null, "the LED still has 2 V across it, and the rest is across the resistor: 6 − 2 = 4 V.", "the shares add up to 6 V, and 2 V is across the LED: 4 V is across the resistor."]), seen = {};
         const onLed = (S) => across(S, "led1") && volts(S) > 1.5;
         const swapped = (S) => resOf(S, 1000) && !resOf(S, 330) && onLed(S);
         const resShare = (S) => resOf(S, 1000) && S.parts("resistor").some((q) => S.across(q)) && volts(S) !== null && Math.abs(volts(S)) > 3.5;
@@ -40,16 +40,16 @@
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
-            { id: "led", say: "First, measure the push across the LED.", hints: [RING(V.hs("d6", "d7"))],
+            { id: "led", say: "First, measure the voltage across the LED.", hints: [RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (onLed(S)) seen.v1 = volts(S); return onLed(S); } } },
-            { id: "p1", say: () => `${fmtV(seen.v1 || 2)} with 330 Ω. With 1 kΩ, only a third of the current flows. The LED's volts will…`, highlight: { lcd: "meter" },
+            { id: "p1", say: () => `${fmtV(seen.v1 || 2)} with 330 Ω. With 1 kΩ, only a third of the current flows. The voltage across the LED will…`, highlight: { lcd: "meter" },
               predict: P1, waitFor: { predict: true } },
             { id: "swap", say: "Find out: swap in the 1 kΩ resistor, and measure across the LED again.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (swapped(S)) seen.v2 = volts(S); return swapped(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtV(seen.v1 || 2)}, then ${fmtV(seen.v2 || 1.9)}. The LED keeps about the same. How much does the 1 kΩ take?`,
+            { id: "p2", reply: "p1", say: () => `${fmtV(seen.v1 || 2)}, then ${fmtV(seen.v2 || 1.9)}. The LED stays about the same. How much is across the 1 kΩ?`,
               predict: P2, waitFor: { predict: true } },
             { id: "res", say: "Measure across the resistor.", hints: [RING(V.hs("+T8", "b6"))], waitFor: { when: resShare } },
-            Object.assign(FINISH("The LED keeps about the same push, whatever the current. The resistor takes the rest of the battery's 6 V."), { reply: "p2" }),
+            Object.assign(FINISH("The voltage across the LED stays about the same, whatever the current. The rest of the battery's 6 V is across the resistor."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the resistor's share with 1 kΩ", when: resShare }],
           challenge: { text: "Measure the battery too: its 6 V is the two shares added", when: (S) => on(S, "bb:+T", "bb:-T") && Math.abs(volts(S) || 0) > 5.5 },
@@ -62,8 +62,8 @@
       id: "4-2", title: "Work out the current", teaches: ["ledCurrent"], uses: ["ledDrop", "ohmsLaw", "sameCurrent", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["About 18 mA", "About 27 mA", "About 9 mA"], 0, [null, "that forgets the LED's share. The resistor gets 6 − 2 = 4 V: 4 ÷ 0.22 ≈ 18.", "a smaller resistor lets more through, not less: 4 V ÷ 0.22 kΩ ≈ 18 mA."]);
-        const P2 = V.predict(["About 17 mA", "About 27 mA", "About 10 mA"], 0, [null, "green keeps 2.2 V, so the resistor gets 3.8 V: 3.8 ÷ 0.22 ≈ 17.", "only a little less than red: the resistor still gets 3.8 V, and 3.8 ÷ 0.22 ≈ 17."]), seen = {};
+        const P1 = V.predict(["About 18 mA", "About 27 mA", "About 9 mA"], 0, [null, "that forgets the LED's share. That leaves 6 − 2 = 4 V across the resistor: 4 ÷ 0.22 ≈ 18.", "a smaller resistor lets more through, not less: 4 V ÷ 0.22 kΩ ≈ 18 mA."]);
+        const P2 = V.predict(["About 17 mA", "About 27 mA", "About 10 mA"], 0, [null, "green needs 2.2 V, so 3.8 V is across the resistor: 3.8 ÷ 0.22 ≈ 17.", "only a little less than red: the resistor still has 3.8 V across it, and 3.8 ÷ 0.22 ≈ 17."]), seen = {};
         const m1 = (S) => resOf(S, 220) && !resOf(S, 470) && near(current(S), 0.016, 0.02);
         const m2 = (S) => resOf(S, 220) && !!theLed(S) && theLed(S).part.color === "green" && near(current(S), 0.0155, 0.019);
         return {
@@ -73,12 +73,12 @@
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
-            { id: "rule", say: "The resistor gets 6 − 2 = 4 V. 470 Ω is 0.47 kΩ, so 4 V ÷ 0.47 kΩ ≈ 8.5 mA. The LED gets the same current: see the meter.",
+            { id: "rule", say: "The resistor has 6 − 2 = 4 V across it. 470 Ω is 0.47 kΩ, so 4 V ÷ 0.47 kΩ ≈ 8.5 mA. The same current flows through the LED.",
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "p1", say: "With a 220 Ω resistor, that is 0.22 kΩ, what will the meter show?", predict: P1, waitFor: { predict: true } },
             { id: "m1", say: "Find out: swap in the 220 Ω resistor.", hints: [SWAP_HINT], waitFor: { when: (S) => { if (m1(S)) seen.i1 = current(S); return m1(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i1 || 0.018)}. Now a green LED, which takes 2.2 V, with the same 220 Ω?`, predict: P2, waitFor: { predict: true } },
-            { id: "m2", say: "Check it: swap in the green LED, long leg on the + side.", hints: [SWAP_HINT], waitFor: { when: m2 } },
+            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i1 || 0.018)}. Now a green LED, which needs 2.2 V, with the same 220 Ω?`, predict: P2, waitFor: { predict: true } },
+            { id: "m2", say: "Check it: swap in the green LED, longer leg on the + side.", hints: [SWAP_HINT], waitFor: { when: m2 } },
             Object.assign(FINISH("(6 − 2.2) V ÷ 0.22 kΩ ≈ 17 mA. LED current = (battery − LED) ÷ resistor."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the green LED's current", when: m2 }],
@@ -91,8 +91,8 @@
       id: "4-3", title: "Choose the resistor", teaches: ["chooseR"], uses: ["ledCurrent", "ledDrop", "ohmsLaw", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["400 Ω", "600 Ω", "200 Ω"], 0, [null, "that uses all 6 V, but the LED keeps 2 V. The resistor gets 4 V: 4 V ÷ 10 mA = 400 Ω.",
-          "that is the LED's 2 V. The resistor gets the other 4 V: 4 V ÷ 10 mA = 400 Ω."]);
+        const P = V.predict(["400 Ω", "600 Ω", "200 Ω"], 0, [null, "that uses all 6 V, but 2 V of it is across the LED. That leaves 4 V across the resistor: 4 V ÷ 10 mA = 400 Ω.",
+          "that is the LED's 2 V. The other 4 V is across the resistor: 4 V ÷ 10 mA = 400 Ω."]);
         const ten = (S) => near(current(S), 0.008, 0.0101);
         return {
           region: REGION(V),
@@ -118,7 +118,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["270 Ω", "330 Ω", "390 Ω"], 1, ["rounding down lets more than 10 mA through. 300 Ω is not a size, so round up: 330 Ω.", null,
-          "that is the red LED's. Blue keeps 3 V, so the resistor gets 3 V: 3 V ÷ 10 mA = 300 Ω, so 330 Ω."]), seen = {};
+          "that is the red LED's. Blue needs 3 V, so 3 V is left across the resistor: 3 V ÷ 10 mA = 300 Ω, so 330 Ω."]), seen = {};
         const blue = (S) => { const q = theLed(S); return !!q && q.part.color === "blue" ? q : null; };
         const blueV = (S) => !!blue(S) && S.across(blue(S)) && volts(S) > 2.5;
         const ten = (S) => !!blue(S) && resOf(S, 330) && lit(blue(S), 0.008) && blue(S).rd.I <= 0.0101;
@@ -130,15 +130,15 @@
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
-            { id: "red", say: "A red LED with 390 Ω: about 10 mA. Measure the push across the LED.", hints: [RING(V.hs("d6", "d7"))],
+            { id: "red", say: "A red LED with 390 Ω: about 10 mA. Measure the voltage across the LED.", hints: [RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => across(S, "led1") && volts(S) > 1.5 } },
             { id: "swap", say: "Now swap in the blue LED from the tray, and measure across it.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (blueV(S)) seen.v = volts(S); return blueV(S); } } },
-            { id: "name", say: () => `${fmtV(seen.v || 2.9)}! Blue needs about 3 V, red about 2 V. So the resistor gets only 3 V, and less current flows: it is dimmer.`, waitFor: NEXT },
+            { id: "name", say: () => `${fmtV(seen.v || 2.9)}! Blue needs about 3 V, red about 2 V. So only 3 V is left across the resistor, and less current flows: it is dimmer.`, waitFor: NEXT },
             { id: "p", say: "Which resistor gives the blue LED about 10 mA? (6 − 3) V ÷ 10 mA = …", predict: P, waitFor: { predict: true } },
             { id: "fix", reply: "p", say: "300 Ω, rounded up to the next size: 330 Ω. Swap it in for the 390 Ω.", hints: [SWAP_HINT],
               waitFor: { when: ten, hold: 0.6 } },
-            FINISH("Each colour takes its own push: red about 2 V, yellow and green a little more, blue and white about 3 V."),
+            FINISH("Each colour needs its own voltage: red about 2 V, yellow and green a little more, blue and white about 3 V."),
           ],
           goals: [{ text: "The blue LED at 8 to 10 mA", when: ten }],
           challenge: { text: "Measure the blue LED's current with the meter", when: (S) => !!blue(S) && lit(blue(S), 0.005) && S.readsCurrentOf(blue(S), 0.005, 0.02) },
@@ -177,7 +177,7 @@
     },
     {
       id: "4-6", title: "Traffic light", teaches: [], uses: ["ledColours", "chooseR", "ledMax", "ledCurrent", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0],
-      card: { name: "LED maths", text: "Resistor = (battery − LED) ÷ current. Each colour takes its own push, so each LED gets its own resistor." },
+      card: { name: "LED maths", text: "Resistor = (battery − LED) ÷ current. Each colour needs its own voltage, so each LED gets its own resistor." },
       layouts: [{}],
       make: (V) => {
         const COLS = ["red", "yellow", "green"], seen = {};
@@ -200,7 +200,7 @@
               `Build three lights, red, yellow and green, each with ${W.lo} to ${W.hi} mA through it.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Each LED needs its own resistor. Ask for a hint if you get stuck.",
               hints: [{ say: `Each LED gets its own loop: + rail, resistor, LED, − rail. Resistor = (6 − LED) V ÷ ${W.aim} mA, rounded up.` },
-                { say: "Red takes about 2 V, yellow 2.1 V, green 2.2 V. Work out each one, then take the next size up in the tray." },
+                { say: "Red needs about 2 V, yellow 2.1 V, green 2.2 V. Work out each one, then take the next size up in the tray." },
                 { show: [V.RES("h1", "+T6", "a6", W.sol[0]), V.LED("h2", "c6", "c7", "red"), V.WIRE("h3", "e7", "-T7"), V.RES("h4", "+T12", "a12", W.sol[1]), V.LED("h5", "c12", "c13", "yellow"),
                   V.WIRE("h6", "e13", "-T13"), V.RES("h7", "+T18", "a18", W.sol[2]), V.LED("h8", "c18", "c19", "green"), V.WIRE("h9", "e19", "-T19")] }],
               waitFor: { when: all, hold: 0.8 } },
@@ -224,17 +224,17 @@
   ];
 
   K.chapter(4, "LED maths", L, {
-    "lede": "LEDs are fussy: each colour wants its own push, and too much current pops them. Time to do the sums yourself.",
+    "lede": "LEDs are fussy: each colour needs its own voltage, and too much current pops them. Time to do the sums yourself.",
     "cover": "chooseR",
     "questions": [
-      "How much push does an LED keep, whatever the resistor?",
+      "How much voltage is across an LED, whatever the resistor?",
       "How do you pick the resistor for the current you want?",
       "Why does a blue LED need a different resistor from a red one?"
     ],
     "words": [
       {
         "w": "The LED's share",
-        "d": "The push an LED keeps for itself: about 2 V for red, 3 V for blue. The resistor gets the rest.",
+        "d": "The voltage across an LED, which stays about the same: about 2 V for red, 3 V for blue. The rest is across the resistor.",
         "sym": "led"
       },
       {
@@ -244,7 +244,7 @@
       },
       {
         "w": "Colour",
-        "d": "Red, yellow, green, blue: each colour takes its own push.",
+        "d": "Red, yellow, green, blue: each colour needs its own voltage.",
         "sym": "led"
       },
       {

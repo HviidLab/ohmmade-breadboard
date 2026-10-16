@@ -1,5 +1,5 @@
 // Chapter 10: Sensors. The light sensor (LDR) is a resistor that reacts to light: low resistance in light, high in the
-// dark. In a divider it turns light into a push you can measure; feeding a transistor's base it makes a night light.
+// dark. In a divider it turns light into a voltage you can measure; feeding a transistor's base it makes a night light.
 // Then a challenge: build a night light. To make it dark, press and hold on the sensor (Shift-click keeps it covered).
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
@@ -46,7 +46,7 @@
       id: "10-2", title: "A light meter", teaches: ["ldrDivider"], uses: ["ldr", "divider", "volts", "resistor", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Drop", "Rise", "Stay the same"], 0, [null, "the sensor sits on the + side. Its share grows in the dark, so less push is left for the 10 kΩ.",
+        const P = V.predict(["Drop", "Rise", "Stay the same"], 0, [null, "the sensor sits on the + side. Its share grows in the dark, so less is left across the 10 kΩ.",
           "change one resistor of a divider and the middle point moves."]), seen = {};
         const mid = V.n("bb:L6");
         const vMid = (S) => (on(S, mid, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);
@@ -63,7 +63,7 @@
               highlight: { nets: [mid] }, predict: P, waitFor: { predict: true } },
             { id: "light", say: "Measure the middle point against the − rail, in room light.", hints: [RING(V.hs("d6", "-T12"))], waitFor: { when: light } },
             { id: "dark", say: () => `${fmtV(seen.light || 5)} in the light. Now cover the sensor and watch.`, hints: [COVER], waitFor: { when: low } },
-            Object.assign(FINISH(() => `${fmtV(seen.light || 5)} in light, ${fmtV(seen.dark || 0.7)} in the dark. Light becomes a push you can measure.`), { reply: "p" }),
+            Object.assign(FINISH(() => `${fmtV(seen.light || 5)} in light, ${fmtV(seen.dark || 0.7)} in the dark. Light becomes a voltage you can measure.`), { reply: "p" }),
           ],
           goals: [{ text: "Measure the middle point in the dark", when: low }],
           challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (vMid(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
@@ -101,7 +101,7 @@
     },
     {
       id: "10-4", title: "Build a night light", teaches: [], uses: ["nightLight", "ldrDivider", "ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
-      card: { name: "Sensors", text: "A light sensor's resistance falls in light and rises in the dark. In a divider it turns light into a push, and that push can work a transistor." },
+      card: { name: "Sensors", text: "A light sensor's resistance falls in light and rises in the dark. In a divider it turns light into a voltage, and that voltage can work a transistor." },
       layouts: [{}],
       make: (V) => {
         const seen = {};
@@ -141,11 +141,11 @@
   ];
 
   K.chapter(10, "Sensors", L, {
-    "lede": "Circuits can feel the world. A light sensor turns brightness into resistance, and from there into a push you can use.",
+    "lede": "Circuits can feel the world. A light sensor turns brightness into resistance, and from there into a voltage you can use.",
     "cover": "ldr",
     "questions": [
       "What happens to a light sensor's resistance in the dark?",
-      "How do you turn light into a push you can measure?",
+      "How do you turn light into a voltage you can measure?",
       "How does a night light know when to switch on?"
     ],
     "words": [

@@ -144,7 +144,7 @@
           const st = rt.stress[k];
           if (br[k]) {                       // a broken sub-element carries no stress; a resettable one cools down
             st.update(0, h);
-            if (st.resettable && st.h < 0.5) { delete br[k]; this.events.push({ t: this.t, partId: part.id, kind: "reset", text: "The USB fuse has cooled down and reset. The board is powered again." }); this.compile(); return null; }
+            if (st.resettable && st.h < 0.5) { delete br[k]; this.events.push({ t: this.t, partId: part.id, kind: "reset", text: "The USB fuse has cooled down and reset. The board is on again." }); this.compile(); return null; }
             continue;
           }
           const tf = st.update(st.x(rd), h);

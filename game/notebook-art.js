@@ -94,7 +94,7 @@
       tx(40, 70, "gap", { s: 17 }),
     polarity: () => ln(30, 64, 92, 64, PEN, 2.4) + ln(128, 64, 182, 64, PEN, 2.4) +
       `<path d="M92 50 L92 78 L120 64 Z" fill="#ffd27a" stroke="${PEN}" stroke-width="2.4" stroke-linejoin="round"/>` + ln(121, 49, 121, 79, PEN, 3) +
-      tx(46, 54, "+ long leg", { s: 16, c: RED }) + tx(160, 54, "− short", { s: 16, c: BLUE }) +
+      tx(46, 54, "+ longer leg", { s: 16, c: RED }) + tx(160, 54, "− shorter", { s: 16, c: BLUE }) +
       arrow(150, 92, 0, "#2f8a43") + ln(66, 92, 148, 92, "#2f8a43", 2.4) + tick(176, 92) +
       ln(66, 112, 148, 112, RED, 2.4) + arrow(68, 112, 180, RED) + cross(176, 110, 6),
     resistor: () => pl([[20, 40], [20, 22], [44, 22]]) + resH(44, 84, 22) + pl([[84, 22], [100, 22], [100, 34]]) + ledV(100, 44) + pl([[100, 51], [100, 66], [20, 66], [20, 48]]) +
@@ -103,10 +103,10 @@
       tx(166, 92, "without: pop!", { s: 16, c: RED }),
     short: () => current([[60, 58], [60, 26], [160, 26], [160, 104], [60, 104], [60, 76]], 7) + pl([[60, 60], [60, 26], [160, 26], [160, 104], [60, 104], [60, 70]]) +
       battery(60, 65) + `<path d="M150 40 q8 -8 0 -16 M162 44 q8 -10 0 -20 M174 40 q8 -8 0 -16" fill="none" stroke="${RED}" stroke-width="2.4" stroke-linecap="round"/>` +
-      tx(186, 70, "hot!", { s: 22, c: RED }) + tx(110, 122, "nothing in the way", { s: 16 }),
+      tx(186, 70, "hot!", { s: 22, c: RED }) + tx(110, 122, "only wire in the path", { s: 16 }),
     volts: () => pl([[70, 58], [70, 26], [110, 26]]) + pl([[70, 72], [70, 104], [110, 104]]) + battery(70, 65) +
       probe([[110, 26], [150, 26], [150, 51]], RED) + probe([[110, 104], [150, 104], [150, 79]], PEN) + meter(150, 65, "V", "6 V", 186, 71) +
-      tx(110, 122, "the push between two points", { s: 16 }),
+      tx(110, 122, "voltage: between two points", { s: 16 }),
     across: () => current(loopPath) + loopWires({ resAt: true }) + battery(X0, YM) + ledV(X1, YM) +
       tx(108, 50, "4 V", { s: 19, c: "#a3360f" }) + ln(100, 38, 108, 33, "#a3360f", 1.6) +
       tx(146, 82, "2 V", { s: 19, c: "#a3360f" }) + ln(158, 74, 166, 70, "#a3360f", 1.6) +
@@ -127,10 +127,10 @@
       return mini(20, "220 Ω", true) + mini(124, "1 kΩ", false) + tx(58, 116, "more flow", { s: 16 }) + tx(162, 116, "less flow", { s: 16 });
     },
     ohms: () => ln(60, 64, 76, 64) + resH(76, 124, 64) + ln(124, 64, 140, 64) + probe([[60, 64], [60, 98], [96, 98]], RED) + probe([[140, 64], [140, 98], [124, 98]], PEN) +
-      meter(110, 98, "Ω", "330 Ω", 110, 40) + battery(186, 28, false) + cross(186, 28, 11) + tx(186, 62, "power off", { s: 15 }),
+      meter(110, 98, "Ω", "330 Ω", 110, 40) + battery(186, 28, false) + cross(186, 28, 11) + tx(186, 62, "battery off", { s: 15 }),
     break: () => pl([[X0, YM - 5], [X0, Y0], [82, Y0]]) + resH(82, 134, Y0) + pl([[134, Y0], [X1, Y0], [X1, YM - 7]]) + pl([[X1, YM + 7], [X1, Y1], [130, Y1]]) +
       pl([[94, Y1], [X0, Y1], [X0, YM + 4]]) + battery(X0, YM) + ledV(X1, YM, false) + circ(130, Y1, 2.6, PEN) + circ(94, Y1, 2.6, PEN) +
-      probe([[94, Y1], [94, 82]], RED) + probe([[130, Y1], [130, 82]], PEN) + meter(112, 72, "V") + tx(112, 50, "most of the push", { s: 16, c: "#a3360f" }) +
+      probe([[94, Y1], [94, 82]], RED) + probe([[130, Y1], [130, 82]], PEN) + meter(112, 72, "V") + tx(112, 50, "most of the voltage", { s: 16, c: "#a3360f" }) +
       tx(112, 124, "the break", { s: 16 }),
     continuity: () => slot(80, 24) + probe([[80, 24], [118, 18], [148, 44]], RED) + probe([[80, 72], [118, 80], [148, 72]], PEN) + meter(160, 58, ")))") +
       tx(196, 40, "beep!", { s: 20, c: "#2f8a43", r: -8 }) + tx(110, 116, "joined by metal", { s: 16 }),
@@ -146,9 +146,9 @@
         pl([[ox, 50], [ox, 26], [ox + 22, 26]]) + resH(ox + 22, ox + 54, 26, 5) + pl([[ox + 54, 26], [ox + 76, 26], [ox + 76, 94], [ox + 50, 94]]) +
         pl([[ox + 26, 94], [ox, 94], [ox, two ? 76 : 64]]) + battery(ox, two ? 52 : 60, false) + (two ? battery(ox, 68, false) : "") +
         meter(ox + 38, 94, "mA") + tx(ox - 6, 112, v, { s: 17 }) + tx(ox + 38, 66, mA, { s: 19, c: "#a3360f" });
-      return mini(24, "3 V", "3 mA", 16, false) + mini(128, "6 V", "6 mA", 8, true) + tx(112, 126, "twice the push, twice the current", { s: 15 });
+      return mini(24, "3 V", "3 mA", 16, false) + mini(128, "6 V", "6 mA", 8, true) + tx(112, 126, "twice the voltage, twice the current", { s: 15 });
     },
-    ohmsLaw: () => tx(110, 34, "current = push ÷ resistance", { s: 22 }) + ln(30, 44, 190, 44, HL, 7) +
+    ohmsLaw: () => tx(110, 34, "current = voltage ÷ resistance", { s: 20 }) + ln(30, 44, 190, 44, HL, 7) +
       tx(110, 74, "volts ÷ kΩ = mA", { s: 22, c: "#a3360f" }) + tx(100, 106, "6 V ÷ 2 kΩ = 3 mA", { s: 21 }) + tick(192, 100),
     findR: () => ln(46, 50, 70, 50) + resH(70, 150, 50, 7) + ln(150, 50, 174, 50) + tx(110, 30, "?", { s: 30, c: RED }) +
       `<path d="M70 70 q40 12 80 0" fill="none" stroke="#a3360f" stroke-width="2"/>` + tx(110, 92, "6 V across, 4 mA through", { s: 17, c: "#a3360f" }) +
@@ -157,10 +157,10 @@
       `<path d="M58 36 q6 -8 0 -16 M74 38 q6 -9 0 -18 M90 36 q6 -8 0 -16" fill="none" stroke="${RED}" stroke-width="2.4" stroke-linecap="round"/>` +
       tx(66, 86, "33 Ω: about 1 W", { s: 16, c: RED }) + tx(66, 104, "too hot!", { s: 17, c: RED }) +
       ln(146, 56, 158, 56) + resH(158, 196, 56, 6) + ln(196, 56, 208, 56) + tx(178, 86, "1 kΩ: 0.036 W", { s: 15 }) + tick(178, 100) +
-      tx(110, 126, "power = push × current", { s: 17 }),
+      tx(110, 126, "power = voltage × current", { s: 17 }),
     // Chapter 4: LED maths
     ledDrop: () => current(loopPath) + loopWires({ resAt: true }) + battery(X0, YM) + ledV(X1, YM) +
-      tx(108, 50, "the rest", { s: 17, c: "#a3360f" }) + tx(150, 82, "2 V", { s: 19, c: "#a3360f" }) + tx(110, 124, "the LED keeps about 2 V", { s: 16 }),
+      tx(108, 50, "the rest", { s: 17, c: "#a3360f" }) + tx(150, 82, "2 V", { s: 19, c: "#a3360f" }) + tx(110, 124, "about 2 V across the LED", { s: 16 }),
     ledCurrent: () => tx(110, 34, "(battery − LED) ÷ resistor", { s: 21 }) + ln(28, 44, 192, 44, HL, 7) +
       tx(110, 76, "(6 − 2) V ÷ 0.22 kΩ", { s: 20 }) + tx(110, 106, "≈ 18 mA", { s: 22, c: "#a3360f" }),
     chooseR: () => ln(30, 58, 46, 58) + resH(46, 92, 58, 6) + ln(92, 58, 112, 58) + `<g transform="rotate(-90 132 58)">${ledV(132, 58)}</g>` + ln(140, 58, 190, 58) +
@@ -168,7 +168,7 @@
     ledColours: () => {
       const one = (x, fill, v) => `<path d="M${x - 12} 40 L${x + 12} 40 L${x} 58 Z" fill="${fill}" stroke="${PEN}" stroke-width="2.2" stroke-linejoin="round"/>` +
         ln(x - 12, 58, x + 12, 58, PEN, 2.6) + ln(x, 24, x, 40) + ln(x, 58, x, 74) + tx(x, 98, v, { s: 20, c: "#a3360f" });
-      return one(44, "#ff6b5a", "2 V") + one(96, "#ffd84a", "2.1 V") + one(148, "#5fd47a", "2.2 V") + one(196, "#6f8cff", "3 V") + tx(110, 124, "each colour its own push", { s: 16 });
+      return one(44, "#ff6b5a", "2 V") + one(96, "#ffd84a", "2.1 V") + one(148, "#5fd47a", "2.2 V") + one(196, "#6f8cff", "3 V") + tx(110, 124, "each colour its own voltage", { s: 16 });
     },
     ledMax: () => `<g transform="rotate(-90 70 60)">${ledV(70, 60)}</g>` + tx(70, 100, "under 20 mA", { s: 17 }) + tick(70, 114) +
       burst(160, 58, 18) + tx(160, 100, "80 mA: pop!", { s: 17, c: RED }) + tx(110, 22, "smallest: (6 − 2) V ÷ 20 mA = 200 Ω", { s: 15 }),
@@ -180,7 +180,7 @@
       tx(82, 52, "1 kΩ: 2 V", { s: 16, c: "#a3360f" }) + tx(146, 78, "2 kΩ: 4 V", { s: 16, c: "#a3360f" }) + tx(110, 124, "the bigger one, the bigger share", { s: 16 }),
     parallelV: () => ln(30, 22, 196, 22, RED, 2.4) + ln(30, 104, 196, 104, BLUE, 2.4) + tx(20, 27, "+", { c: RED, s: 20 }) + tx(20, 109, "−", { c: BLUE, s: 20 }) +
       ln(76, 22, 76, 40) + resV(76, 40, 86, 6) + ln(76, 86, 76, 104) + ln(150, 22, 150, 40) + resV(150, 40, 86, 6) + ln(150, 86, 150, 104) +
-      tx(104, 68, "6 V", { s: 20, c: "#a3360f" }) + tx(178, 68, "6 V", { s: 20, c: "#a3360f" }) + tx(110, 124, "each gets the whole push", { s: 16 }),
+      tx(104, 68, "6 V", { s: 20, c: "#a3360f" }) + tx(178, 68, "6 V", { s: 20, c: "#a3360f" }) + tx(110, 124, "each has the whole 6 V", { s: 16 }),
     parallelI: () => current([[20, 22], [76, 22], [76, 104]], 12) + current([[76, 22], [150, 22], [150, 104]], 22) +
       ln(14, 22, 196, 22, RED, 2.4) + ln(14, 104, 196, 104, BLUE, 2.4) + ln(76, 22, 76, 40) + resV(76, 40, 86, 6) + ln(76, 86, 76, 104) +
       ln(150, 22, 150, 40) + resV(150, 40, 86, 6) + ln(150, 86, 150, 104) + tx(98, 68, "6 mA", { s: 17, c: "#a3360f" }) + tx(174, 68, "3 mA", { s: 17, c: "#a3360f" }) +
@@ -299,7 +299,7 @@
       `<rect x="40" y="88" width="30" height="32" fill="rgba(47, 99, 200, .18)"/><rect x="40" y="14" width="30" height="106" fill="none" stroke="${PEN}" stroke-width="2.2"/>` +
       tx(34, 20, "5 V", { s: 13, a: "end" }) + tx(34, 60, "3 V", { s: 13, a: "end" }) + tx(34, 92, "1.5 V", { s: 13, a: "end" }) + tx(34, 124, "0 V", { s: 13, a: "end" }) +
       tx(96, 40, "HIGH", { s: 17, c: RED }) + tx(96, 77, "?", { s: 19, c: GREY }) + tx(96, 110, "LOW", { s: 17, c: BLUE }) +
-      tx(168, 52, "a pin set to IN", { s: 15 }) + tx(168, 70, "reads the push;", { s: 15 }) + tx(168, 88, "it does not push", { s: 15 }),
+      tx(168, 52, "a pin set to IN", { s: 15 }) + tx(168, 70, "reads the voltage;", { s: 15 }) + tx(168, 88, "it puts none out", { s: 15 }),
     // a button from 5 V into D2, and the pull-down from D2 to GND
     pullDown: () => ln(18, 14, 110, 14, RED, 2.2) + tx(124, 19, "5 V", { s: 14, c: RED }) + ln(60, 14, 60, 28) + circ(60, 28, 2.6, PEN, PEN) + ln(60, 28, 72, 42) +
       circ(60, 46, 2.6, PEN, PEN) + tx(88, 36, "button", { s: 14, a: "start" }) + ln(60, 46, 60, 66) + circ(60, 66, 3.5, PEN, PEN) + ln(60, 66, 140, 66) +

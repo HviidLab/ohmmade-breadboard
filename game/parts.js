@@ -126,7 +126,7 @@
                 out.value = R;
                 if (I < -1e-9 || R < 0) {           // something else pushes current into the probes: the circuit is powered
                   out.display = "Err";
-                  out.note = "Power is on: switch it off to measure ohms.";
+                  out.note = "The circuit is on: switch it off to measure resistance.";
                 } else if (!(R < 40e6) || V > m.ohmV * 0.999) out.display = "OL";
                 if (mode === "cont") out.beep = R < 50;
               }

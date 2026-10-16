@@ -1,4 +1,4 @@
-// Chapter 6: Dividers and the knob. Two resistors in a row make a middle point at part of the push; a potentiometer
+// Chapter 6: Dividers and the knob. Two resistors in a row make a middle point at part of the voltage; a potentiometer
 // is a middle point you can move with a knob; a knob in an LED's loop makes a dimmer, which needs a fixed resistor too.
 // Then a challenge: make exactly 2 V, with resistors or with the knob.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
@@ -8,7 +8,7 @@
   const K = BB.Levels.kit, { start, lit, safe, part, FINISH } = K;
   const { M, net, on, volts, fmtV, RING, METER, allow, REGION, NEXT } = K.meter;
 
-  const vAt = (S, n) => (on(S, n, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);   // a strip's push, against the − rail
+  const vAt = (S, n) => (on(S, n, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);   // a strip's voltage, against the − rail
   const between = (x, lo, hi) => x !== null && x >= lo && x <= hi;
   const POT = (V, pos = 0.5) => ({ id: "pot", type: "pot", legs: V.hs("c12", "c13", "c14"), pos });
 
@@ -17,9 +17,9 @@
       id: "6-1", title: "The middle point", teaches: ["divider"], uses: ["seriesShare", "seriesR", "volts", "across", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["3 V", "6 V", "0 V"], 0, [null, "the middle point is half way down the row: each resistor takes half of the 6 V.", "only the − rail is at 0 V. The middle point is half way: 3 V."]);
-        const P2 = V.predict(["Rise above 3 V", "Drop below 3 V", "Stay at 3 V"], 0, [null, "the meter shows the − side's share, and the bigger resistor takes the bigger share: it rises.",
-          "unequal resistors take unequal shares. The bigger one on the − side takes more, so the middle rises."]), seen = {};
+        const P1 = V.predict(["3 V", "6 V", "0 V"], 0, [null, "the middle point is half way down the row: each resistor has half of the 6 V across it.", "only the − rail is at 0 V. The middle point is half way: 3 V."]);
+        const P2 = V.predict(["Rise above 3 V", "Drop below 3 V", "Stay at 3 V"], 0, [null, "the meter shows the − side's share, and the bigger resistor has the bigger share: it rises.",
+          "unequal resistors have unequal shares. The bigger one, on the − side, has more across it, so the middle rises."]), seen = {};
         const mid = V.n("bb:L6");
         const m1 = (S) => between(vAt(S, mid), 2.8, 3.2);
         const m2 = (S) => !part(S, "r2") && S.parts("resistor").some((q) => q.part.value === 22000) && between(vAt(S, mid), 3.9, 4.3);
@@ -30,7 +30,7 @@
           ui: { strips: true },
           goalsFrom: 3,
           beats: [
-            { id: "p1", say: "Two 10 kΩ resistors in a row, from + to −. What push sits at the middle point between them, against the − rail?",
+            { id: "p1", say: "Two 10 kΩ resistors in a row, from + to −. What voltage is at the middle point, measured against the − rail (0 V)?",
               highlight: { nets: [mid] }, predict: P1, waitFor: { predict: true } },
             { id: "m1", say: "Find out: measure the middle strip against the − rail.", hints: [RING(V.hs("d6", "-T12"))],
               waitFor: { when: (S) => { if (m1(S)) seen.v = vAt(S, mid); return m1(S); } } },
@@ -54,7 +54,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["From 0 V to 6 V", "From 2 V to 4 V", "Only 3 V"], 0, [null, "the wiper slides all the way, from the − end to the + end: 0 V to 6 V.",
-          "turning the knob moves the wiper, and its push follows: anywhere from 0 V to 6 V."]), seen = {};
+          "turning the knob moves the wiper, and its voltage follows: anywhere from 0 V to 6 V."]), seen = {};
         const w = V.n("bb:L13");
         return {
           region: REGION(V),
@@ -65,14 +65,14 @@
           beats: [
             { id: "what", say: "This is a potentiometer, a knob with three legs. The outer legs go to + and −. The middle leg, the wiper, slides along between them.",
               highlight: { part: "pot" }, waitFor: NEXT },
-            { id: "m", say: "Measure the wiper's push against the − rail.", hints: [RING(V.hs("e13", "-T16"), "The wiper is the middle leg. Try the rings.")],
+            { id: "m", say: "Measure the wiper's voltage against the − rail.", hints: [RING(V.hs("e13", "-T16"), "The wiper is the middle leg. Try the rings.")],
               waitFor: { when: (S) => { const v = vAt(S, w); if (v !== null) seen.v = v; return v !== null; } } },
-            { id: "p", say: () => `${fmtV(seen.v || 3)} with the knob in the middle. How far can turning the knob move the wiper's push?`, highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
+            { id: "p", say: () => `${fmtV(seen.v || 3)} with the knob in the middle. How far can turning the knob move the wiper's voltage?`, highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
             { id: "low", say: "Find out: drag the knob up or down until the meter shows less than 1 V.", highlight: { ctl: "knob", id: "pot" },
               hints: [{ say: "Press on the white knob and drag the mouse up or down, keeping the probes on the wiper and the − rail." }], waitFor: { when: (S) => between(vAt(S, w), 0, 0.99) } },
             { id: "high", reply: "p", say: "Now turn it the other way, until the meter shows more than 5 V.", highlight: { ctl: "knob", id: "pot" },
               waitFor: { when: (S) => between(vAt(S, w), 5.01, 6.1) } },
-            FINISH("A potentiometer is a middle point you can move: any push from 0 V to the full 6 V."),
+            FINISH("A potentiometer is a middle point you can move: any voltage from 0 V to the full 6 V."),
           ],
           goals: [{ text: "Turn the wiper above 5 V", when: (S) => between(vAt(S, w), 5.01, 6.1) }],
           challenge: { text: "Set the wiper back to 3 V (±0.1 V) before you finish", when: (S, m, C) => C.beat && C.beat.id === "end" && between(vAt(S, w), 2.9, 3.1) },
@@ -117,11 +117,11 @@
     },
     {
       id: "6-4", title: "Exactly 2 V", teaches: [], uses: ["divider", "potKnob", "seriesShare", "volts", "resistor", "strip", "rail"], shifts: [0],
-      card: { name: "Dividers", text: "Two resistors, or a knob, make a middle point at any part of the push: 6 V × lower ÷ total." },
+      card: { name: "Dividers", text: "Two resistors, or a knob, make a middle point at any part of the battery's voltage: 6 V × lower ÷ total." },
       layouts: [{}],
       make: (V) => {
         // a strip (not a rail) that the meter reads at 2 V against the − rail, and which part of the circuit
-        // the target push, and the resistor pair that makes it (+ side, − side)
+        // the target voltage, and the resistor pair that makes it (+ side, − side)
         const T = V.pick([{ v: 2, up: 22000, lo: 10000 }, { v: 4, up: 10000, lo: 22000 }, { v: 1.5, up: 22000, lo: 6800 }]);
         const k = (r) => `${r / 1000} kΩ`;
         const two = (S) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), T.v - 0.15, T.v + 0.15); };
@@ -141,7 +141,7 @@
                 { say: `Which pair in the tray is close to ${6 - T.v} : ${T.v}? Or wire the knob's ends to + and −, and turn it.` },
                 { say: `${k(T.up)} on the + side, ${k(T.lo)} on the − side: 6 × ${T.lo / 1000} ÷ ${(T.up + T.lo) / 1000} ≈ ${(6 * T.lo / (T.up + T.lo)).toFixed(1)} V.` }],
               waitFor: { when: two, hold: 0.6 } },
-            FINISH("A middle point at any push you like: two resistors for a fixed one, a knob for one you can change."),
+            FINISH("A middle point at any voltage you like: two resistors for a fixed one, a knob for one you can change."),
           ],
           goals: [{ text: `A strip at ${T.v} V`, when: two, hold: 0.6 }],
           challenge: { text: "Do it both ways: resistors and the knob", when: (S, m) => { if (two(S)) { if (byKnob(S)) m.k = true; else m.r = true; } return !!m.k && !!m.r; } },
@@ -156,17 +156,17 @@
   ];
 
   K.chapter(6, "Dividers and the knob", L, {
-    "lede": "Two resistors can split the battery's push into any part you like. A knob does the same, and you can turn it.",
+    "lede": "Two resistors can split the battery's voltage into any part you like. A knob does the same, and you can turn it.",
     "cover": "divider",
     "questions": [
-      "What push sits between two equal resistors?",
-      "How does a knob give any push from 0 to 6 V?",
+      "What voltage sits between two equal resistors?",
+      "How does a knob give any voltage from 0 to 6 V?",
       "Why does a dimmer need a fixed resistor too?"
     ],
     "words": [
       {
         "w": "Voltage divider",
-        "d": "Two resistors in series. The point between them sits at part of the push.",
+        "d": "Two resistors in series. The point between them sits at part of the battery's voltage.",
         "sym": "resistor"
       },
       {

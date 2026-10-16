@@ -282,7 +282,7 @@
         <dl class="kv" id="uno-analog"></dl>`;
       panel.querySelectorAll(".pinbtn").forEach((b) => b.addEventListener("click", () => G.cyclePin(part.id, b.dataset.pin)));
     }
-    $("uno-power").textContent = rd.powered ? `Powered by USB · 5V supplies ${fmtA(rd.I5)}` : "USB fuse tripped: the board is off until it cools.";
+    $("uno-power").textContent = rd.powered ? `Runs on USB · 5V supplies ${fmtA(rd.I5)}` : "USB fuse tripped: the board is off until it cools.";
     for (const b of panel.querySelectorAll(".pinbtn")) {
       const n = b.dataset.pin, pin = rd.pins[n];
       let read = pin.read;
