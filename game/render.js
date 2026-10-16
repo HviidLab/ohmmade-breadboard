@@ -292,6 +292,7 @@
         r.body = el("path", { d: top, fill: dead ? "url(#domeDead)" : L.dome[1] }, dome);
         if (!dead) {
           r.shine = el("path", { d: top, fill: L.glow[0], opacity: 0 }, dome);                  // lights up with the current
+          r.shade = el("path", { d: top, fill: "#0b0608", opacity: 0.4 }, dome);                // a dim LED's lens stays dark; fades as it lights
           el("ellipse", { cx: -5, cy: -4.5, rx: 3.6, ry: 5.6, fill: "#fff", opacity: 0.55, transform: "rotate(35 -5 -4.5)" }, dome);
         } else el("path", { d: "M-6 -6 l4 5 l-3 4 l5 4", stroke: "#111", "stroke-width": 1.4, fill: "none" }, dome);
         r.core = el("circle", { cx: -1, cy: 0, r: 4, fill: "#fff6e0", opacity: 0 }, dome);

@@ -17,6 +17,16 @@
   const on = (S, a, b) => { const p = probes(S); return !!p && ((S.same(p[0], a) && S.same(p[1], b)) || (S.same(p[0], b) && S.same(p[1], a))); };
   // a volts reading (null when the meter is not showing volts)
   const volts = (S) => (mode(S, "V") && M(S).socket === "VO" && !M(S).display && probes(S) ? M(S).value : null);
+  // Why a current measurement does not count yet, once both probes are on the board (null: nothing wrong with the meter)
+  const ampsWhy = (S, led) => {
+    const m = M(S);
+    if (!m || !probes(S)) return null;
+    if (!m.fuseOK) return "The meter's fuse is blown. Click the meter: New fuse.";
+    if (m.mode !== "mA") return "To measure current, turn the dial to mA.";
+    if (m.socket !== "mA") return "The red lead is in the VΩ socket. Move it to mA, so the current can flow through the meter.";
+    if (led && !(led.ok && led.rd.I > 5e-4)) return "No current flows yet: the meter must close the gap, one probe on each side of it.";
+    return null;
+  };
   const ohms = (S) => (mode(S, "ohm") && M(S).socket === "VO" && !M(S).display && probes(S) ? M(S).value : null);
   const amps = (S, q) => !!q && S.readsCurrentOf(q, 0.0005, 0.05);
   const across = (S, id) => S.across(part(S, id)) && volts(S) !== null;
@@ -139,6 +149,7 @@
           rules: { tray: [], allow: allow({ dial: ["V", "mA"], socket: ["VO", "mA"] }), guardMeter: true },
           ui: { strips: true },
           goalsFrom: 2,
+          react: [{ hold: 1.2, when: (S, C) => (C.beat && C.beat.id === "close" && !reads(S) ? ampsWhy(S, part(S, "led1")) : null) }],
           beats: [
             { id: "set", say: "The current must go through the meter. Set it for current, in mA (thousandths of an amp): dial to mA, red lead into the mA socket.",
               hints: [{ say: "Click mA next to the dial. Then click the mA socket at the bottom of the meter.", highlight: { ctl: ["mode:mA", "socket:mA"], id: "meter" } }],
@@ -188,7 +199,7 @@
               highlight: { part: "w3" }, allow: { remove: ["w3"] },
               hints: [{ say: "Drag the wire from the tray back into its two holes. Then take out the marked wire and put the meter there." }, RING(V.hs(...AT.w3))],
               waitFor: { when: rec("w3") } },
-            { id: "same", reply: "p", say: () => `${fmtmA(seen.w3 || 0.012)} after, ${fmtmA(seen.w2 || 0.012)} before: the same! Current isn't used up: the LED turns energy into light, and about 2 V drops across it.`,
+            { id: "same", reply: "p", say: () => `${fmtmA(seen.w3 || 0.012)} after, ${fmtmA(seen.w2 || 0.012)} before: the same! About 2 V drops across the LED, yet no charge is lost: each bit just carries less energy.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "third", say: "One more check: put the wire back, and measure before the resistor, in place of this wire.", highlight: { part: "w1" },
               allow: { remove: ["w1"] }, hints: [RING(V.hs(...AT.w1))], waitFor: { when: rec("w1") } },
@@ -233,6 +244,7 @@
               { note: "a blown meter fuse must be replaced with the same kind. Set the dial and the red lead before the probes touch anything." }),
           ],
           goals: [{ text: "Measure the LED's current", when: reads }],
+          react: [{ hold: 1.2, when: (S, C) => (C.beat && C.beat.id === "right" && !reads(S) ? ampsWhy(S, part(S, "led1")) : null) }],
           challenge: { text: "Then measure the battery's voltage, with the meter set right", when: (S) => mode(S, "V") && M(S).socket === "VO" && on(S, "bb:+T", "bb:-T") && Math.abs(volts(S) || 0) > 5.5 },
           solution: [{ choose: "right" }, { probe: V.hs("+T12", "-T12") }, { wait: 0.6 }, { probe: [null, null] }, { replace: "meter" }, { probe: V.hs(...V.L.at) }, { wait: 1 }, { dial: "V" }, { socket: "VO" }, { probe: V.hs("+T12", "-T12") }, { wait: 0.5 }, { next: 1 }],
         };

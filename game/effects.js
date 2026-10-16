@@ -59,9 +59,12 @@
       const rd = sim.read(part.id);
       if (part.type === "led" && r.glow) {
         const I = rt.destroyed ? 0 : Math.max(rd.I, 0);
-        const B = Math.min(Math.sqrt(I / 0.02), 1.8);
+        // brightness follows the current closely (power 0.75), so 4× the current looks about 3× as bright: a square
+        // root made a 3 mA LED look nearly as bright as a 12 mA one (playtest 2026-10-16, level 2-1)
+        const B = Math.min(Math.pow(I / 0.02, 0.75), 1.8);
         r.glow.setAttribute("opacity", Math.min(B, 1) * 0.95);
-        r.glow.setAttribute("r", 18 + 26 * Math.min(B, 1.8));
+        r.glow.setAttribute("r", 16 + 54 * Math.min(B, 1.8));
+        if (r.shade) r.shade.setAttribute("opacity", (0.4 * Math.max(0, 1 - B / 0.7)).toFixed(2));
         r.glow.setAttribute("fill", I > 0.03 ? "url(#glowHot)" : r.glowFill || "url(#glow)");
         if (r.core) r.core.setAttribute("opacity", I > 0.03 ? Math.min((I - 0.03) / 0.05, 1) : 0);
         if (r.shine) r.shine.setAttribute("opacity", Math.min(B, 1) * 0.75);       // the dome itself lights up
