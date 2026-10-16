@@ -120,7 +120,8 @@
   }
   const out = (kind = "sfx") => bus[kind];
 
-  // ---------- recorded sounds (sounds.js: Sparky's voice, a pop, the short's buzz, the hiss, the star, level complete) ----------
+  // ---------- recorded sounds (sounds.js: Sparky's voice, a part going in and out, the loop closing and opening, a pop,
+  // the short's buzz, the hiss, the star, level complete; an LED lighting stays synthesized) ----------
   // Decoded once, when sound first starts. Until then, or if decoding fails, the synthesized sound plays instead.
   const rec = {};
   let recLoading = false;
@@ -136,8 +137,10 @@
     if (!rec[k]) return null;
     const src = a.createBufferSource(), g = a.createGain(), t = a.currentTime;
     src.buffer = rec[k]; src.loop = !!opt.loop; src.playbackRate.value = opt.rate || 1;
+    const v = opt.gain ?? 1;
+    g.gain.value = v;
     src.connect(g).connect(opt.into || out(opt.bus));
-    if (opt.len) { g.gain.setValueAtTime(1, t + opt.len * 0.6); g.gain.linearRampToValueAtTime(0, t + opt.len); src.start(t, opt.at || 0, opt.len + 0.01); }
+    if (opt.len) { g.gain.setValueAtTime(v, t + opt.len * 0.6); g.gain.linearRampToValueAtTime(0, t + opt.len); src.start(t, opt.at || 0, opt.len + 0.01); }
     else src.start(t);
     return src;
   }
@@ -196,17 +199,23 @@
     o.connect(g).connect(out()); o.start(t); o.stop(t + dur + 0.02);
   }
   // `legs` = how many legs go into holes. Clicks are a few milliseconds apart, as legs never go in at once.
+  // Recorded: one snap per part, pitched by its material (a probe tip higher, a battery lead lower).
+  const matRate = (m) => Math.max(0.8, Math.min(1.35, Math.sqrt(m.tick / 3400)));
   function insert(type, legs = 2) {
     played.in++;
     const a = ctx(); if (!a) return;
-    const m = MAT[type] || MAT.resistor, t0 = a.currentTime + 0.005, n = Math.max(1, Math.min(legs, 4));
+    const m = MAT[type] || MAT.resistor;
+    if (playRec(a, "snap", { rate: vary(matRate(m), 0.04), gain: m.g })) return;
+    const t0 = a.currentTime + 0.005, n = Math.max(1, Math.min(legs, 4));
     for (let k = 0; k < n; k++) click(a, t0 + k * vary(0.026, 0.3), vary(m.tick), 0.16 * m.g, false);
     if (m.knock) tone(a, t0 + (n - 1) * 0.026 + 0.008, vary(m.knock, 0.04), 0.07 * m.g, 0.012 * m.kq);
   }
   function extract(type, legs = 2) {
     played.out++;
     const a = ctx(); if (!a) return;
-    const m = MAT[type] || MAT.resistor, t0 = a.currentTime + 0.005, n = Math.max(1, Math.min(legs, 4));
+    const m = MAT[type] || MAT.resistor;
+    if (playRec(a, "unsnap", { rate: vary(matRate(m), 0.04), gain: m.g })) return;
+    const t0 = a.currentTime + 0.005, n = Math.max(1, Math.min(legs, 4));
     for (let k = 0; k < n; k++) click(a, t0 + k * vary(0.03, 0.3), vary(m.tick * 0.8), 0.1 * m.g, true);
     tone(a, t0 + (n - 1) * 0.03 + 0.03, vary(320), 0.035 * m.g, 0.05, 820);
   }
@@ -286,6 +295,7 @@
   function connect(up) {
     played[up ? "connect" : "disconnect"]++;
     const a = ctx(); if (!a) return;
+    if (playRec(a, up ? "loop_on" : "loop_off")) return;
     const t = a.currentTime + 0.01;
     if (up) { tone(a, t, 392, 0.06, 0.12, 587); tone(a, t + 0.09, 587, 0.05, 0.18, 784); }
     else { tone(a, t, 587, 0.04, 0.14, 392); tone(a, t + 0.1, 392, 0.035, 0.2, 294); }
