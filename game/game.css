@@ -342,6 +342,13 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .mark.probe-ring.red { stroke: #e03b3b; fill: rgba(224, 59, 59, .18); }
 .mark.probe-ring.black { stroke: #15181b; fill: rgba(21, 24, 27, .16); }
 @keyframes mark { 50% { stroke-opacity: .45; fill-opacity: .5; } }
+/* marks wait for Sparky's line; while he only explains or asks they are calm "look here" outlines, without the pulse */
+#L-coach { transition: opacity .3s ease-out; }
+#L-coach.waiting { opacity: 0; }
+.spot.spot-wait { outline-color: transparent !important; }
+#L-coach.look .mark:not(.probe-ring) { animation: none; stroke-dasharray: none; stroke-width: 2.5; stroke-opacity: .85; fill: rgba(255, 61, 200, .05); filter: drop-shadow(0 0 1.5px rgba(40, 0, 30, .9)); }
+#L-coach.look .mark.probe-ring { animation: none; }
+.spot.look { animation: none; outline-width: 2px !important; }
 
 /* ===== full-screen screens: level map, notebook; modal cards: level complete, pause ===== */
 .screen { position: fixed; inset: 0; z-index: 30; overflow-y: auto; padding: 36px clamp(16px, 5vw, 72px);
@@ -471,6 +478,10 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
 .pt-ok { align-self: center; color: var(--muted); font: 13px var(--font-data); }
 .pt-switch { display: flex; gap: 8px; align-items: baseline; font-size: 14px; color: var(--muted); cursor: pointer; }
 .lm-all { color: var(--amber); }
+.snd-sliders { display: grid; gap: 12px; margin: 16px 0 10px; }
+.snd-row { display: grid; grid-template-columns: 9.5em 1fr 3.2em; align-items: center; gap: 12px; font: 600 15px var(--font-display); }
+.snd-row input { width: 100%; accent-color: var(--amber); }
+.snd-row output { font: 13px var(--font-data); color: var(--muted); text-align: right; }
 .nb-bar { background: var(--paper); box-shadow: 0 0 0 100vmax var(--paper); clip-path: inset(0 -34px -1px -48px); border-bottom: 2px solid var(--pen); top: -66px; margin-top: -30px; padding-top: 30px; }
 .nb-bar .nb-head { flex: 1; }
 .nb-bar .lm-chips > span { color: #5d5a50; }

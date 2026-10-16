@@ -101,11 +101,31 @@
   }
 
   // ---------- sound ----------
+  // Every sound goes through a channel: Sparky's voice or the effects, both through the master volume.
+  // Volumes are 0..1 as set on the sliders (saved in settings.vol); the gain is the square, which sounds even.
+  const VOL = { master: 0.8, voice: 0.6, sfx: 0.8 };
+  let bus = null;
   function ctx() {
     if (muted) return null;
-    if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (!audio) {
+      try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+      const m = audio.createGain(); m.connect(audio.destination);
+      bus = { master: m, voice: audio.createGain(), sfx: audio.createGain() };
+      bus.voice.connect(m); bus.sfx.connect(m);
+      for (const k of Object.keys(VOL)) bus[k].gain.value = VOL[k] * VOL[k];
+    }
     if (audio.state === "suspended") audio.resume().catch(() => {});
     return audio;
+  }
+  const out = (kind = "sfx") => bus[kind];
+  // A sample to hear a new volume: Sparky saying a few syllables, or a chime.
+  function sample(kind) {
+    if (kind === "voice") [..."hiimsparky"].forEach((c, k) => setTimeout(() => voice(c, { excited: k > 7 }), k * 55));
+    else chime(2);
+  }
+  function setVolume(kind, v) {
+    VOL[kind] = Math.max(0, Math.min(1, +v || 0));
+    if (bus) bus[kind].gain.setTargetAtTime(VOL[kind] * VOL[kind], audio.currentTime, 0.02);
   }
   // ---------- putting parts into the breadboard, and pulling them out ----------
   // Each leg makes a small click as it goes into a hole's spring clip; then the body knocks with its own material.
@@ -142,7 +162,7 @@
     bp.frequency.setValueAtTime(up ? f * 0.55 : f, t);
     if (up) bp.frequency.exponentialRampToValueAtTime(f * 1.35, t + dur);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    n.connect(bp).connect(g).connect(a.destination); n.start(t, Math.random() * 0.15, dur + 0.01);
+    n.connect(bp).connect(g).connect(out()); n.start(t, Math.random() * 0.15, dur + 0.01);
   }
   // A short tone: the body's knock (or the little pop when a part comes free).
   function tone(a, t, f, gain, dur, to) {
@@ -150,7 +170,7 @@
     o.type = "sine"; o.frequency.setValueAtTime(f, t);
     if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+    o.connect(g).connect(out()); o.start(t); o.stop(t + dur + 0.02);
   }
   // `legs` = how many legs go into holes. Clicks are a few milliseconds apart, as legs never go in at once.
   function insert(type, legs = 2) {
@@ -174,14 +194,14 @@
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
     const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
     src.buffer = buf; f.type = "lowpass"; f.frequency.value = 1800; g.gain.value = 0.5;
-    src.connect(f).connect(g).connect(a.destination); src.start();
+    src.connect(f).connect(g).connect(out()); src.start();
   }
   function beep(on) {
     if (on && !beepNode) {
       const a = ctx(); if (!a) return;
       const o = a.createOscillator(), g = a.createGain();
       o.type = "square"; o.frequency.value = 2700; g.gain.value = 0.03;
-      o.connect(g).connect(a.destination); o.start();
+      o.connect(g).connect(out()); o.start();
       beepNode = { o, g };
     } else if (!on && beepNode) { beepNode.o.stop(); beepNode = null; }
   }
@@ -193,7 +213,7 @@
       const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + k * 0.11;
       o.type = "triangle"; o.frequency.value = f;
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.015); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-      o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.55);
+      o.connect(g).connect(out()); o.start(t); o.stop(t + 0.55);
     });
   }
   // Sparky's voice: one short pitched syllable. The pitch comes from the letter (so a word always sounds the same),
@@ -210,7 +230,7 @@
     o.frequency.setValueAtTime(f0 * 1.08, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.03);
     f.type = "bandpass"; f.frequency.value = FORMANT[c] || 1300; f.Q.value = 1.8;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(mods.excited ? 0.2 : 0.15, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(f).connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+    o.connect(f).connect(g).connect(out("voice")); o.start(t); o.stop(t + dur + 0.02);
   }
   // ---------- the circuit's own sounds: lights coming on, the loop closing and opening, shorts, overheating ----------
   const LED_KEY = { red: 523.25, yellow: 587.33, green: 659.25, blue: 783.99, white: 880 };    // each colour its own key
@@ -239,7 +259,7 @@
   }
   // Continuous sounds (a short circuit's buzz, a hot part's hiss): built once, faded in and out.
   function bed(a, kind) {
-    const g = a.createGain(); g.gain.value = 0; g.connect(a.destination);
+    const g = a.createGain(); g.gain.value = 0; g.connect(out());
     if (kind === "hum") {
       const o = a.createOscillator(), lp = a.createBiquadFilter(), trem = a.createOscillator(), td = a.createGain(), body = a.createGain();
       o.type = "sawtooth"; o.frequency.value = 100; lp.type = "lowpass"; lp.frequency.value = 900;
@@ -291,5 +311,5 @@
   function setMuted(m) { muted = m; if (m) beep(false); }
   function unlock() { ctx(); }
 
-  BB.Effects = { reset, hush, hazard, MAT, insert, extract, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});

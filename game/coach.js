@@ -74,7 +74,8 @@
       if (this.done) { this.h.highlight(null); this.h.beat(null); return; }
       const b = this.beat;
       this.h.say(this.text(b), this.offer(b));
-      this.h.highlight(b.highlight || null);
+      // a step where the player only reads or answers gets calm "look" marks; they show once the line is said
+      this.h.highlight(b.highlight || null, { look: !!(b.waitFor.next || b.waitFor.predict), after: true });
       this.h.beat(b);
     }
     // What the mentor bar offers under the line.

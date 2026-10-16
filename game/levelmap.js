@@ -34,7 +34,7 @@
   let open = null;
   // Everything behind an open screen is inert: no focus, no clicks, not read out.
   function behind(on, host) { BB.inertAround(host, on); }
-  const LABEL = { levelmap: "Level map", complete: "Level complete", pause: "Paused", notebook: "My Notebook" };
+  const LABEL = { levelmap: "Level map", complete: "Level complete", pause: "Paused", notebook: "My Notebook", sound: "Sound" };
   function show(id, html, focus) {
     hideAll();
     const host = $(id);
@@ -209,8 +209,7 @@
       <button type="button" class="btn" id="pz-restart">Restart level</button>
       <button type="button" class="btn" id="pz-map">Level map</button>
       <button type="button" class="btn" id="pz-notebook">Notebook</button>
-      <button type="button" class="btn" id="pz-sound" aria-pressed="${sound}">Sound: ${sound ? "on" : "off"}</button>
-      <button type="button" class="btn" id="pz-voice" aria-pressed="${BB.CoachUI.voiceOn}">Sparky's voice: ${BB.CoachUI.voiceOn ? "on" : "off"}</button>
+      <button type="button" class="btn" id="pz-sound">Sound and volume${sound ? "" : " (off)"}</button>
       <button type="button" class="btn" id="pz-keys">Keys</button>
       <button type="button" class="btn" id="pz-playtest">Playtest data</button>
       <button type="button" class="btn" id="pz-title">Title screen</button></div></div>`, "#pz-resume");
@@ -218,11 +217,37 @@
     on(host, "#pz-restart", () => play(G.level));
     on(host, "#pz-map", showMap);
     on(host, "#pz-notebook", () => notebook("pause"));
-    on(host, "#pz-sound", () => { G.setSound(BB.Effects.muted); pause(); });
-    on(host, "#pz-voice", () => { BB.CoachUI.setVoice(!BB.CoachUI.voiceOn); pause(); });
+    on(host, "#pz-sound", () => soundPanel("pause"));
     on(host, "#pz-playtest", () => playtest("pause"));
     on(host, "#pz-keys", keys);
     on(host, "#pz-title", () => { hideAll(); BB.Title.show(); });
+  }
+
+  // Sound and volume: sound on or off, Sparky's voice on or off, and three volumes (all, Sparky's voice, the effects).
+  // A slider plays a sample when let go, so the player hears the new level. The settings stay on this computer.
+  function soundPanel(from) {
+    const v = BB.Effects.volume, on_ = !BB.Effects.muted, voice = BB.CoachUI.voiceOn;
+    const slider = (k, label) => `<label class="snd-row"><span>${label}</span><input type="range" min="0" max="100" step="5" id="vol-${k}" value="${Math.round(v[k] * 100)}"
+      aria-label="${label}"><output id="vol-${k}-v">${Math.round(v[k] * 100)}%</output></label>`;
+    const host = show("pause", `<div class="cc-card pause-card snd-card" role="dialog" aria-labelledby="snd-h"><h1 id="snd-h">Sound and volume</h1>
+      <div class="pz-list"><button type="button" class="btn" id="snd-on" aria-pressed="${on_}">Sound: ${on_ ? "on" : "off"}</button>
+      <button type="button" class="btn" id="snd-voice" aria-pressed="${voice}">Sparky's voice: ${voice ? "on" : "off"}</button></div>
+      <div class="snd-sliders">${slider("master", "Volume")}${slider("voice", "Sparky's voice")}${slider("sfx", "Sound effects")}</div>
+      <p class="scr-sub">Your computer's own volume works too. These only change the game.</p>
+      <div class="scr-row"><button type="button" class="btn primary" id="snd-back">Back</button></div></div>`, "#snd-on");
+    const back = () => (from === "pause" ? pause() : (hideAll(), BB.Title.show()));
+    on(host, "#snd-back", back);
+    on(host, "#snd-on", () => { G.setSound(BB.Effects.muted); soundPanel(from); host.querySelector("#snd-on").focus(); });
+    on(host, "#snd-voice", () => { BB.CoachUI.setVoice(!BB.CoachUI.voiceOn); soundPanel(from); host.querySelector("#snd-voice").focus(); });
+    for (const k of ["master", "voice", "sfx"]) {
+      const inp = host.querySelector(`#vol-${k}`);
+      inp.addEventListener("input", () => {
+        BB.Effects.setVolume(k, inp.value / 100);
+        host.querySelector(`#vol-${k}-v`).textContent = `${inp.value}%`;
+        BB.Store.update((s) => { s.settings.vol = BB.Effects.volume; });
+      });
+      inp.addEventListener("change", () => BB.Effects.sample(k === "voice" ? "voice" : "sfx"));
+    }
   }
 
   // Playing with the keyboard.
@@ -306,7 +331,7 @@
     return BB.Levels.all().map((l) => {
       const t = tl[l.id] || {};
       const live = !!now && now.id === l.id;
-      return { id: l.id, title: l.title, attempts: t.attempts || 0, last: t.last || null, open: live ? now : t.unfinished || null, live };
+      return { id: l.id, title: l.title, attempts: t.attempts || 0, reloads: t.reloads || 0, last: t.last || null, open: live ? now : t.unfinished || null, live };
     }).filter((r) => r.attempts);
   }
   const slowest = (beats) => (beats && beats.length ? beats.reduce((a, b) => (b.t > a.t ? b : a)) : null);
@@ -316,14 +341,14 @@
     if (!rows.length) return '<p class="scr-sub">No levels played yet.</p>';
     return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
       const s = slowest(r.last && r.last.beats);
-      return `<tr><td>${r.id}</td><td>${r.attempts}</td><td>${r.last ? `${r.last.t} s` : "—"}</td><td>${r.last ? r.last.hints : "—"}</td>
+      return `<tr><td>${r.id}</td><td>${r.attempts}${r.reloads ? ` (page reloaded ${r.reloads}×)` : ""}</td><td>${r.last ? `${r.last.t} s` : "—"}</td><td>${r.last ? r.last.hints : "—"}</td>
         <td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
     }).join("")}</table>`;
   }
   function playtestText() {
     const lines = [`Ohmmade Breadboard playtest data, ${new Date().toISOString().slice(0, 10)}`];
     for (const r of playtestRows()) {
-      lines.push(`${r.id} ${r.title}: ${r.attempts} attempt${r.attempts > 1 ? "s" : ""}`);
+      lines.push(`${r.id} ${r.title}: ${r.attempts} attempt${r.attempts > 1 ? "s" : ""}${r.reloads ? `, page reloaded ${r.reloads} time${r.reloads > 1 ? "s" : ""}` : ""}`);
       if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}`);
       if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}`);
     }
@@ -364,11 +389,11 @@
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !open) return;
     const host = $(open), zoomed = host.querySelector(".nb-zoom:not([hidden])");
-    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back") : host.querySelector("#nb-back, #pt-back, #op-map, #lm-title");
+    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back, #snd-back") : host.querySelector("#nb-back, #pt-back, #op-map, #lm-title");
     if (open !== "pause" && !back) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (back) back.click(); else close();
   }, true);
 
-  BB.LevelMap = { play, opener, finale, init, showMap, newCards, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
+  BB.LevelMap = { play, opener, finale, init, showMap, newCards, soundPanel, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
 })(window.BB = window.BB || {});

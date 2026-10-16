@@ -130,6 +130,7 @@
     typing.queue.forEach((q) => { q.el.textContent = q.text; });
     typing = null;
     talking(false);
+    revealMarks();
   }
   function speak(queue) {
     stopSpeaking();
@@ -142,7 +143,7 @@
     talking(true);
     const tick = () => {
       const q = queue[qi];
-      if (!q) { typing = null; talking(false); return; }
+      if (!q) { typing = null; talking(false); revealMarks(); return; }
       ci++;
       q.el.innerHTML = `${esc(q.text.slice(0, ci))}<span class="ut">${esc(q.text.slice(ci))}</span>`;
       const ch = q.text[ci - 1];
@@ -201,12 +202,26 @@
     for (const t of [].concat(marks || [])) (t.probes || []).forEach((h, k) => { if (h) out[k] = h; });
     return out;
   }
-  function highlight(targets) {
+  // Marks wait until Sparky has said his line (or it is skipped), so they never run ahead of his words. While he only
+  // explains or asks (opts.look) they are calm outlines; they pulse only when it is the player's turn to act.
+  let markWait = false;
+  function highlight(targets, opts = {}) {
     marks = targets;
     R.marks((targets && [].concat(targets).filter((t) => !t.ui)) || null);
     const ui = targets && [].concat(targets).find((t) => t.ui);
     spot(ui ? document.querySelector(ui.ui) : null);
+    markWait = !!opts.after && !!typing;
+    const layer = $("L-coach");
+    layer.classList.toggle("look", !!opts.look);
+    layer.classList.toggle("waiting", markWait);
+    if (spotEl) { spotEl.classList.toggle("look", !!opts.look); spotEl.classList.toggle("spot-wait", markWait); }
     relayout();
+  }
+  function revealMarks() {
+    if (!markWait) return;
+    markWait = false;
+    $("L-coach").classList.remove("waiting");
+    if (spotEl) spotEl.classList.remove("spot-wait");
   }
 
   // ---------- Sparky points at what he is talking about ----------
@@ -321,7 +336,7 @@
     if (moved) walk(box);
   }
   function spot(node) {
-    if (spotEl) spotEl.classList.remove("spot");
+    if (spotEl) spotEl.classList.remove("spot", "look", "spot-wait");
     spotEl = node;
     if (node) node.classList.add("spot");
   }

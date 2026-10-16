@@ -60,6 +60,7 @@
     const st = BB.Store.get(), old = BB.Store.backup(), b = [];
     if (old && s.done === 0) b.push(`<button type="button" class="btn" id="ts-undo">Bring back my old progress (${tally(BB.LevelMap.summary(old.levels))})</button>`);
     else if (s.done || (st.notebook || []).length || has(st.telemetry)) b.push('<button type="button" class="btn" id="ts-over">Start over…</button>');
+    b.push('<button type="button" class="btn" id="ts-sound">Sound and volume</button>');
     b.push('<button type="button" class="btn" id="ts-playtest">Playtest data</button>');
     return `<div class="ts-saves" id="ts-saves">${b.join("")}</div>`;
   }
@@ -68,6 +69,7 @@
     if (!box) return;
     const undo = $("ts-undo"), over = $("ts-over");
     $("ts-playtest").addEventListener("click", () => { hide(); BB.LevelMap.playtest("title"); });
+    $("ts-sound").addEventListener("click", () => { hide(); BB.LevelMap.soundPanel("title"); });
     if (undo) undo.addEventListener("click", () => { BB.Store.restore(); show(); BB.HUD.toast("Your old progress is back.", 4000); });
     if (over) over.addEventListener("click", () => {
       const pt = has(BB.Store.get().telemetry);

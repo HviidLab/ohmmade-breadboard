@@ -339,6 +339,10 @@
   }
 
   function boot() {
+    // A page reload restarts the level on the screen: note it in the playtest data (a playtester once saw a level
+    // start over, and we could not tell why).
+    const nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0], lm = /^#level-(\d+-\d+)/.exec(location.hash);
+    if (nav && nav.type === "reload" && lm) St.update((s) => { const t = s.telemetry[lm[1]] = s.telemetry[lm[1]] || { attempts: 0 }; t.reloads = (t.reloads || 0) + 1; });
     R.init($("canvas"));
     BB.Effects.init();
     G.doc = new BB.Doc(savedBench());
@@ -358,6 +362,7 @@
       if (theirs && theirs !== G.doc.serialize()) { G.load(savedBench()); H.toast("The bench was changed in another tab. This tab shows it now.", 6000); }
     });
     if (St.get().settings.sound === false) G.setSound(false);
+    for (const [k, v] of Object.entries(St.get().settings.vol || {})) BB.Effects.setVolume(k, v);
 
     $("undo").addEventListener("click", G.undo);
     $("redo").addEventListener("click", G.redo);
