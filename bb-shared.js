@@ -67,7 +67,7 @@ const BBShared = (() => {
     { id: "E3", title: "E3 · LED and resistor", rows: [8, 13], steps: [
       s("Put the pack's wires in the rails. Keep the pack off.", [BAT(8)]),
       s("Put the 330 Ω resistor between the + rail and a10.", [R("r1", 330, "+T10", "a10")]),
-      s("Put the LED's long leg (anode) in c10 and the short leg in c11.", [LED("led", "c10", "c11")]),
+      s("Put the LED's longer leg (anode) in c10 and the shorter leg in c11.", [LED("led", "c10", "c11")]),
       s("Put a jumper from a11 to the − rail. Turn on the pack: the LED is on.", [J("j1", "a11", "-T11")]),
       s("Measure across the LED: red probe in row 10, black probe in row 11.", [], [], V("b10", "b11", "≈ 2.0 V (1.8–2.1 V)")),
       s("Measure across the resistor: red probe on the + rail, black probe in row 10.", [], [], V("+T12", "b10", "≈ 4.0 V")),
