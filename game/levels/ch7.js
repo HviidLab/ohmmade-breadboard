@@ -51,10 +51,12 @@
         const P1 = V.predict(["The two on one column, across the gap", "The two on the same side of the gap", "None of them"], 0, [null,
           "the two legs on one side sit in different columns. Only pressing joins those.", "inside, each pair of legs across the gap is one piece of metal: always joined."]);
         const P2 = V.predict(["Yes", "No"], 0, [null, "pressing joins the two columns, so the legs on one side are joined too while it is down."]);
-        const beepOn = (S, a, b) => mode(S, "cont") && !!M(S).beep && !!M(S).red && !!M(S).com && ((net(M(S).red) === a && net(M(S).com) === b) || (net(M(S).red) === b && net(M(S).com) === a));
-        const row = V.n("bb:L10"), rowR = V.n("bb:R10"), side = V.n("bb:L12");
-        const across = (S) => !down(S, "b1") && beepOn(S, row, rowR);
-        const pressed = (S) => down(S, "b1") && beepOn(S, row, side);
+        const beepOn = (S, a, b) => mode(S, "cont") && !!M(S).beep && !!M(S).red && !!M(S).com
+          && ((S.same(net(M(S).red), a) && S.same(net(M(S).com), b)) || (S.same(net(M(S).red), b) && S.same(net(M(S).com), a)));
+        // the button's legs sit in four strips: L10 and R10 are one joined pair, L12 and R12 the other
+        const L10 = V.n("bb:L10"), R10 = V.n("bb:R10"), L12 = V.n("bb:L12"), R12 = V.n("bb:R12");
+        const across = (S) => !down(S, "b1") && (beepOn(S, L10, R10) || beepOn(S, L12, R12));        // either always-joined pair
+        const pressed = (S) => down(S, "b1") && (beepOn(S, L10, L12) || beepOn(S, R10, R12));      // two legs on the same side, either side
         return {
           region: REGION(V),
           start: start(BUTTON(V, "b1", 10), METER("cont")),

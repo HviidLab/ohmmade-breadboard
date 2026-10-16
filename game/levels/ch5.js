@@ -13,7 +13,7 @@
   const near = (x, lo, hi) => x !== null && x >= lo && x <= hi;
   const acrossQ = (S, q) => !!q && S.across(q) && volts(S) !== null;
   const resWith = (S, r) => S.parts("resistor").filter((q) => q.part.value === r && q.ok);
-  const railToRail = (q) => q.nets.includes("bb:+T") && q.nets.includes("bb:-T");
+  const railToRail = (S, q) => S.joins(q, "bb:+T", "bb:-T");      // from the + rail to the − rail (or strips wired to them)
 
   const L = [
     {
@@ -126,7 +126,7 @@
       make: (V) => {
         const P1 = V.predict(["9 mA", "3 mA", "6 mA"], 0, [null, "adding a branch gives the current a second path, so the battery sends more, not less.", "the first branch still draws its 6 mA, and the new one adds its own 3 mA."]);
         const P2 = V.predict(["15 mA", "9 mA", "7 mA"], 0, [null, "every new branch adds its own current: 9 + 6 = 15 mA.", "branches add, they don't average: 6 + 3 + 6 = 15 mA."]), seen = {};
-        const nBranches = (S) => S.parts("resistor").filter((q) => q.ok && railToRail(q)).length;
+        const nBranches = (S) => S.parts("resistor").filter((q) => q.ok && railToRail(S, q)).length;
         const nine = (S) => nBranches(S) === 2 && near(reads(S), 0.0086, 0.0094);
         const fifteen = (S) => nBranches(S) === 3 && near(reads(S), 0.0143, 0.0157);
         return {
@@ -160,7 +160,7 @@
         const P = V.predict(["Both", "Only the red one", "Only the blue one"], 1, ["side by side they have the same voltage across them: about 2 V, too little for blue, which needs 3 V.", null,
           "blue needs more voltage, about 3 V. Red lights at 2 V and holds the voltage there."]);
         const blue = (S) => S.parts("led").find((q) => q.part.color === "blue") || null;
-        const shared = (S) => { const b = blue(S); return !!b && b.nets.includes(V.n("bb:L6")) && b.nets.includes(V.n("bb:L7")); };
+        const shared = (S) => S.joins(blue(S), V.n("bb:L6"), V.n("bb:L7"));       // beside the red LED, in the same two strips
         const both = (S) => S.parts("led").filter((q) => lit(q, 0.005) && q.rd.I <= 0.02).length === 2;
         return {
           region: REGION(V),
@@ -192,7 +192,11 @@
       layouts: [{}],
       make: (V) => {
         const W = V.pick([{ lo: 8, hi: 11, aim: 10, r: 220 }, { lo: 4, hi: 7, aim: 5, r: 390 }, { lo: 12, hi: 16, aim: 14, r: 150 }]);     // the current window, and an answer
-        const two = (S) => { const ls = S.parts("led").filter((q) => q.ok && q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000); return ls.length === 2 && S.parts("resistor").filter((q) => q.ok).length === 1; };
+        // two LEDs in the window, in a row (each carries the battery's whole current), and one resistor carrying it
+        const two = (S) => {
+          const ls = S.parts("led").filter((q) => q.ok && q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000), b = S.battery(), ib = Math.abs((b && b.rd.I) || 0);
+          return ls.length === 2 && ls.every((q) => Math.abs(q.rd.I - ib) <= 0.03 * ib) && S.parts("resistor").filter((q) => q.ok && Math.abs(q.rd.I || 0) > 1e-5).length === 1;
+        };
         return {
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), METER("mA", "mA")),
@@ -212,6 +216,7 @@
           react: [{ when: (S) => {
             const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 0.002);
             if (ls.length !== 2 || two(S)) return null;
+            if (ls.every((q) => q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000)) return "Both lit, but side by side. Here they go in a row: the current goes through one, then the other.";
             return `Both lit, but at ${fmtI(ls[0].rd.I)}. You need ${W.lo} to ${W.hi} mA: the meter can check it.`;
           } }],
           challenge: { text: "Use only one wire", when: (S) => two(S) && S.parts("wire").length <= 1 },

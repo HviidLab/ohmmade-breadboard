@@ -271,7 +271,7 @@
         const side = (S) => {
           const l = part(S, "led1"), r = S.parts("resistor").find((q) => q.ok);
           if (!l || !r || !lit(l)) return null;
-          return r.nets.includes("bb:+T") && r.nets.includes(l.nets[0]) ? "+" : r.nets.includes("bb:-T") && r.nets.includes(l.nets[1]) ? "-" : null;
+          return S.joins(r, "bb:+T", l.nets[0]) ? "+" : S.joins(r, l.nets[1], "bb:-T") ? "-" : null;     // strips wired together count as one
         };
         const Lt = V.L, P = V.predict(["glow brighter", "stay the same", "burn out"], 2,
           ["brighter for a moment, yes. But nothing holds the current down, so it climbs until the LED burns out.", "the resistor is what holds the current down. Without it, far more flows.", null]);
@@ -371,11 +371,19 @@
       card: { name: "Two circuits, one battery", text: "Each LED gets its own resistor. Both share the same rails, so one battery lights them all." },
       layouts: [{}], colors: ["red", "yellow", "green", "blue"], colors2: ["green", "red", "yellow", "blue"], values: [330, 470],
       make: (V) => {
-        // each lit LED has its own path from + to −, with one resistor in it: joined to each rail directly, by a wire or by the resistor
-        const link = (S, net, rail) => (net === rail ? "direct" : wires(S).some((q) => q.nets.includes(net) && q.nets.includes(rail)) ? "wire"
-          : S.parts("resistor").some((q) => q.ok && q.nets.includes(net) && q.nets.includes(rail)) ? "res" : null);
-        const own = (S, q) => { const a = link(S, q.nets[0], "bb:+T"), k = link(S, q.nets[1], "bb:-T"); return !!a && !!k && (a === "res") !== (k === "res"); };
-        const sep = (S) => { const ls = S.parts("led").filter(safe); return ls.length >= 2 && ls.every((q) => own(S, q)); };
+        // Judged by what the circuit does, not where the parts sit, so any good layout counts: two LEDs lit safely, and
+        // each has a resistor of its own: one that carries that LED's current but not the whole battery's. (In a row,
+        // the resistor carries the battery's whole current; a shared resistor carries both LEDs' current.)
+        const sep = (S) => {
+          const ls = S.parts("led").filter(safe), bat = S.battery(), total = Math.abs((bat && bat.rd.I) || 0);
+          if (ls.length < 2) return false;
+          const rs = S.parts("resistor").filter((q) => q.ok).map((q) => Math.abs(q.rd.I || 0)), used = new Set();
+          return ls.every((q) => {
+            const i = Math.abs(q.rd.I), k = rs.findIndex((r, j) => !used.has(j) && Math.abs(r - i) <= 0.05 * i + 1e-4 && Math.abs(r - total) > 0.2 * total);
+            if (k >= 0) used.add(k);
+            return k >= 0;
+          });
+        };
         return {
         region: { rows: [1, 40], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
@@ -390,7 +398,13 @@
           FINISH("Two lights, one battery. That is Chapter 1 done!"),
         ],
         goals: [{ text: "Light both LEDs safely, each in its own loop", when: sep, hold: 0.6 }],
-        react: [{ when: (S) => (S.parts("led").filter((q) => lit(q)).length >= 2 && !sep(S) ? "You built them in a row: one loop. That works too (more in chapter 5), but here each LED needs its own path from + to −." : null) }],
+        react: [{ when: (S) => {
+          // both LEDs carry current (with a shared resistor, the one that needs less voltage takes nearly all of it)
+          const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 2e-4), bat = S.battery(), total = Math.abs((bat && bat.rd.I) || 0);
+          if (ls.length < 2 || !ls.some((q) => lit(q)) || sep(S) || ls.some((q) => q.rd.I > 0.02)) return null;
+          if (ls.every((q) => Math.abs(Math.abs(q.rd.I) - total) <= 0.05 * total)) return "You built them in a row: one loop. That works too (more in chapter 5), but here each LED needs its own path from + to −.";
+          return "They share one resistor. Give each LED a resistor of its own.";
+        } }],
         challenge: { text: "Use at most one wire", when: (S) => sep(S) && wires(S).length <= 1 },
         solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T8", "a8"] }, { place: { type: "led", color: V.c1 }, at: ["c8", "c9"] },
           { place: { type: "led", color: V.c2 }, at: ["c16", "-T16"] }, { place: { type: "resistor", value: V.ohms }, at: ["+T16", "a16"] }, { wire: ["e9", "-T9"] },

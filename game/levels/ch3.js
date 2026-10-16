@@ -14,9 +14,15 @@
   const LOOP_METER = (V) => METER("mA", "mA", V.hs("b6", "-T9"));
   const RES = (V, r) => V.RES("res1", "+T6", "a6", r);
   const PLACE = (V, r) => ({ place: { type: "resistor", value: r }, at: V.hs("+T6", "a6") });
-  // the one resistor on the board has this value, and the meter reads its current
-  const reading = (S) => { const rs = S.parts("resistor"); return rs.length === 1 && S.readsCurrentOf(rs[0], 0.0002, 0.05) ? Math.abs(M(S).value) : null; };
-  const only = (S, r) => { const rs = S.parts("resistor"); return rs.length === 1 && rs[0].part.value === r && reading(S) !== null; };
+  // the meter, set for mA, sits in the loop: it carries the battery's whole current (however many resistors make the loop)
+  const reading = (S) => {
+    const m = M(S), b = S.battery();
+    if (!m || m.mode !== "mA" || m.socket !== "mA" || !m.fuseOK || m.display || !m.red || !m.com || !b) return null;
+    const i = Math.abs(m.value), ib = Math.abs(b.rd.I || 0);
+    return i >= 0.0002 && i <= 0.05 && Math.abs(i - ib) <= 0.03 * ib + 2e-6 ? i : null;
+  };
+  // the swap steps: just this one resistor carries the current (one left lying unjoined on the board does not count)
+  const only = (S, r) => { const rs = S.parts("resistor").filter((q) => q.ok && Math.abs(q.rd.I || 0) > 1e-5); return rs.length === 1 && rs[0].part.value === r && reading(S) !== null; };
   const between = (S, lo, hi) => { const i = reading(S); return i !== null && i >= lo && i <= hi; };
   const cells = (S) => (S.battery() ? S.battery().part.cells || 4 : 0);
   const SWAP_HINT = { say: "Click the resistor and press Remove. Then drag the new one into the same two holes." };
@@ -150,10 +156,10 @@
       make: (V) => {
         const P = V.predict(["The 1 kΩ", "The 33 Ω", "Neither"], 1, ["the big one lets little current through. The small one lets far more through, and more current means more heat.", null,
           "every resistor warms up. The 33 Ω lets so much through that it gets very hot."]);
-        const across = (q) => q.nets.includes("bb:+T") && q.nets.includes("bb:-T");
-        const hot = (S) => S.parts("resistor").some((q) => q.part.value === 33 && across(q) && (q.rt.level || 0) >= 1);
+        const across = (S, q) => S.joins(q, "bb:+T", "bb:-T");      // straight across the rails (or strips wired to them)
+        const hot = (S) => S.parts("resistor").some((q) => q.part.value === 33 && across(S, q) && (q.rt.level || 0) >= 1);
         const gone = (S) => !S.parts("resistor").some((q) => q.part.value === 33 && q.ok);
-        const cool = (S) => S.parts("resistor").some((q) => q.part.value === 1000 && across(q) && q.ok) && gone(S);
+        const cool = (S) => S.parts("resistor").some((q) => q.part.value === 1000 && across(S, q) && q.ok) && gone(S);
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4")),

@@ -13,8 +13,8 @@
   const M = (S) => S.meter;
   const mode = (S, m) => !!M(S) && M(S).mode === m;
   const probes = (S) => (M(S) && M(S).red && M(S).com ? [net(M(S).red), net(M(S).com)] : null);
-  // the probes sit on these two nets, in either order
-  const on = (S, a, b) => { const p = probes(S); return !!p && ((p[0] === a && p[1] === b) || (p[0] === b && p[1] === a)); };
+  // the probes sit on these two nodes (either way round; any hole of a strip, or of a strip wired to it, counts)
+  const on = (S, a, b) => { const p = probes(S); return !!p && ((S.same(p[0], a) && S.same(p[1], b)) || (S.same(p[0], b) && S.same(p[1], a))); };
   // a volts reading (null when the meter is not showing volts)
   const volts = (S) => (mode(S, "V") && M(S).socket === "VO" && !M(S).display && probes(S) ? M(S).value : null);
   const ohms = (S) => (mode(S, "ohm") && M(S).socket === "VO" && !M(S).display && probes(S) ? M(S).value : null);

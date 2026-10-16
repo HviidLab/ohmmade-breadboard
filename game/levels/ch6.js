@@ -42,7 +42,7 @@
             Object.assign(FINISH("6 V × 22 ÷ (10 + 22) ≈ 4.1 V: the − side's share. Two resistors like this are called a voltage divider."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the middle point with 22 kΩ on the − side", when: m2 }],
-          challenge: { text: "Then swap sides: 22 kΩ on the + side, the middle point below 2 V", when: (S) => S.parts("resistor").some((q) => q.part.value === 22000 && q.nets.includes("bb:+T")) && between(vAt(S, mid), 1.6, 1.99) },
+          challenge: { text: "Then swap sides: 22 kΩ on the + side, the middle point below 2 V", when: (S) => S.parts("resistor").some((q) => q.part.value === 22000 && q.nets.some((n) => S.same(n, "bb:+T"))) && between(vAt(S, mid), 1.6, 1.99) },
           solution: [{ choose: "right" }, { probe: V.hs("d6", "-T12") }, { wait: 0.5 }, { choose: "right" }, { remove: "r2" }, { place: { type: "resistor", value: 22000 }, at: V.hs("c6", "c10") },
             { probe: V.hs("d6", "-T12") }, { wait: 0.6 }, { remove: "r1" }, { remove: "resistor" }, { place: { type: "resistor", value: 22000 }, at: V.hs("+T6", "a6") },
             { place: { type: "resistor", value: 10000 }, at: V.hs("c6", "c10") }, { wait: 0.6 }, { next: 1 }],
@@ -125,7 +125,7 @@
         const T = V.pick([{ v: 2, up: 22000, lo: 10000 }, { v: 4, up: 10000, lo: 22000 }, { v: 1.5, up: 22000, lo: 6800 }]);
         const k = (r) => `${r / 1000} kΩ`;
         const two = (S) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), T.v - 0.15, T.v + 0.15); };
-        const byKnob = (S) => two(S) && S.parts("pot").some((q) => q.nets[1] === net(M(S).red));
+        const byKnob = (S) => two(S) && S.parts("pot").some((q) => S.same(q.nets[1], net(M(S).red)));      // the probe on the wiper's node
         return {
           title: `Exactly ${T.v} V`,
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
