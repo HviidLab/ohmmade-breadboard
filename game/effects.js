@@ -103,18 +103,18 @@
   // ---------- sound ----------
   // Every sound goes through a channel: Sparky's voice or the effects, both through the master volume.
   // Volumes are 0..1 as set on the sliders (saved in settings.vol); the gain is the square, which sounds even.
-  const VOL = { master: 0.8, voice: 0.6, sfx: 0.8 };
+  const VOL = { master: 0.8, voice: 0.6, sfx: 0.8, music: 0.5 };
   let bus = null;
   function ctx() {
     if (muted) return null;
     if (!audio) {
       try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
       const m = audio.createGain(); m.connect(audio.destination);
-      bus = { master: m, voice: audio.createGain(), sfx: audio.createGain() };
-      bus.voice.connect(m); bus.sfx.connect(m);
+      bus = { master: m, voice: audio.createGain(), sfx: audio.createGain(), music: audio.createGain() };
+      bus.voice.connect(m); bus.sfx.connect(m); bus.music.connect(m);
       for (const k of Object.keys(VOL)) bus[k].gain.value = VOL[k] * VOL[k];
-      loadRecorded(audio);
     }
+    loadRecorded(audio);                // sounds.js loads in the background: start once it is there
     if (audio.state === "suspended") audio.resume().catch(() => {});
     return audio;
   }
@@ -144,8 +144,27 @@
     else src.start(t);
     return src;
   }
+  // The chapter screens' tune: on repeat while a chapter's opener is open, faded in and out.
+  let tune = null, tuneWant = false;
+  function music(on) {
+    tuneWant = !!on;
+    const a = on ? ctx() : audio;
+    if (!a) return;
+    if (on && !tune) {
+      if (!rec.music) { setTimeout(() => { if (tuneWant && !tune) music(true); }, 400); return; }     // still decoding
+      const g = a.createGain(); g.gain.value = 0; g.connect(out("music"));
+      const src = playRec(a, "music", { loop: true, into: g });
+      g.gain.setTargetAtTime(1, a.currentTime, 0.5);
+      tune = { src, g };
+    } else if (!on && tune) {
+      const t = tune; tune = null;
+      t.g.gain.setTargetAtTime(0, a.currentTime, 0.25);
+      setTimeout(() => { try { t.src.stop(); } catch (e) { /* stopped */ } }, 1500);
+    }
+  }
   // A sample to hear a new volume: Sparky saying a few syllables, or a chime.
   function sample(kind) {
+    if (kind === "music") { music(true); setTimeout(() => music(false), 4000); return; }
     if (kind === "voice") [..."hiimsparky"].forEach((c, k) => setTimeout(() => voice(c, { excited: k > 7 }), k * 55));
     else chime(2);
   }
@@ -357,8 +376,8 @@
   }
   const hazard = { hum: false, sizzle: false, heat: 0 };
 
-  function setMuted(m) { muted = m; if (m) beep(false); }
+  function setMuted(m) { muted = m; if (m) { beep(false); music(false); } }
   function unlock() { ctx(); }
 
-  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, get recorded() { return Object.keys(rec).sort(); }, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, music, get playing() { return !!tune; }, get recorded() { return Object.keys(rec).sort(); }, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});

@@ -69,7 +69,7 @@
               { note: "a new pack of 4 AA cells reads about 6.3 V, a used one less. Rechargeable cells give only about 4.8 V." }),
           ],
           goals: [{ text: "Make the bottom LED as bright as the top one", when: bright, hold: 0.6 }],
-          challenge: { text: "Do it by moving just two wire ends", final: (C) => (C.count.move || 0) <= 2 && !C.count.place },
+          challenge: { text: "Make the dim LED bright by moving just two wire ends", final: (C) => (C.count.move || 0) <= 2 && !C.count.place },
           solution: [{ choose: "right" }, { dial: "V" }, { probe: V.hs("+T10", "-T10") }, { probe: V.hs("+B10", "-B10") }, { wait: 0.6 },
             { move: "wa", to: V.hs("+T14", "j5") }, { move: "wb", to: V.hs("f9", "-T14") }, { wait: 1 }, { next: 1 }],
         };
@@ -278,7 +278,7 @@
             const i = Math.abs(M(S).value);
             return i < 0.0099 ? `Lit, but only ${fmtmA(i)}: you can go brighter and still stay under 15 mA.` : i > 0.0151 ? `${fmtmA(i)}: over 15 mA. Hold it back a little more.` : null;
           } }],
-          challenge: { text: "Pick it on the first try", final: (C) => (C.count.place || 0) <= 3,
+          challenge: { text: "Pick the right resistor on the first try", final: (C) => (C.count.place || 0) <= 3,
               when: (S) => { rec(220)(S); return false; } },
           solution: [{ choose: "right" }, { remove: "res1" }, RES(470), { wait: 0.6 }, { remove: "resistor" }, RES(1000), { wait: 0.6 }, { next: 1 },
             { remove: "resistor" }, RES(330), { wait: 1 }, { next: 1 }],

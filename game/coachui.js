@@ -174,7 +174,7 @@
     const rp = offer.reply ? offer.reply.text : null;
     const sameReply = rp === shownReply && p.childElementCount > 0;
     const same = (k) => shownParts[k] === parts[k] && (k > 0 || (p.childElementCount > 0 && sameReply));
-    p.innerHTML = (rp ? `<span class="reply ${offer.reply.ok ? "ok" : "no"}"></span>` : "") + parts.map((t, k) => (k === 0 ? '<span class="ml"></span>' : '<span class="hint-line"></span>')).join("")
+    p.innerHTML = (rp ? `<span class="reply ${offer.reply.ok ? "ok" : "no"}"></span>` : "") + parts.map((t, k) => (k === 0 ? '<span class="ml"></span>' : `<span class="${t.startsWith("★") ? "star-line" : "hint-line"}"></span>`)).join("")
       + (offer.note ? '<span class="bench-note"></span>' : "");
     const spans = [...p.children], off = rp ? 1 : 0;
     if (!same(0)) { p.classList.remove("pop"); void p.offsetWidth; p.classList.add("pop"); }

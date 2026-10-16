@@ -292,6 +292,7 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .ob-bonus li.lost { opacity: .6; text-decoration: line-through; }
 .hint-line { display: block; margin-top: 8px; padding: 6px 12px; border-radius: 14px; background: #fde6bd; color: #4a3108; font-size: 16px; }
 .hint-line::before { content: "Hint · "; font-weight: 600; }
+.star-line { display: block; margin-top: 8px; font-size: 15px; font-weight: 600; color: #8a5a00; }
 .aside { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #e8e1d1; color: #3a3a32; font-size: 15px; }
 .aside.bad { background: #f8d4c8; color: #6b1d0c; }
 .aside.good { background: #d3f0d9; color: #14522a; }
@@ -478,6 +479,7 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
 .pt-ok { align-self: center; color: var(--muted); font: 13px var(--font-data); }
 .pt-switch { display: flex; gap: 8px; align-items: baseline; font-size: 14px; color: var(--muted); cursor: pointer; }
 .lm-all { color: var(--amber); }
+.cc-more { margin: -4px 0 0; color: var(--amber); font: 600 14px var(--font-display); }
 .snd-sliders { display: grid; gap: 12px; margin: 16px 0 10px; }
 .snd-row { display: grid; grid-template-columns: 9.5em 1fr 3.2em; align-items: center; gap: 12px; font: 600 15px var(--font-display); }
 .snd-row input { width: 100%; accent-color: var(--amber); }

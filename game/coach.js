@@ -56,7 +56,26 @@
     get done() { return this.i >= this.lv.beats.length; }
     // Goals count from the last beat on (the beats before it teach; the last one is the puzzle or the wrap-up).
     get goalsOn() { return this.i >= (this.lv.goalsFrom ?? this.lv.beats.length - 1); }
-    text(b) { return typeof b.say === "function" ? b.say(this) : b.say; }
+    text(b) {
+      const t = typeof b.say === "function" ? b.say(this) : b.say, star = this.starNote(b);
+      return star ? `${t}\n${star}` : t;
+    }
+    // Sparky tells the player about stars still to win. On the first step: a challenge that has to be planned from the
+    // start (it is judged at the end: a first try, no hints, few wires). On the last step: the challenge, if it can
+    // still be done now or was missed, and a lost clean build.
+    starNote(b) {
+      const ch = this.lv.challenge, beats = this.lv.beats, low = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+      if (ch && ch.final && b === beats[0] && beats.length > 1) return `★ For a third star, plan ahead: ${low(ch.text)}.`;
+      if (b !== beats[beats.length - 1] || this.finished) return "";
+      const out = [];
+      if (ch && !this.challenge) {
+        let will = false;
+        if (ch.final) { try { will = !!ch.final(this, this.chMem); } catch (e) { will = false; } }
+        if (!will) out.push(ch.final ? `★ Play again for one more star: ${low(ch.text)}.` : `★ One more star: ${low(ch.text)}. Try it now, or finish the level.`);
+      }
+      if (!this.clean) out.push("★ Play again without breaking anything for the clean-build star.");
+      return out.join(" ");
+    }
     right(id) { const b = this.lv.beats.find((x) => x.id === id); return !!b && this.pred[id] === b.predict.answer; }
     // Sparky's answer to prediction `id`: {ok, text}, or null if it was not asked.
     reply(id) {
@@ -98,7 +117,10 @@
       if (ch && ch.when && !this.challenge && !this.finished) {
         let ok = false;
         try { ok = !!ch.when(S, this.chMem, this); } catch (e) { ok = false; }
-        if (ok) { this.challenge = true; this.h.challenge(); }
+        if (ok) {
+          this.challenge = true; this.h.challenge();
+          if (this.beat === this.lv.beats[this.lv.beats.length - 1]) this.h.say(this.text(this.beat), this.offer(this.beat));    // the star note goes
+        }
       }
       (this.lv.react || []).forEach((r, k) => {
         if (this.finished) return;

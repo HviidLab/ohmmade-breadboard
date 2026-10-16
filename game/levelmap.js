@@ -50,6 +50,7 @@
   }
   function hideAll() {
     for (const id of ["levelmap", "complete", "pause", "notebook"]) $(id).hidden = true;
+    BB.Effects.music(false);                    // the chapter screens' tune stops when its screen goes
     open = null;
     behind(false);
   }
@@ -80,6 +81,7 @@
       <div class="scr-row">${open_ ? `<button type="button" class="btn primary" id="op-go">Start ${first.id} · ${esc(first.title)} →</button>` : ""}<button type="button" class="btn" id="op-map">Level map</button></div></div>`,
       open_ ? "#op-go" : "#op-map");
     on(host, "#op-go", () => play(first, true));
+    BB.Effects.music(true);
     on(host, "#op-map", () => showMap(n));
   }
 
@@ -144,6 +146,7 @@
       <p class="cc-stars" aria-label="${res.stars} of 3 stars">${[0, 1, 2].map((k) => `<span class="${k < res.stars ? "on" : ""}" style="animation-delay:${0.15 + k * 0.18}s">★</span>`).join("")}</p>
       <ul class="cc-bonus"><li class="got">★ Level done</li><li class="${res.clean ? "got" : ""}">${res.clean ? "★" : "☆"} ${esc(BB.Coach.cleanText(lv))}</li>
         ${lv.challenge ? `<li class="${res.challenge ? "got" : ""}">${res.challenge ? "★" : "☆"} ${esc(lv.challenge.text)}</li>` : ""}</ul>
+      ${res.stars < 3 ? '<p class="cc-more">Play again to win the missing ★.</p>' : ""}
       ${concept ? `<div class="cc-learned"><p class="cc-lh">What you learned</p>${lv.teaches.length ? `<span class="nb-art">${BB.NotebookArt.diagram(lv.teaches[0])}</span>` : ""}
         <h2>${esc(concept.name)}</h2><p>${esc(concept.text)}</p>${lv.teaches.length ? '<p class="cc-nb">Added to your Notebook</p><span class="cc-stamp">New!</span>' : ""}</div>` : ""}
       ${lastOfChapter ? chapterEnd(lv.chapter, next) : ""}
@@ -232,21 +235,21 @@
     const host = show("pause", `<div class="cc-card pause-card snd-card" role="dialog" aria-labelledby="snd-h"><h1 id="snd-h">Sound and volume</h1>
       <div class="pz-list"><button type="button" class="btn" id="snd-on" aria-pressed="${on_}">Sound: ${on_ ? "on" : "off"}</button>
       <button type="button" class="btn" id="snd-voice" aria-pressed="${voice}">Sparky's voice: ${voice ? "on" : "off"}</button></div>
-      <div class="snd-sliders">${slider("master", "Volume")}${slider("voice", "Sparky's voice")}${slider("sfx", "Sound effects")}</div>
+      <div class="snd-sliders">${slider("master", "Volume")}${slider("voice", "Sparky's voice")}${slider("sfx", "Sound effects")}${slider("music", "Music")}</div>
       <p class="scr-sub">Your computer's own volume works too. These only change the game.</p>
       <div class="scr-row"><button type="button" class="btn primary" id="snd-back">Back</button></div></div>`, "#snd-on");
     const back = () => (from === "pause" ? pause() : (hideAll(), BB.Title.show()));
     on(host, "#snd-back", back);
     on(host, "#snd-on", () => { G.setSound(BB.Effects.muted); soundPanel(from); host.querySelector("#snd-on").focus(); });
     on(host, "#snd-voice", () => { BB.CoachUI.setVoice(!BB.CoachUI.voiceOn); soundPanel(from); host.querySelector("#snd-voice").focus(); });
-    for (const k of ["master", "voice", "sfx"]) {
+    for (const k of ["master", "voice", "sfx", "music"]) {
       const inp = host.querySelector(`#vol-${k}`);
       inp.addEventListener("input", () => {
         BB.Effects.setVolume(k, inp.value / 100);
         host.querySelector(`#vol-${k}-v`).textContent = `${inp.value}%`;
         BB.Store.update((s) => { s.settings.vol = BB.Effects.volume; });
       });
-      inp.addEventListener("change", () => BB.Effects.sample(k === "voice" ? "voice" : "sfx"));
+      inp.addEventListener("change", () => BB.Effects.sample(k === "voice" || k === "music" ? k : "sfx"));
     }
   }
 
