@@ -8,10 +8,14 @@
   function init(game) {
     G = game;
     $("to-title").addEventListener("click", show);
+    // a browser lets a page play sound only after a click or a key: then the title's tune can start
+    const wake = () => { BB.Effects.unlock(); window.removeEventListener("pointerdown", wake, true); window.removeEventListener("keydown", wake, true); };
+    window.addEventListener("pointerdown", wake, true); window.addEventListener("keydown", wake, true);
   }
 
   function show() {
     BB.LevelMap.hideAll();
+    BB.Effects.music(true);
     const s = BB.LevelMap.summary(), next = BB.LevelMap.nextLevel(), fresh = s.done === 0;
     const hasBench = !!G.hasSavedSandbox();
     const host = $("title-screen");
@@ -88,6 +92,7 @@
 
   function hide() {
     $("title-screen").hidden = true; G.paused = false;
+    BB.Effects.music(false);
     if (!BB.LevelMap.isOpen()) BB.inertAround(null, false);
   }
 

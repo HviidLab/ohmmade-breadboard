@@ -144,11 +144,14 @@
     else src.start(t);
     return src;
   }
-  // The chapter screens' tune: on repeat while a chapter's opener is open, faded in and out.
-  let tune = null, tuneWant = false;
+  // The tune of the title screen and the chapter screens: on repeat while one is open, faded in and out. A stop waits
+  // a moment, so going from one of these screens to another keeps the tune going instead of starting it again.
+  let tune = null, tuneWant = false, tuneStop = 0;
   function music(on) {
     tuneWant = !!on;
-    const a = on ? ctx() : audio;
+    clearTimeout(tuneStop);
+    if (!on) { tuneStop = setTimeout(stopTune, 80); return; }
+    const a = ctx();
     if (!a) return;
     if (on && !tune) {
       if (!rec.music) { setTimeout(() => { if (tuneWant && !tune) music(true); }, 400); return; }     // still decoding
@@ -156,15 +159,17 @@
       const src = playRec(a, "music", { loop: true, into: g });
       g.gain.setTargetAtTime(1, a.currentTime, 0.5);
       tune = { src, g };
-    } else if (!on && tune) {
-      const t = tune; tune = null;
-      t.g.gain.setTargetAtTime(0, a.currentTime, 0.25);
-      setTimeout(() => { try { t.src.stop(); } catch (e) { /* stopped */ } }, 1500);
     }
+  }
+  function stopTune() {
+    if (!tune || tuneWant) return;
+    const t = tune; tune = null;
+    t.g.gain.setTargetAtTime(0, audio.currentTime, 0.25);
+    setTimeout(() => { try { t.src.stop(); } catch (e) { /* stopped */ } }, 1500);
   }
   // A sample to hear a new volume: Sparky saying a few syllables, or a chime.
   function sample(kind) {
-    if (kind === "music") { music(true); setTimeout(() => music(false), 4000); return; }
+    if (kind === "music") { if (!tuneWant) { music(true); setTimeout(() => music(false), 4000); } return; }
     if (kind === "voice") [..."hiimsparky"].forEach((c, k) => setTimeout(() => voice(c, { excited: k > 7 }), k * 55));
     else chime(2);
   }
@@ -376,7 +381,7 @@
   }
   const hazard = { hum: false, sizzle: false, heat: 0 };
 
-  function setMuted(m) { muted = m; if (m) { beep(false); music(false); } }
+  function setMuted(m) { muted = m; if (m) { beep(false); tuneWant = false; stopTune(); } }
   function unlock() { ctx(); }
 
   BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, music, get playing() { return !!tune; }, get recorded() { return Object.keys(rec).sort(); }, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
