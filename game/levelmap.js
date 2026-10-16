@@ -16,8 +16,11 @@
   function init(game) { G = game; }
 
   const progress = () => BB.Store.get().levels || {};
-  // A level is open when it is the first one or the one before it is done.
-  function unlocked(lv, prog = progress()) {
+  // The playtest switch (Playtest data → Open all levels): every level is playable; progress is not changed.
+  const openAll = () => !!BB.Store.get().settings.openAll;
+  // A level is open when it is the first one or the one before it is done (or the playtest switch is on).
+  function unlocked(lv, prog = progress(), all_ = openAll()) {
+    if (all_) return true;
     const all = BB.Levels.all(), k = all.indexOf(lv);
     return k <= 0 || !!(prog[all[k - 1].id] || {}).done;
   }
@@ -82,15 +85,15 @@
 
   function showMap() {
     BB.Title.hide();
-    const prog = progress(), s = summary(prog), next = nextLevel(prog);
+    const prog = progress(), s = summary(prog), next = nextLevel(prog), all_ = openAll();
     const ch = BB.Levels.chapters.map((c) => `<section class="lm-chapter"><h2><span>Chapter ${c.n}</span>${esc(c.title)}${c.intro ? `<button type="button" class="lm-about" data-ch="${c.n}">About this chapter</button>` : ""}</h2>
       <ol class="lm-path">${c.levels.map((lv) => {
-        const p = prog[lv.id] || {}, open_ = unlocked(lv, prog), cur = next === lv;
+        const p = prog[lv.id] || {}, open_ = unlocked(lv, prog, all_), cur = next === lv;
         return `<li><button type="button" class="lm-node${p.done ? " done" : ""}${cur ? " current" : ""}" data-id="${lv.id}" ${open_ ? "" : "disabled"}>
           <span class="lm-n">${lv.id}</span><span class="lm-t">${esc(lv.title)}</span><span class="lm-s" aria-label="${p.stars || 0} of 3 stars">${open_ ? stars(p.stars || 0) : "locked"}</span></button></li>`;
       }).join("")}</ol></section>`).join("");
     const host = show("levelmap", `<div class="scr-inner">
-      <div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</p></div>
+      <div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★${all_ ? ' · <span class="lm-all">All levels open (playtest switch)</span>' : ""}</p></div>
       ${ch}
       ${(() => { const later = COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)); return later.length ? `<section class="lm-coming"><h2>Coming next</h2><ul>${later.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>` : ""; })()}
       <div class="scr-row">${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}<button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-playtest">Playtest data</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
@@ -301,6 +304,7 @@
       <p class="scr-sub">How long each step took and how many hints you used. It stays on this computer: nothing is sent anywhere. To share it, copy it.</p></div>
       ${playtestTable()}
       <textarea class="pt-text" readonly rows="8" aria-label="Playtest data as text">${esc(playtestText())}</textarea>
+      <label class="pt-switch"><input type="checkbox" id="pt-open"${openAll() ? " checked" : ""}> Open all levels, to try any level without finishing the ones before it. Your progress is not changed.</label>
       <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><button type="button" class="btn" id="pt-back">Back</button>
       <button type="button" class="btn" id="pt-reset">Reset</button><span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
     on(host, "#pt-copy", async () => {
@@ -308,7 +312,11 @@
       try { await navigator.clipboard.writeText(ta.value); say("Copied. Paste it into your message."); }
       catch (e) { ta.focus(); ta.select(); say(document.execCommand && document.execCommand("copy") ? "Copied. Paste it into your message." : "Select the text above and copy it."); }
     });
-    on(host, "#pt-back", () => (from === "pause" ? pause() : showMap()));
+    on(host, "#pt-back", () => (from === "pause" ? pause() : from === "title" ? (hideAll(), BB.Title.show()) : showMap()));
+    host.querySelector("#pt-open").addEventListener("change", (e) => {
+      BB.Store.update((s) => { if (e.target.checked) s.settings.openAll = true; else delete s.settings.openAll; });
+      host.querySelector("#pt-ok").textContent = e.target.checked ? "All levels are open." : "Levels open one by one again.";
+    });
     // Reset asks once more before it erases (only the playtest data: progress, stars and the Notebook stay).
     on(host, "#pt-reset", (e) => {
       const b = e.currentTarget;

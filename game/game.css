@@ -193,6 +193,12 @@ select { background: var(--panel); color: var(--ink); border: 1px solid var(--li
 .ts-foot a { color: var(--muted); }
 .ts-foot a:hover { color: var(--amber); }
 .ts-narrow { display: none; margin: 0; font-size: 16px; }
+.ts-saves { margin-top: -2px; }
+.ts-link { background: none; border: 0; padding: 4px 2px; color: var(--muted); font: 13px var(--font-data); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.ts-link:hover, .ts-link:focus-visible { color: var(--amber); }
+.ts-confirm { display: grid; gap: 10px; padding: 12px 16px; border: 1px solid var(--warn); border-radius: 16px; background: rgba(14, 27, 48, .92); font-size: 14px; line-height: 1.5; color: #cbd8e6; }
+.ts-confirm p { margin: 0; }
+.ts-confirm b { color: var(--ink); }
 /* ===== level mode: the bench fills the screen; cards and bars float over it ===== */
 body.mode-level .app { grid-template: "stage" 1fr / minmax(0, 1fr); }
 body.mode-level .bar, body.mode-level .drawer, body.mode-level .hud { display: none; }
@@ -442,6 +448,8 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
 .pt-table td, .pt-table th, .telemetry .pt-table td, .telemetry .pt-table th { padding: 4px 14px 4px 0; text-align: left; border-bottom: 1px solid var(--line); }
 .pt-text { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #0b1729; color: inherit; font: 12.5px/1.5 var(--font-data); resize: vertical; }
 .pt-ok { align-self: center; color: var(--muted); font: 13px var(--font-data); }
+.pt-switch { display: flex; gap: 8px; align-items: baseline; font-size: 14px; color: var(--muted); cursor: pointer; }
+.lm-all { color: var(--amber); }
 .narrow-note { display: none; }
 @media (max-width: 899px) {
   .app { grid-template: "note" 1fr / minmax(0, 1fr); }

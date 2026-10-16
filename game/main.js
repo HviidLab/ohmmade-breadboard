@@ -96,6 +96,10 @@
       G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0;
       St.update((s) => { s.telemetry[G.level.id] = { attempts: 1, seed: G.level.seed }; });
     },
+    // After Start over: the level behind the title screen leaves no playtest data behind.
+    forgetAttempt() {
+      if (G.coach) { G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0; }
+    },
     // An attempt left without finishing (Restart, the map, another level, closing the page) is kept: that is where a player got stuck.
     keepUnfinished() {
       const a = G.attempt();

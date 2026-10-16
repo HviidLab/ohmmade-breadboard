@@ -26,6 +26,7 @@
           <button type="button" class="ts-alt" id="ts-map"><span class="ts-k">Level map</span><span class="ts-s">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</span></button>
           <button type="button" class="ts-alt" id="ts-sandbox"><span class="ts-k">Sandbox</span><span class="ts-s">${hasBench ? "Your bench, as you left it" : "Every part, no goals"}</span></button>
         </div>
+        ${saves(s)}
       </div>
       <p class="ts-narrow">The game needs a desktop screen (at least 900 px wide).</p>
       <ol class="ts-how">
@@ -41,8 +42,42 @@
     $("ts-go").addEventListener("click", () => { hide(); if (next) BB.LevelMap.play(next); else BB.LevelMap.finale(); });
     $("ts-map").addEventListener("click", () => { hide(); BB.LevelMap.showMap(); });
     $("ts-sandbox").addEventListener("click", () => { hide(); G.enterSandbox(); });
+    wireSaves(s);
     $("ts-go").focus();
     try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignore */ }
+  }
+
+  // Start over, and its undo. Undo stays offered until a level is finished in the new run.
+  const has = (o) => !!o && Object.keys(o).length > 0;
+  const tally = (s) => `${s.done} level${s.done === 1 ? "" : "s"} and ${s.stars} ★`;
+  function saves(s) {
+    const st = BB.Store.get(), old = BB.Store.backup();
+    if (old && s.done === 0) {
+      const o = BB.LevelMap.summary(old.levels);
+      return `<div class="ts-saves" id="ts-saves"><button type="button" class="ts-link" id="ts-undo">Bring back my old progress (${tally(o)})</button></div>`;
+    }
+    if (s.done || (st.notebook || []).length || has(st.telemetry))
+      return '<div class="ts-saves" id="ts-saves"><button type="button" class="ts-link" id="ts-over">Start over…</button></div>';
+    return "";
+  }
+  function wireSaves(s) {
+    const box = $("ts-saves");
+    if (!box) return;
+    const undo = $("ts-undo"), over = $("ts-over");
+    if (undo) undo.addEventListener("click", () => { BB.Store.restore(); show(); BB.HUD.toast("Your old progress is back.", 4000); });
+    if (over) over.addEventListener("click", () => {
+      const pt = has(BB.Store.get().telemetry);
+      box.innerHTML = `<div class="ts-confirm" role="group" aria-labelledby="ts-cf-h"><p id="ts-cf-h"><b>Start over from level 1-1?</b>
+        This erases your ${tally(s)}, the Notebook${pt ? " and the playtest data" : ""}. Sound, voice and your sandbox bench are kept.
+        Changed your mind later? You can bring it all back until you finish a level.</p>
+        <div class="scr-row"><button type="button" class="btn danger" id="ts-erase">Erase and start over</button>
+        ${pt ? '<button type="button" class="btn" id="ts-copy">Copy the playtest data first</button>' : ""}
+        <button type="button" class="btn" id="ts-keep">Cancel</button></div></div>`;
+      $("ts-erase").addEventListener("click", () => { BB.Store.startOver(); G.forgetAttempt(); show(); BB.HUD.toast("A fresh start. Have fun!", 4000); });
+      if (pt) $("ts-copy").addEventListener("click", () => { hide(); BB.LevelMap.playtest("title"); });
+      $("ts-keep").addEventListener("click", show);
+      $("ts-keep").focus();
+    });
   }
 
   function hide() {

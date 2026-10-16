@@ -1,10 +1,13 @@
 // Saved progress (localStorage "bbgame.v2"). No DOM.
-// {levels: {"1-1": {done, stars, clean, challenge}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook], settings: {sound}, sandbox, telemetry}
+// {levels: {"1-1": {done, stars, clean, challenge}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook],
+//  introSeen: [chapter numbers], variants, settings: {sound, voice, certName, openAll}, sandbox, telemetry}
 // The first time, the sandbox from the old "bbgame.v1" save is carried over.
+// Start over keeps the old save in "bbgame.v2.backup" until the next start over, so it can be brought back.
 (function (BB) {
   "use strict";
-  const KEY = "bbgame.v2", OLD = "bbgame.v1";
+  const KEY = "bbgame.v2", OLD = "bbgame.v1", BACKUP = "bbgame.v2.backup";
   let mem = null, failed = false;      // mem: the save in memory; failed: the last write to storage did not work
+  let memBackup;                       // the backup, when storage can't hold it (undefined: look in storage)
 
   const fresh = () => ({ v: 2, levels: {}, notebook: [], settings: {}, sandbox: null, telemetry: {} });
   function fromV1(old) {
@@ -45,5 +48,34 @@
   }
   function update(fn) { const s = get(); fn(s); put(s); return s; }
 
-  BB.Store = { get, put, update, KEY };
+  // Start over: the levels, stars, Notebook, chapter openers, certificate name and playtest data go. Sound, voice,
+  // the playtest switch and the sandbox bench stay. The old save becomes the backup.
+  function startOver() {
+    const old = get();
+    memBackup = copy(old);
+    try { localStorage.setItem(BACKUP, JSON.stringify(old)); memBackup = undefined; } catch (e) { /* kept in memory */ }
+    const s = fresh();
+    s.settings = Object.assign({}, old.settings); delete s.settings.certName;
+    s.sandbox = old.sandbox;
+    put(s);
+    return s;
+  }
+  function backup() {
+    if (memBackup !== undefined) return memBackup && copy(memBackup);
+    try { const raw = localStorage.getItem(BACKUP); return raw ? clean(JSON.parse(raw)) : null; } catch (e) { return null; }
+  }
+  // Undo a start over: the old progress comes back; today's settings and sandbox bench stay as they are now.
+  function restore() {
+    const b = backup(), now = get();
+    if (!b) return false;
+    b.settings = Object.assign({}, now.settings, { certName: b.settings.certName });
+    if (b.settings.certName === undefined) delete b.settings.certName;
+    b.sandbox = now.sandbox;
+    put(b);
+    memBackup = null;
+    try { localStorage.removeItem(BACKUP); } catch (e) { /* ignore */ }
+    return true;
+  }
+
+  BB.Store = { get, put, update, startOver, backup, restore, KEY, BACKUP };
 })(window.BB = window.BB || {});
