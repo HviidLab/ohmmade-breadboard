@@ -6,7 +6,7 @@
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, part, FINISH } = K;
-  const { M, mode, ohms, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { M, mode, ohms, shownmA, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
   const fmtK = (r) => (r >= 1000 ? `${+(r / 1000).toFixed(1)} kΩ` : `${r} Ω`);
@@ -43,12 +43,12 @@
           ui: { strips: true },
           goalsFrom: 3,
           beats: [
-            { id: "p", say: "No LED this time: a 1 kΩ resistor and the meter, counting 6 mA. With 2 kΩ, twice the resistance, what will it read?",
+            { id: "p", say: "No LED this time: a 1 kΩ resistor and the meter, counting about 6 mA. With 2 kΩ, twice the resistance, what will it read?",
               highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
             { id: "swap", say: "Find out: swap in the 2 kΩ resistor from the tray.", hints: [SWAP_HINT], waitFor: { when: rec(2000) } },
-            { id: "name", reply: "p", say: () => `${fmtI(seen[2000] || 0.003)}. Twice the resistance, half the current. Halve it once more?`, waitFor: NEXT },
+            { id: "name", reply: "p", say: () => `${shownmA(seen[2000] ?? 0.003)}. Twice the resistance, half the current. Halve it once more?`, waitFor: NEXT },
             { id: "use", say: "Make about 1.5 mA flow, with one resistor from the tray.",
-              hints: [{ say: "2 kΩ gave 3 mA. Half of that needs twice 2 kΩ: about 4 kΩ." }, { say: "3.9 kΩ is the nearest size in the tray." }],
+              hints: [{ say: "2 kΩ gave about 3 mA. Half of that needs twice 2 kΩ: about 4 kΩ." }, { say: "3.9 kΩ is the nearest size in the tray." }],
               waitFor: { when: goal, hold: 0.6 } },
             FINISH("Double the resistance and the current halves. They go opposite ways, in step."),
           ],
@@ -73,12 +73,12 @@
           ui: { strips: true },
           goalsFrom: 3,
           beats: [
-            { id: "p1", say: "This pack holds only two cells: 3 V. With 1 kΩ the meter shows 3 mA. With four cells, twice the voltage, what will it show?",
+            { id: "p1", say: "This pack holds only two cells: 3 V. With 1 kΩ the meter shows about 3 mA. With four cells, twice the voltage, what will it show?",
               highlight: { part: "bat" }, predict: P1, waitFor: { predict: true } },
             { id: "add", say: "Find out: click the empty slots in the battery pack to put in two more cells.", highlight: { part: "bat" },
               hints: [{ say: "The two dashed slots with a + in them. One click puts both cells in." }],
               waitFor: { when: (S) => { if (six(S)) seen.six = reading(S); return six(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtI(seen.six || 0.006)}. Twice the voltage, twice the current. Keep 6 V, use 2 kΩ: what will it read?`,
+            { id: "p2", reply: "p1", say: () => `${shownmA(seen.six ?? 0.006)}. Twice the voltage, twice the current. Keep 6 V, use 2 kΩ: what will it read?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
             { id: "swap", say: "Find out: swap in the 2 kΩ resistor.", hints: [SWAP_HINT], waitFor: { when: goal } },
             Object.assign(FINISH("More voltage, more current. More resistance, less current. The next level puts both in one rule."), { reply: "p2" }),
@@ -103,10 +103,10 @@
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
-            { id: "rule", say: "The rule: current = voltage ÷ resistance. Volts ÷ kΩ gives mA: 6 V ÷ 1 kΩ = 6 mA, just what the meter shows.", highlight: { lcd: "meter" }, waitFor: NEXT },
+            { id: "rule", say: "The rule: current = voltage ÷ resistance. Volts ÷ kΩ gives mA: 6 V ÷ 1 kΩ = 6 mA: about what the meter shows.", highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "p1", say: "Now 2.2 kΩ, that is 2200 Ω. Work it out: 6 V ÷ 2.2 kΩ = …", predict: P1, waitFor: { predict: true } },
             { id: "m1", say: "Measure it: swap in the 2.2 kΩ resistor.", hints: [SWAP_HINT], waitFor: { when: rec(2200) } },
-            { id: "p2", reply: "p1", say: () => `${fmtI(seen[2200] || 0.0027)} with 2.2 kΩ. And 6 V ÷ 4.7 kΩ = …`, highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
+            { id: "p2", reply: "p1", say: () => `${shownmA(seen[2200] ?? 0.0027)} with 2.2 kΩ. And 6 V ÷ 4.7 kΩ = …`, highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
             { id: "m2", say: "Check it with the 4.7 kΩ resistor.", hints: [SWAP_HINT], waitFor: { when: rec(4700) } },
             Object.assign(FINISH("Current = voltage ÷ resistance. Engineers call it Ohm's law."), { reply: "p2" }),
           ],
@@ -135,7 +135,7 @@
           ui: { strips: true },
           goalsFrom: 2,
           beats: [
-            { id: "intro", say: `This resistor lost its label. 6 V pushes ${+mA.toFixed(1)} mA through it. Turn the rule round: resistance = voltage ÷ current.`,
+            { id: "intro", say: `This resistor lost its label. 6 V pushes about ${+mA.toFixed(1)} mA through it. Turn the rule round: resistance = voltage ÷ current.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "p", say: `Volts ÷ mA gives kΩ. So how big is it? 6 V ÷ ${+mA.toFixed(1)} mA = …`, predict: P, waitFor: { predict: true } },
             { id: "check", reply: "p", say: "Let's check: battery off, dial to Ω, the red lead back into VΩ, then measure across the resistor.",
@@ -188,7 +188,7 @@
       },
     },
     {
-      id: "3-6", title: "Exactly 3 mA", teaches: [], uses: ["ohmsLaw", "twiceR", "twiceV", "findR", "current", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
+      id: "3-6", title: "3 mA, two ways", teaches: [], uses: ["ohmsLaw", "twiceR", "twiceV", "findR", "current", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
       card: { name: "Ohm's law at work", text: "Current = voltage ÷ resistance. To get the current you want, choose the resistance, or the voltage." },
       layouts: [{}],
       make: (V) => {
@@ -196,7 +196,7 @@
         const T = V.pick([{ mA: 3, r6: 2000, r3: 1000 }, { mA: 1.5, r6: 3900, r3: 2000 }]), tA = T.mA / 1000;
         const three = (S) => between(S, tA * 0.966, tA * 1.034);
         return {
-          title: `Exactly ${T.mA} mA`,
+          title: `${T.mA} mA, two ways`,
           region: REGION(V),
           start: start(Object.assign(V.BAT("+T3", "-T4"), { cellSwap: true }), LOOP_METER(V)),
           rules: { tray: [{ type: "resistor", value: 1000, n: 1 }, { type: "resistor", value: 2000, n: 1 }, { type: "resistor", value: 2200, n: 1 }, { type: "resistor", value: 3900, n: 1 },
@@ -204,15 +204,15 @@
             allow: allow({ ctl: ["meter", "bat"], replace: ["meter"] }), banner: true },
           ui: { strips: true },
           beats: [
-            { id: "brief", say: V.say(`Make exactly ${T.mA} mA flow through the meter. There is more than one way to do it.`,
-              `Your task: exactly ${T.mA} mA through the meter. Find a way, then maybe a second one.`), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say(`Make ${T.mA} mA flow through the meter, as near as the parts allow. There is more than one way to do it.`,
+              `Your task: ${T.mA} mA through the meter, as near as you can. Find a way, then maybe a second one.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "The meter waits in strip 6, ready to count. Build the rest. Ask for a hint if you need one.",
               hints: [{ say: `Current = voltage ÷ resistance. 6 V ÷ what = ${T.mA} mA?` }, { say: `Or change the voltage: take two cells out. 3 V ÷ what = ${T.mA} mA?` },
                 { say: "One leg of the resistor on the + rail, the other in strip 6, the meter's strip." }],
               waitFor: { when: three, hold: 0.6 } },
             FINISH("Two ways to the same current: choose the resistance, or choose the voltage."),
           ],
-          goals: [{ text: `Make exactly ${T.mA} mA flow`, when: three, hold: 0.6 }],
+          goals: [{ text: `Make ${T.mA} mA flow (within 3 %)`, when: three, hold: 0.6 }],
           challenge: { text: "Find both ways", when: (S, m) => { if (three(S)) m[cells(S)] = true; return !!m[2] && !!m[4]; } },
           solution: [{ next: 1 }, PLACE(V, T.r6), { wait: 1 }, { remove: "resistor" }, { cells: "bat" }, PLACE(V, T.r3), { wait: 1 }, { next: 1 }],
         };

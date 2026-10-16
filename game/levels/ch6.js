@@ -6,7 +6,7 @@
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, safe, part, FINISH } = K;
-  const { M, net, on, volts, fmtV, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { M, net, on, volts, fmtV, shownV, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const vAt = (S, n) => (on(S, n, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);   // a strip's voltage, against the − rail
   const between = (x, lo, hi) => x !== null && x >= lo && x <= hi;
@@ -34,7 +34,7 @@
               highlight: { nets: [mid] }, predict: P1, waitFor: { predict: true } },
             { id: "m1", say: "Find out: measure the middle strip against the − rail.", hints: [RING(V.hs("d6", "-T12"))],
               waitFor: { when: (S) => { if (m1(S)) seen.v = vAt(S, mid); return m1(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtV(seen.v || 3)}: one current, equal resistors, equal shares. The meter shows the − side one's share. Make it 22 kΩ: the middle will…`,
+            { id: "p2", reply: "p1", say: () => `${shownV(seen.v ?? 3)}: one current, equal resistors, equal shares. The meter shows the − side one's share. Make it 22 kΩ: the middle will…`,
               highlight: { part: "r2" },
               predict: P2, waitFor: { predict: true } },
             { id: "m2", say: "Find out: swap the resistor on the − side for the 22 kΩ, and measure the middle again.",
@@ -66,8 +66,8 @@
             { id: "what", say: "This is a potentiometer, a knob with three legs. The outer legs go to + and −. The middle leg, the wiper, slides along between them.",
               highlight: { part: "pot" }, waitFor: NEXT },
             { id: "m", say: "Measure the wiper's voltage against the − rail.", hints: [RING(V.hs("e13", "-T16"), "The wiper is the middle leg. Try the rings.")],
-              waitFor: { when: (S) => { const v = vAt(S, w); if (v !== null) seen.v = v; return v !== null; } } },
-            { id: "p", say: () => `${fmtV(seen.v || 3)} with the knob in the middle. How far can turning the knob move the wiper's voltage?`, highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
+              waitFor: { when: (S) => { const v = vAt(S, w); const kn = part(S, "pot"); if (v !== null) { seen.v = v; seen.pos = kn ? kn.part.pos ?? 0.5 : 0.5; } return v !== null; } } },
+            { id: "p", say: () => `${shownV(seen.v ?? 3)} with the knob ${Math.abs((seen.pos ?? 0.5) - 0.5) < 0.03 ? "in the middle" : "where it is"}. How far can turning the knob move the wiper's voltage?`, highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
             { id: "low", say: "Find out: drag the knob up or down until the meter shows less than 1 V.", highlight: { ctl: "knob", id: "pot" },
               hints: [{ say: "Press on the white knob and drag the mouse up or down, keeping the probes on the wiper and the − rail." }], waitFor: { when: (S) => between(vAt(S, w), 0, 0.99) } },
             { id: "high", reply: "p", say: "Now turn it the other way, until the meter shows more than 5 V.", highlight: { ctl: "knob", id: "pot" },
@@ -134,7 +134,7 @@
             { type: "pot", n: 1 }, { type: "wire", n: 3 }], allow: allow({}), banner: true },
           ui: { strips: true },
           beats: [
-            { id: "brief", say: V.say(`Make exactly ${T.v} V on a strip (within 0.15 V, against the − rail). Resistors or the knob: your choice.`,
+            { id: "brief", say: V.say(`Make ${T.v} V on a strip (within 0.15 V, against the − rail). Resistors or the knob: your choice.`,
               `Your task: a strip at ${T.v} V against the − rail. Use two resistors, or the knob, or both ways.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it, then measure your strip against the − rail. Ask for a hint if you need one.",
               hints: [{ say: `With two resistors, the − side's share is ${T.v} V and the + side's ${6 - T.v} V. Their sizes go in the same ratio.` },

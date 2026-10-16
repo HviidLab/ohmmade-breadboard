@@ -32,7 +32,7 @@
               highlight: { part: "q1" }, predict: P, waitFor: { predict: true } },
             { id: "touch", say: "Find out: draw a wire from the + rail to the free end of the 10 kΩ resistor, so a little current flows into B.",
               hints: [{ say: "The 10 kΩ runs from the B strip to strip 17. Join strip 17 to the + rail." }, { show: [V.WIRE("h", "+T17", "a17")] }], waitFor: { when: on, hold: 0.5 } },
-            { id: "name", reply: "p", say: () => `${fmtI(seen.ib || 0.0005)} into B switches ${fmtI(seen.ic || 0.012)} through the LED. A small current controls a big one.`,
+            { id: "name", reply: "p", say: () => `${fmtI(seen.ib ?? 0.0005)} into B switches ${fmtI(seen.ic ?? 0.012)} through the LED. A small current controls a big one.`,
               waitFor: NEXT },
             FINISH("It passes up to about 200 × the base current, far more than the LED needs. So it is fully on, a closed switch: the 330 Ω sets the current."),
           ],

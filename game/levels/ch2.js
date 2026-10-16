@@ -33,6 +33,11 @@
   const fmtV = (v) => `${Math.abs(v) < 0.05 ? "0" : Math.abs(v).toFixed(1)} V`;
   const fmtR = (r) => (r >= 1000 ? `${+(r / 1000).toFixed(1)} kΩ` : `${Math.round(r)} Ω`);
   const fmtmA = (a) => `${Math.round(Math.abs(a) * 1000)} mA`;
+  // A reading as the meter's display shows it (the same digits, without the sign). When Sparky quotes back what the
+  // player measured, he must say exactly what the meter showed, not a rounded or typical value.
+  const shownV = (v) => { const a = Math.abs(v); return `${a < 10 ? a.toFixed(2) : a.toFixed(1)} V`; };
+  const shownmA = (i) => { const m = Math.abs(i) * 1000; return `${m < 10 ? m.toFixed(2) : m.toFixed(1)} mA`; };
+  const shownR = (r) => (r >= 1e6 ? `${(r / 1e6).toFixed(2)} MΩ` : r >= 1000 ? `${(r / 1000).toFixed(2)} kΩ` : `${r.toFixed(1)} Ω`);
   const NEXT = { next: true };
   // the first hint of a measuring step: rings on the two holes, red probe and black probe
   const RING = (holes, say = "Try here: the red probe in the red ring, the black probe in the black ring.") => ({ say, highlight: { probes: holes } });
@@ -68,9 +73,9 @@
             { id: "top", say: "Measure the top battery's voltage: one probe on its + rail, the other on its − rail.",
               hints: [RING(V.hs("+T10", "-T10"), "The top battery feeds the two rails along the top edge. Try the rings.")],
               waitFor: { when: (S) => { if (top(S)) seen.top = volts(S); return top(S); } } },
-            { id: "bottom", say: () => `${fmtV(seen.top || 6)} at the top. Now measure the bottom battery the same way, on the bottom rails.`,
+            { id: "bottom", say: () => `${shownV(seen.top ?? 6)} at the top${(seen.top ?? 1) < 0 ? " (minus: red is on −)" : ""}. Now measure the bottom battery the same way, on the bottom rails.`,
               hints: [RING(V.hs("+B10", "-B10"))], waitFor: { when: (S) => { if (bottom(S)) seen.bottom = volts(S); return bottom(S); } } },
-            { id: "fix", reply: "q", say: () => `${fmtV(seen.bottom || 3)} at the bottom: half the voltage, so less current. Make the bottom LED bright.`,
+            { id: "fix", reply: "q", say: () => `${shownV(seen.bottom ?? 3)} at the bottom: half the voltage, so less current. Make the bottom LED bright.`,
               hints: [{ say: "These two wires join the bottom LED's loop to the 3 V pack. Which battery should they reach?", highlight: { parts: ["wa", "wb"] } },
                 { say: "Press right on a wire's end and drag it up to a top rail: + end to the + rail, − end to the − rail." },
                 { show: [V.WIRE("h1", "+T14", "j5"), V.WIRE("h2", "f9", "-T14")] }],
@@ -109,14 +114,14 @@
             { id: "res", say: "Find out. Measure the voltage across the resistor: one probe on each side of it.",
               hints: [RING(V.hs(...V.L.res), "Across means one probe in a hole joined to each leg. Try the rings.")],
               waitFor: { when: (S) => { if (across(S, "res1")) seen.r = volts(S); return across(S, "res1"); } } },
-            { id: "both", reply: "p1", say: () => `${fmtV(seen.r || 4)} across the resistor. Now measure across the LED, and across the wire.`,
+            { id: "both", reply: "p1", say: () => `${shownV(seen.r ?? 4)} across the resistor. Now measure across the LED, and across the wire.`,
               hints: [RING(V.hs(...V.L.led)), RING(V.hs(...V.L.wire), "And the wire: one probe at each end.")],
               waitFor: { when: (S, m) => {
                 if (across(S, "led1")) { m.l = true; seen.l = volts(S); }
-                if (across(S, "wire1")) m.w = true;
+                if (across(S, "wire1")) { m.w = true; seen.w = volts(S); }
                 return m.l && m.w;
               } } },
-            { id: "p2", say: () => `Resistor ${fmtV(seen.r || 4)}, LED ${fmtV(seen.l || 2)}, wire 0 V: together the battery's 6 V. A blue LED needs 3 V. And the resistor?`,
+            { id: "p2", say: () => `Resistor ${shownV(seen.r ?? 4)}, LED ${shownV(seen.l ?? 2)}, wire ${shownV(seen.w ?? 0)}: together the battery's voltage. Blue needs about 3 V. The resistor?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
             { id: "blue", say: "Find out: swap in the blue LED from the tray, then measure across the resistor again.", allow: { remove: ["led1"] },
               hints: [{ say: "Click the LED and press Remove. Drag the blue LED into the same holes, its longer leg where the old longer leg was." },
@@ -160,7 +165,7 @@
             { id: "close", say: "Now close the gap with the meter, so the current flows through it. Which probe goes on which side?",
               hints: [{ say: "Current leaves the battery's + and should go into the meter through the red probe. So red goes on the + side." }, RING(V.hs(...V.L.at))],
               waitFor: { when: (S) => { if (reads(S)) { seen.i = M(S).value; } return reads(S); } } },
-            { id: "p", say: () => `${fmtmA(seen.i || 0.012)}: that many thousandths of an amp flow round${(seen.i || 1) < 0 ? " (the minus: red is on the − side)" : ""}. What if you pull out a probe?`,
+            { id: "p", say: () => `${shownmA(seen.i ?? 0.012)}: that many thousandths of an amp flow round${(seen.i ?? 1) < 0 ? " (the minus: red is on the − side)" : ""}. What if you pull out a probe?`,
               highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
             Object.assign(FINISH("The meter is part of the loop now. Pull a probe out and see the dots stop everywhere."), { reply: "p" }),
           ],
@@ -195,11 +200,11 @@
             { id: "before", say: "Find out. The meter is set for mA. Measure the current before the LED, in place of this wire.", highlight: { part: "w2" },
               allow: { remove: ["w2"] }, hints: [{ say: "Take the wire out and close the gap with the meter, red probe on the side nearer the +." }, RING(V.hs(...AT.w2))],
               waitFor: { when: rec("w2") } },
-            { id: "after", say: () => `${fmtmA(seen.w2 || 0.012)} before the LED. Put that wire back, then measure after the LED, in place of this wire.`,
+            { id: "after", say: () => `${shownmA(seen.w2 ?? 0.012)} before the LED. Put that wire back, then measure after the LED, in place of this wire.`,
               highlight: { part: "w3" }, allow: { remove: ["w3"] },
               hints: [{ say: "Drag the wire from the tray back into its two holes. Then take out the marked wire and put the meter there." }, RING(V.hs(...AT.w3))],
               waitFor: { when: rec("w3") } },
-            { id: "same", reply: "p", say: () => `${fmtmA(seen.w3 || 0.012)} after, ${fmtmA(seen.w2 || 0.012)} before: the same! About 2 V drops across the LED, yet no charge is lost: each bit just carries less energy.`,
+            { id: "same", reply: "p", say: () => `${shownmA(seen.w3 ?? 0.012)} after, ${shownmA(seen.w2 ?? 0.012)} before: the same! About 2 V drops across the LED, yet no charge is lost: each bit just carries less energy.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "third", say: "One more check: put the wire back, and measure before the resistor, in place of this wire.", highlight: { part: "w1" },
               allow: { remove: ["w1"] }, hints: [RING(V.hs(...AT.w1))], waitFor: { when: rec("w1") } },
@@ -277,8 +282,8 @@
               highlight: { part: "res1" }, predict: P, waitFor: { predict: true } },
             { id: "r470", say: "Find out: swap in the 470 Ω resistor from the tray. Watch the meter and the LED.",
               hints: [{ say: "Click the resistor and press Remove. Then drag the 470 Ω one into the same holes." }], waitFor: { when: rec(470) } },
-            { id: "r1k", say: () => `${fmtmA(seen[470] || 0.0085)} with 470 Ω. Now try the 1 kΩ one: that is 1000 Ω.`, waitFor: { when: rec(1000) } },
-            { id: "name", reply: "p", say: () => `220 Ω ${fmtmA(seen[220] || 0.018)}, 470 Ω ${fmtmA(seen[470] || 0.0085)}, 1 kΩ ${fmtmA(seen[1000] || 0.004)}. Bigger holds back more: less flow.`,
+            { id: "r1k", say: () => `${shownmA(seen[470] ?? 0.0085)} with 470 Ω. Now try the 1 kΩ one: that is 1000 Ω.`, waitFor: { when: rec(1000) } },
+            { id: "name", reply: "p", say: () => `220 Ω ${shownmA(seen[220] ?? 0.018)}, 470 Ω ${shownmA(seen[470] ?? 0.0085)}, 1 kΩ ${shownmA(seen[1000] ?? 0.004)}. Bigger holds back more: less flow.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "use", say: "Your turn: make the LED as bright as you can, but keep the current under 15 mA. Which resistor?",
               hints: [{ say: "220 Ω let more than 15 mA through. 470 Ω gave far less. Which size lies between?" }], waitFor: { when: pick, hold: 0.6 } },
@@ -288,7 +293,7 @@
           react: [{ when: (S, C) => {
             if (!C.beat || C.beat.id !== "use" || !reads(S)) return null;
             const i = Math.abs(M(S).value);
-            return i < 0.0099 ? `Lit, but only ${fmtmA(i)}: you can go brighter and still stay under 15 mA.` : i > 0.0151 ? `${fmtmA(i)}: over 15 mA. Hold it back a little more.` : null;
+            return i < 0.0099 ? `Lit, but only ${shownmA(i)}: you can go brighter and still stay under 15 mA.` : i > 0.0151 ? `${shownmA(i)}: over 15 mA. Hold it back a little more.` : null;
           } }],
           challenge: { text: "Pick the right resistor on the first try", final: (C) => (C.count.place || 0) <= 3,
               when: (S) => { rec(220)(S); return false; } },
@@ -371,10 +376,10 @@
             { id: "led", say: "Find out. First measure across the LED: one probe on each side of it.",
               hints: [RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { const ok = across(S, "led1") && Math.abs(volts(S)) < 0.3; if (ok) seen.led = volts(S); return ok; } } },
-            { id: "brk", say: () => `${fmtV(seen.led || 0)} across the LED. Now measure across the break: one probe in each hole where the wire's ends were.`,
+            { id: "brk", say: () => `${shownV(seen.led ?? 0)} across the LED. Now measure across the break: one probe in each hole where the wire's ends were.`,
               highlight: { holes: brk }, hints: [RING(brk)],
               waitFor: { when: (S) => { const ok = on(S, ...gap) && Math.abs(volts(S) || 0) > 2.5; if (ok) seen.gap = volts(S); return ok; } } },
-            { id: "find", reply: "p", say: () => `${fmtV(seen.gap || 4.6)} across the break: most of the 6 V. The ${K.COLOR_WORD[V.c2]} LED has a hidden break: find it and close it.`,
+            { id: "find", reply: "p", say: () => `${shownV(seen.gap ?? 4.6)} across the break: most of the 6 V. The ${K.COLOR_WORD[V.c2]} LED has a hidden break: find it and close it.`,
               highlight: { part: "led2" },
               hints: [{ say: "Follow its loop from + to −. Measure across each place where one part should join the next. Most of the voltage there: the break." },
                 RING(V.hs(...V.L.find), "Try here: probes in the rings."),
@@ -492,5 +497,5 @@
     ],
   });
   // The meter checks and helpers, for the later chapters.
-  K.meter = { net, M, mode, probes, on, volts, ohms, amps, across, fmtV, fmtR, fmtmA, RING, METER, allow, REGION, NEXT };
+  K.meter = { net, M, mode, probes, on, volts, ohms, amps, across, fmtV, fmtR, fmtmA, shownV, shownmA, shownR, RING, METER, allow, REGION, NEXT };
 })(window.BB = window.BB || {});

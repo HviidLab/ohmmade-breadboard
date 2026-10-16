@@ -474,6 +474,7 @@
     const rd = G.sim.read(m.id) || {}, mode = m.mode || "V";
     if (m.socket === "mA" && mode !== "mA" && mode !== "off") return "Careful: the red lead is still in the mA socket, so the meter is almost a wire. Move it back to VΩ.";
     if (rd.display === "OL") return "OL means over the limit: the meter finds no path it can measure between the probes.";
+    if (mode === "V" && m.socket === "VO" && BB.HUD.apart(G, m)) return BB.HUD.APART;
     return rd.note || null;
   }
   function meterWatch() {

@@ -38,12 +38,14 @@
     pop();
   }
 
+  // a reading that rounds to zero shows no minus sign ("-0.00" looked like a real negative reading)
+  const fixed = (x, d) => { const t = x.toFixed(d); return /^-0(\.0*)?$/.test(t) ? t.slice(1) : t; };
   function fmtLcd(rd) {
     if (!rd) return ["", ""];
     if (rd.display) return [rd.display, rd.mode === "mA" ? "mA" : rd.mode === "V" ? "V⎓" : "Ω"];
     if (typeof rd.value !== "number" || Number.isNaN(rd.value)) return ["- - -", ""];
-    if (rd.mode === "V") return [rd.value.toFixed(Math.abs(rd.value) < 10 ? 2 : 1), "V⎓"];
-    if (rd.mode === "mA") { const v = rd.value * 1000; return [Math.abs(v) < 10 ? v.toFixed(2) : v.toFixed(1), "mA"]; }
+    if (rd.mode === "V") return [fixed(rd.value, Math.abs(rd.value) < 10 ? 2 : 1), "V⎓"];
+    if (rd.mode === "mA") { const v = rd.value * 1000; return [fixed(v, Math.abs(v) < 10 ? 2 : 1), "mA"]; }
     const r = rd.value;
     if (r >= 1e6) return [(r / 1e6).toFixed(2), "MΩ"];
     if (r >= 1000) return [(r / 1000).toFixed(2), "kΩ"];

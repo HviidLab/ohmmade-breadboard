@@ -6,7 +6,7 @@
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, part, FINISH } = K;
-  const { M, on, volts, ohms, fmtV, fmtR, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { M, on, volts, ohms, fmtV, fmtR, shownV, shownR, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const LDR = (V, id, a, b) => ({ id, type: "ldr", legs: V.hs(a, b), lux: 200 });
   const dark = (S, id) => { const q = part(S, id); return !!q && (q.part.lux ?? 200) <= 5; };
@@ -32,8 +32,8 @@
             { id: "p", say: "This is a light sensor: a resistor that reacts to light. Cover it with your hand: will its resistance go up or down?", highlight: { part: "s1" },
               predict: P, waitFor: { predict: true } },
             { id: "light", say: "First measure it in room light. The meter is already on Ω.", hints: [RING(V.hs("b10", "b13"))], waitFor: { when: light } },
-            { id: "dark", say: () => `${fmtR(seen.light || 1850)} in room light. Now cover it, and watch the meter.`, hints: [COVER], waitFor: { when: darkR } },
-            Object.assign(FINISH(() => `${fmtR(seen.light || 1850)} in the light, ${fmtR(seen.dark || 75000)} covered. Light lets the current through.`),
+            { id: "dark", say: () => `${shownR(seen.light ?? 1850)} in room light. Now cover it, and watch the meter.`, hints: [COVER], waitFor: { when: darkR } },
+            Object.assign(FINISH(() => `${shownR(seen.light ?? 1850)} in the light, ${shownR(seen.dark ?? 75000)} covered. Light lets the current through.`),
               { reply: "p", note: "a real light sensor reads about 2 kΩ in room light, tens of kΩ under your hand, and up to 1 MΩ in total darkness." }),
           ],
           goals: [{ text: "Measure it in the dark", when: darkR }],
@@ -62,8 +62,8 @@
             { id: "p", say: "The light sensor sits above a 10 kΩ, making a middle point. In the dark its resistance rises. So the middle point will…",
               highlight: { nets: [mid] }, predict: P, waitFor: { predict: true } },
             { id: "light", say: "Measure the middle point against the − rail, in room light.", hints: [RING(V.hs("d6", "-T12"))], waitFor: { when: light } },
-            { id: "dark", say: () => `${fmtV(seen.light || 5)} in the light. Now cover the sensor and watch.`, hints: [COVER], waitFor: { when: low } },
-            Object.assign(FINISH(() => `${fmtV(seen.light || 5)} in light, ${fmtV(seen.dark || 0.7)} in the dark. Light becomes a voltage you can measure.`), { reply: "p" }),
+            { id: "dark", say: () => `${shownV(seen.light ?? 5)} in the light. Now cover the sensor and watch.`, hints: [COVER], waitFor: { when: low } },
+            Object.assign(FINISH(() => `${shownV(seen.light ?? 5)} in light, ${shownV(seen.dark ?? 0.7)} in the dark. Light becomes a voltage you can measure.`), { reply: "p" }),
           ],
           goals: [{ text: "Measure the middle point in the dark", when: low }],
           challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (vMid(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },

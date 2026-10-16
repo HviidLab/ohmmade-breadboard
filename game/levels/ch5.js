@@ -6,7 +6,7 @@
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, part, FINISH } = K;
-  const { M, volts, fmtV, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { M, volts, fmtV, shownV, shownmA, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
   const reads = (S) => (M(S) && M(S).mode === "mA" && M(S).socket === "mA" && M(S).fuseOK && !M(S).display && M(S).red && M(S).com ? Math.abs(M(S).value) : null);
@@ -30,12 +30,12 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p1", say: "One 1 kΩ resistor: 6 mA. Put a second 1 kΩ in a row with it, in place of the wire. What will the meter read?",
+            { id: "p1", say: "One 1 kΩ resistor: about 6 mA. Put a second 1 kΩ in a row with it, in place of the wire. What will the meter read?",
               highlight: { part: "w1" }, predict: P1, waitFor: { predict: true } },
             { id: "build", say: "Find out: take the wire out and put the second resistor in its place.",
               hints: [{ say: "Click the wire and press Remove. Then drag the 1 kΩ into the two holes the wire used." }],
               waitFor: { when: (S) => { if (two(S)) seen.i = reads(S); return two(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i || 0.003)}. In a row, called series, the resistances add: 1 kΩ + 1 kΩ = 2 kΩ. And 1 kΩ + 2 kΩ?`,
+            { id: "p2", reply: "p1", say: () => `${shownmA(seen.i ?? 0.003)}. In a row, called series, the resistances add: 1 kΩ + 1 kΩ = 2 kΩ. And 1 kΩ + 2 kΩ?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
             Object.assign(FINISH("3 kΩ in all, so 6 V ÷ 3 kΩ = 2 mA. Resistors in series add up."), { reply: "p2" }),
           ],
@@ -56,7 +56,7 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 1000), V.RES("r2", "c6", "c10", 2000), V.WIRE("w1", "e10", "-T10"), METER("V")),
-          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ remove: ["r2"], dial: ["V"], socket: ["VO"] }) },
+          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ dial: ["V"], socket: ["VO"] }) },     // the swap is its own step: the shares before it are 1 kΩ's and 2 kΩ's
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
@@ -67,9 +67,9 @@
                 if (acrossQ(S, part(S, "r2"))) { m.b = true; seen.b = volts(S); }
                 return m.a && m.b;
               } } },
-            { id: "p2", reply: "p1", say: () => `${fmtV(seen.a || 2)} and ${fmtV(seen.b || 4)}: twice the resistance, twice the share. With two 1 kΩ?`,
+            { id: "p2", reply: "p1", say: () => `${shownV(seen.a ?? 2)} and ${shownV(seen.b ?? 4)}: twice the resistance, twice the share. With two 1 kΩ?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
-            { id: "swap", say: "Check it: swap the 2 kΩ for the 1 kΩ from the tray, and measure across it.",
+            { id: "swap", say: "Check it: swap the 2 kΩ for the 1 kΩ from the tray, and measure across it.", allow: allow({ remove: ["r2"], dial: ["V"], socket: ["VO"] }),
               hints: [{ say: "Click the 2 kΩ and press Remove, then drag the 1 kΩ into the same two holes." }, RING(V.hs("d6", "d10"))], waitFor: { when: half } },
             Object.assign(FINISH("In series, the resistors share out the voltage, the bigger one with the bigger share. The shares add up to the battery's voltage."), { reply: "p2" }),
           ],
@@ -105,7 +105,7 @@
                 if (acrossQ(S, part(S, "r2")) && Math.abs(volts(S)) > 5.5) m.b = true;
                 return m.a && m.b;
               } } },
-            { id: "p2", reply: "p1", say: "6 V across both: side by side, called parallel, each has the whole voltage across it. So the 1 kΩ draws 6 mA. And the 2 kΩ?",
+            { id: "p2", reply: "p1", say: "6 V across both: side by side, called parallel, each has the whole voltage across it. So the 1 kΩ draws about 6 mA. And the 2 kΩ?",
               predict: P2, waitFor: { predict: true } },
             Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch has the full voltage across it and draws its own current."), { reply: "p2" }),
           ],
@@ -137,12 +137,12 @@
           ui: { strips: true },
           goalsFrom: 3,
           beats: [
-            { id: "p1", say: "The meter sits in the main line, the path all the current takes, so it counts everything: 6 mA for one 1 kΩ branch. Add a 2 kΩ?",
+            { id: "p1", say: "The meter sits in the main line, the path all the current takes, so it counts everything: about 6 mA for one 1 kΩ branch. Add a 2 kΩ?",
               highlight: { lcd: "meter" }, predict: P1, waitFor: { predict: true } },
             { id: "add", say: "Find out: put the 2 kΩ side by side with the other resistor, from the + rail to the − rail.",
               hints: [{ say: "One leg on the red + rail, the other on the blue − rail, like the resistor already there." }, { show: [V.RES("h", "+T14", "-T16", 2000)] }],
               waitFor: { when: (S) => { if (nine(S)) seen.i = reads(S); return nine(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i || 0.009)}: 6 + 3. The branches add up. A third branch, another 1 kΩ?`, predict: P2, waitFor: { predict: true } },
+            { id: "p2", reply: "p1", say: () => `${shownmA(seen.i ?? 0.009)}: about 6 + 3. The branches add up. A third branch, another 1 kΩ?`, predict: P2, waitFor: { predict: true } },
             { id: "add2", say: "Add it, and watch the meter.", hints: [{ show: [V.RES("h", "+T17", "-T19", 1000)] }], waitFor: { when: fifteen } },
             Object.assign(FINISH("In parallel, the currents add up: the battery supplies every branch at once."), { reply: "p2" }),
           ],
@@ -217,7 +217,7 @@
             const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 0.002);
             if (ls.length !== 2 || two(S)) return null;
             if (ls.every((q) => q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000)) return "Both lit, but side by side. Here they go in a row: the current goes through one, then the other.";
-            return `Both lit, but at ${fmtI(ls[0].rd.I)}. You need ${W.lo} to ${W.hi} mA: the meter can check it.`;
+            return `Both lit, but at ${shownmA(ls[0].rd.I)}. You need ${W.lo} to ${W.hi} mA: the meter can check it.`;
           } }],
           challenge: { text: "Use only one wire", when: (S) => two(S) && S.parts("wire").length <= 1 },
           solution: [{ next: 1 }, { place: { type: "resistor", value: W.r }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] },

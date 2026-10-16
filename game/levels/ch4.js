@@ -6,7 +6,7 @@
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, part, FINISH } = K;
-  const { M, on, volts, across, fmtV, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { M, on, volts, across, fmtV, shownV, shownmA, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
   const LOOP_METER = (V) => METER("mA", "mA", V.hs("b7", "-T9"));      // closes the loop from the LED's − strip to the − rail
@@ -36,17 +36,17 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), RES(V, 330), LED(V, V.c1), V.WIRE("wire1", "e7", "-T7"), METER("V")),
-          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ remove: ["res1"], dial: ["V"], socket: ["VO"] }) },
+          rules: { tray: [{ type: "resistor", value: 1000, n: 1 }], allow: allow({ dial: ["V"], socket: ["VO"] }) },     // the swap is its own step: before it, the reading is "with 330 Ω"
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
             { id: "led", say: "First, measure the voltage across the LED.", hints: [RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (onLed(S)) seen.v1 = volts(S); return onLed(S); } } },
-            { id: "p1", say: () => `${fmtV(seen.v1 || 2)} with 330 Ω. With 1 kΩ, only a third of the current flows. The voltage across the LED will…`, highlight: { lcd: "meter" },
+            { id: "p1", say: () => `${shownV(seen.v1 ?? 2)} with 330 Ω. With 1 kΩ, only a third of the current flows. The voltage across the LED will…`, highlight: { lcd: "meter" },
               predict: P1, waitFor: { predict: true } },
-            { id: "swap", say: "Find out: swap in the 1 kΩ resistor, and measure across the LED again.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))],
+            { id: "swap", say: "Find out: swap in the 1 kΩ resistor, and measure across the LED again.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))], allow: allow({ remove: ["res1"], dial: ["V"], socket: ["VO"] }),
               waitFor: { when: (S) => { if (swapped(S)) seen.v2 = volts(S); return swapped(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtV(seen.v1 || 2)}, then ${fmtV(seen.v2 || 1.9)}. The LED stays about the same. How much is across the 1 kΩ?`,
+            { id: "p2", reply: "p1", say: () => `${shownV(seen.v1 ?? 2)}, then ${shownV(seen.v2 ?? 1.9)}. The LED stays about the same. How much is across the 1 kΩ?`,
               predict: P2, waitFor: { predict: true } },
             { id: "res", say: "Measure across the resistor.", hints: [RING(V.hs("+T8", "b6"))], waitFor: { when: resShare } },
             Object.assign(FINISH("The voltage across the LED stays about the same, whatever the current. The rest of the battery's 6 V is across the resistor."), { reply: "p2" }),
@@ -77,7 +77,7 @@
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "p1", say: "With a 220 Ω resistor, that is 0.22 kΩ, what will the meter show?", predict: P1, waitFor: { predict: true } },
             { id: "m1", say: "Find out: swap in the 220 Ω resistor.", hints: [SWAP_HINT], waitFor: { when: (S) => { if (m1(S)) seen.i1 = current(S); return m1(S); } } },
-            { id: "p2", reply: "p1", say: () => `${fmtI(seen.i1 || 0.018)}. Now a green LED, which needs 2.2 V, with the same 220 Ω?`, predict: P2, waitFor: { predict: true } },
+            { id: "p2", reply: "p1", say: () => `${shownmA(seen.i1 ?? 0.018)}. Now a green LED, which needs 2.2 V, with the same 220 Ω?`, predict: P2, waitFor: { predict: true } },
             { id: "m2", say: "Check it: swap in the green LED, longer leg on the + side.", hints: [SWAP_HINT], waitFor: { when: m2 } },
             Object.assign(FINISH("(6 − 2.2) V ÷ 0.22 kΩ ≈ 17 mA. LED current = (battery − LED) ÷ resistor."), { reply: "p2" }),
           ],
@@ -134,7 +134,7 @@
               waitFor: { when: (S) => across(S, "led1") && volts(S) > 1.5 } },
             { id: "swap", say: "Now swap in the blue LED from the tray, and measure across it.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (blueV(S)) seen.v = volts(S); return blueV(S); } } },
-            { id: "name", say: () => `${fmtV(seen.v || 2.9)}! Blue needs about 3 V, red about 2 V. So only 3 V is left across the resistor, and less current flows: it is dimmer.`, waitFor: NEXT },
+            { id: "name", say: () => `${shownV(seen.v ?? 2.9)}! Blue needs about 3 V, red about 2 V. So only 3 V is left across the resistor, and less current flows: it is dimmer.`, waitFor: NEXT },
             { id: "p", say: "Which resistor gives the blue LED about 10 mA? (6 − 3) V ÷ 10 mA = …", predict: P, waitFor: { predict: true } },
             { id: "fix", reply: "p", say: "300 Ω, rounded up to the next size: 330 Ω. Swap it in for the 390 Ω.", hints: [SWAP_HINT],
               waitFor: { when: ten, hold: 0.6 } },
@@ -209,7 +209,7 @@
           goals: [{ text: `Red, yellow and green, each ${W.lo} to ${W.hi} mA`, when: all, hold: 0.8 }],
           react: [{ when: (S) => {             // a light that is on but off the target
             const q = S.parts("led").find((x) => x.ok && x.rd.I > 0.002 && !okI(x));
-            return q ? `The ${q.part.color} LED is lit, but at ${fmtI(q.rd.I)}. Aim for ${W.lo} to ${W.hi} mA.` : null;
+            return q ? `The ${q.part.color} LED is lit, but at ${shownmA(q.rd.I)}. Aim for ${W.lo} to ${W.hi} mA.` : null;
           } }],
           challenge: { text: `No LED above ${W.hi} mA at any moment`, final: () => !seen.over,
               when: (S) => { if (S.parts("led").some((q) => q.ok && q.rd.I > W.hi / 1000 + 0.0005)) seen.over = true; return false; } },

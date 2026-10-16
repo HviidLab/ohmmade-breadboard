@@ -95,7 +95,7 @@
     // Solve the present state now, without moving time (for checks right after an edit). Not for circuits with capacitors.
     settle() {
       this.heal();
-      if (this.dirty && !this.solver.dynamic.length) { this.solver.solve(0); this.dirty = false; }
+      if (this.dirty && !this.solver.dynamic.length) this.dirty = !this.solver.solve(0);     // failed: try again, never keep stale values
     }
 
     // Advance simulated time by dt seconds.
@@ -105,7 +105,9 @@
       while (left > 1e-12 && guard++ < 1000000) {
         const dynamic = this.solver.dynamic.length > 0;
         const h = dynamic ? Math.min(STEP, left) : left;
-        if (dynamic || this.dirty) { this.solver.solve(dynamic ? h : 0); this.dirty = false; }
+        // a solve that fails keeps the circuit marked dirty, so the next step tries again: a reading is never left
+        // showing the voltages of the circuit as it was before the change
+        if (dynamic || this.dirty) { const ok = this.solver.solve(dynamic ? h : 0); this.dirty = !ok && !dynamic; }
         if (dynamic) this.solver.accept(h);
         const fail = this.integrate(h);
         if (fail) {

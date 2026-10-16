@@ -71,6 +71,20 @@
   }
 
   // ---------- meter ----------
+  // Are the probes on two points that no part joins (two separate circuits, or an empty strip)? A voltmeter then has
+  // nothing to compare and shows about 0 V: true, but puzzling, so the meter says why.
+  const APART = "These two points are not joined by any part, so there is nothing to compare: the meter shows about 0 V.";
+  function apart(G, m) {
+    if (!m || !m.legs[0] || !m.legs[1]) return false;
+    const parent = new Map(), find = (x) => { while (parent.has(x) && parent.get(x) !== x) x = parent.get(x); return x; };
+    const join = (a, b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb); };
+    for (const p of G.doc.parts) {
+      if (p.type === "meter" || !p.legs) continue;
+      const nets = p.legs.map((l, k) => (l ? BB.netKey(l, p.id, k) : null)).filter(Boolean);
+      for (let k = 1; k < nets.length; k++) join(nets[0], nets[k]);
+    }
+    return find(BB.netKey(m.legs[0])) !== find(BB.netKey(m.legs[1]));
+  }
   function meter(G) {
     const m = G.doc.parts.find((p) => p.type === "meter");
     if (!m) { $("lcd-mode").textContent = "no meter"; $("lcd-v").textContent = "—"; $("lcd-note").textContent = "Drag the multimeter from the drawer."; return; }
@@ -81,6 +95,7 @@
     $("lcd-v").innerHTML = `${v}<small>${u}</small>`;
     const notes = [];
     if (rd.note) notes.push(rd.note);
+    if ((m.mode || "V") === "V" && apart(G, m)) notes.push(APART);
     if (m.socket === "mA" && m.mode !== "mA") notes.push("Careful: the red lead is still in the mA socket. The meter is almost a wire now.");
     if (rd.beep) notes.push("Beep: the probes are connected.");
     const at = (pt) => (pt.startsWith("U.") ? `board ${BB.Uno.label(pt.slice(2))}` : `${pt} (${BBShared.netName(BBShared.net(pt)).replace(/ \(.*\)$/, "")})`);
@@ -182,7 +197,7 @@
     const temp = (h) => `${Math.round(25 + 100 * h)} °C`;
     switch (part.type) {
       case "resistor": kv.push(["Voltage", fmtV(rd.V)], ["Current", fmtA(rd.I)], ["Power", `${fmtP(rd.P)} of 250 mW`], ["Temperature", temp(rt.stress.heat.h)]); break;
-      case "led": kv.push(["Current", `${fmtA(rd.I)} (max ${BB.Devices.ledParams(part.color).imax * 1000} mA)`], ["Voltage", fmtV(rd.V)], ["Brightness", `${Math.round(Math.min(Math.sqrt(Math.max(rd.I, 0) / 0.02), 1) * 100)} %`]); break;
+      case "led": kv.push(["Current", `${fmtA(rd.I)} (max ${BB.Devices.ledParams(part.color).imax * 1000} mA)`], ["Voltage", fmtV(rd.V)], ["Brightness", `${Math.round(Math.min(Math.pow(Math.max(rd.I, 0) / 0.02, 0.75), 1) * 100)} %`]); break;
       case "wire": kv.push(["Current", fmtA(rd.I)]); break;
       case "battery": kv.push(["Terminal voltage", fmtV(rd.V)], ["Current", fmtA(rd.I)], ["Heat inside", fmtP(rd.Pint)]); break;
       case "cap": kv.push(["Voltage", fmtV(rd.V)], ["Current", fmtA(rd.I)]); if (rd.reverse) kv.push(["Warning", "connected backwards"]); break;
@@ -295,5 +310,5 @@
     $("uno-analog").innerHTML = BB.Uno.ANALOG.map((n) => `<dt>analogRead(${n})</dt><dd>${rd.pins[n].damaged ? "damaged" : rd.analog[n]}</dd>`).join("");
   }
 
-  BB.HUD = { icon, defaults, refreshDrawer, uno, trace, buildDrawer, meter, inspector, partList, log, toast, tooltip, banner, partTip, DRAWER, fmtA, fmtV };
+  BB.HUD = { apart, APART, icon, defaults, refreshDrawer, uno, trace, buildDrawer, meter, inspector, partList, log, toast, tooltip, banner, partTip, DRAWER, fmtA, fmtV };
 })(window.BB = window.BB || {});
