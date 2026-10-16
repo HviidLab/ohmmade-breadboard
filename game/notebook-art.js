@@ -52,10 +52,20 @@
   // a meter: a circle with its letter, and a reading written beside it
   const meter = (x, y, letter, reading, rx = x, ry = y + 32) => circ(x, y, 14, "#fffdf6") + tx(x, y + 6, letter, { s: letter.length > 1 ? 15 : 19 }) +
     (reading ? tx(rx, ry, reading, { s: 19, c: "#a3360f" }) : "");
-  const probe = (pts, c) => pl(pts, c, 2.4);
-  // a meter lead clipped onto the circuit: a dot where it clips on, and its own cord curving to the meter
-  const cord = (x1, y1, x2, y2, c) => circ(x1, y1, 3, PEN, PEN) +
-    `<path d="M${x1} ${y1} C${x1 + (x2 - x1) * 0.75} ${y1} ${x2} ${y1 + (y2 - y1) * 0.3} ${x2} ${y2}" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"/>`;
+  // A meter probe, as on the bench: its metal tip touches the point (x, y), its handle (red or black) points towards
+  // the meter at (mx, my), and its thin cord runs on into the meter. Circuit wires stay black: a probe is a tool laid
+  // on the circuit, never a recoloured piece of wire. `bend` curves the cord (+ or −).
+  const PROBE = { red: "#d93b30", black: "#22252a" };
+  function probeTo(x, y, mx, my, colour, bend = 0) {
+    const c = PROBE[colour], d = Math.hypot(mx - x, my - y), ux = (mx - x) / d, uy = (my - y) / d;
+    const tip = Math.min(7, d * 0.15), hand = Math.min(16, d * 0.35);
+    const hx = x + ux * (tip + hand), hy = y + uy * (tip + hand);
+    const ex = mx - ux * 14, ey = my - uy * 14, cx = (hx + ex) / 2 - uy * bend, cy = (hy + ey) / 2 + ux * bend;
+    return ln(x, y, x + ux * tip, y + uy * tip, "#9aa1a9", 2.2) +
+      ln(x + ux * tip, y + uy * tip, hx, hy, c, 6) +
+      `<path d="M${hx.toFixed(1)} ${hy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>`;
+  }
+  const term = (x, y) => circ(x, y, 3.2, "#fffdf6");          // a terminal: an open end of a wire, where a probe can touch
   const cross = (x, y, s = 9, c = RED) => ln(x - s, y - s, x + s, y + s, c, 3) + ln(x - s, y + s, x + s, y - s, c, 3);
   const tick = (x, y, c = "#2f8a43") => pl([[x - 7, y], [x - 2, y + 6], [x + 9, y - 8]], c, 3);
   const burst = (x, y, r = 14, c = RED) => {
@@ -107,8 +117,8 @@
     short: () => current([[60, 58], [60, 26], [160, 26], [160, 104], [60, 104], [60, 76]], 7) + pl([[60, 60], [60, 26], [160, 26], [160, 104], [60, 104], [60, 70]]) +
       battery(60, 65) + `<path d="M150 40 q8 -8 0 -16 M162 44 q8 -10 0 -20 M174 40 q8 -8 0 -16" fill="none" stroke="${RED}" stroke-width="2.4" stroke-linecap="round"/>` +
       tx(186, 70, "hot!", { s: 22, c: RED }) + tx(110, 122, "only wire in the path", { s: 16 }),
-    volts: () => pl([[70, 60], [70, 26], [110, 26]]) + pl([[70, 69], [70, 104], [110, 104]]) + battery(70, 65) +
-      cord(110, 26, 150, 51, RED) + cord(110, 104, 150, 79, PEN) + meter(150, 65, "V", "6 V", 186, 71) +
+    volts: () => pl([[70, 60], [70, 34], [104, 34]]) + pl([[70, 69], [70, 96], [104, 96]]) + battery(70, 65) + term(107, 34) + term(107, 96) +
+      meter(160, 65, "V", "6 V", 194, 71) + probeTo(109, 34, 160, 65, "red", -6) + probeTo(109, 96, 160, 65, "black", 6) +
       tx(110, 122, "voltage: between two points", { s: 16 }),
     across: () => current(loopPath) + loopWires({ resAt: true }) + battery(X0, YM) + ledV(X1, YM) +
       tx(108, 50, "4 V", { s: 19, c: "#a3360f" }) +
@@ -121,8 +131,8 @@
       pl([[86, Y0], [96, Y0]]) + pl([[124, Y0], [X1, Y0], [X1, YM - 7]]) +
       pl([[X1, YM + 7], [X1, Y1], [124, Y1]]) + pl([[96, Y1], [X0, Y1], [X0, YM + 4]]) + battery(X0, YM) + ledV(X1, YM) +
       meter(110, Y0, "mA", "12 mA", 110, 55) + meter(110, Y1, "mA") + tx(110, 86, "12 mA", { s: 17, c: "#a3360f" }) + tx(110, 70, "same!", { s: 15, c: "#2f8a43" }),
-    fuse: () => pl([[70, 60], [70, 26], [110, 26]]) + pl([[70, 69], [70, 104], [110, 104]]) + battery(70, 65) +
-      cord(110, 26, 150, 51, RED) + cord(110, 104, 150, 79, PEN) + meter(150, 65, "mA") + burst(182, 40, 12) +
+    fuse: () => pl([[70, 60], [70, 34], [104, 34]]) + pl([[70, 69], [70, 96], [104, 96]]) + battery(70, 65) + term(107, 34) + term(107, 96) +
+      meter(160, 65, "mA") + probeTo(109, 34, 160, 65, "red", -6) + probeTo(109, 96, 160, 65, "black", 6) + burst(190, 40, 12) +
       tx(192, 92, "pop!", { s: 20, c: RED }) + tx(110, 122, "mA never across a battery", { s: 16 }),
     biggerR: () => {
       const mini = (ox, r, many) => current([[ox, 50], [ox, 26], [ox + 70, 26], [ox + 70, 94], [ox, 94], [ox, 70]], many ? 9 : 20) +
@@ -130,13 +140,13 @@
         pl([[ox + 70, 67], [ox + 70, 94], [ox, 94], [ox, 64]]) + battery(ox, 60, false) + tx(ox + 31, 16, r, { s: 17 });
       return mini(14, "220 Ω", true) + mini(130, "1 kΩ", false) + tx(49, 116, "more flow", { s: 16 }) + tx(165, 116, "less flow", { s: 16 });
     },
-    ohms: () => ln(60, 64, 76, 64) + resH(76, 124, 64) + ln(124, 64, 140, 64) + probe([[60, 64], [60, 98], [96, 98]], RED) + probe([[140, 64], [140, 98], [124, 98]], PEN) +
-      meter(110, 98, "Ω", "330 Ω", 110, 40) + battery(186, 28, false) + cross(186, 28, 11) + tx(180, 62, "battery off", { s: 15 }),
+    ohms: () => ln(62, 64, 76, 64) + resH(76, 124, 64) + ln(124, 64, 138, 64) + term(59, 64) + term(141, 64) + meter(100, 104, "Ω", "330 Ω", 100, 40) +
+      probeTo(57, 66, 100, 104, "red", 6) + probeTo(143, 66, 100, 104, "black", -6) + battery(186, 28, false) + cross(186, 28, 11) + tx(180, 62, "battery off", { s: 15 }),
     break: () => pl([[X0, YM - 5], [X0, Y0], [82, Y0]]) + resH(82, 134, Y0) + pl([[134, Y0], [X1, Y0], [X1, YM - 7]]) + pl([[X1, YM + 7], [X1, Y1], [130, Y1]]) +
       pl([[94, Y1], [X0, Y1], [X0, YM + 4]]) + battery(X0, YM) + ledV(X1, YM, false) + circ(130, Y1, 2.6, PEN) + circ(94, Y1, 2.6, PEN) +
-      probe([[130, Y1], [130, 90], [122, 82]], RED) + probe([[94, Y1], [94, 90], [102, 82]], PEN) + meter(112, 72, "V") + tx(112, 50, "most of the voltage", { s: 16, c: "#a3360f" }) +
+      meter(112, 66, "V") + probeTo(130, Y1 - 2, 112, 66, "red", -5) + probeTo(94, Y1 - 2, 112, 66, "black", 5) + tx(112, 46, "most of the voltage", { s: 16, c: "#a3360f" }) +
       tx(112, 124, "the break", { s: 16 }),
-    continuity: () => slot(80, 24) + probe([[80, 24], [118, 18], [150, 48]], RED) + probe([[80, 72], [118, 80], [150, 68]], PEN) + meter(160, 58, ")))") +
+    continuity: () => slot(80, 24) + meter(160, 52, ")))") + probeTo(82, 24, 160, 52, "red", -8) + probeTo(82, 72, 160, 52, "black", 8) +
       tx(196, 40, "beep!", { s: 20, c: "#2f8a43", r: -8 }) + tx(110, 116, "joined by metal", { s: 16 }),
     // Chapter 3: Ohm's law
     twiceR: () => {
@@ -199,7 +209,7 @@
     // Chapter 6: dividers and the knob
     divider: () => ln(30, 16, 190, 16, RED, 2.4) + ln(30, 114, 190, 114, BLUE, 2.4) + tx(20, 21, "+", { c: RED, s: 20 }) + tx(20, 119, "−", { c: BLUE, s: 20 }) +
       ln(90, 16, 90, 24) + resV(90, 24, 56, 6) + ln(90, 56, 90, 74) + resV(90, 74, 106, 6) + ln(90, 106, 90, 114) + circ(90, 65, 4, PEN) +
-      probe([[94, 65], [170, 65], [170, 72]], RED) + meter(170, 86, "V", "3 V", 200, 70) + probe([[170, 100], [170, 114]], PEN) + circ(170, 114, 3, PEN, PEN) + tx(60, 44, "10 kΩ", { s: 15 }) + tx(60, 94, "10 kΩ", { s: 15 }) +
+      meter(160, 72, "V", "3 V", 194, 78) + probeTo(93, 66, 160, 72, "red", -6) + probeTo(172, 112, 160, 72, "black", -4) + tx(60, 44, "10 kΩ", { s: 15 }) + tx(60, 94, "10 kΩ", { s: 15 }) +
       tx(110, 128, "6 V × lower ÷ total", { s: 15 }),
     potKnob: () => ln(30, 16, 150, 16, RED, 2.4) + ln(30, 114, 150, 114, BLUE, 2.4) + tx(20, 21, "+", { c: RED, s: 20 }) + tx(20, 119, "−", { c: BLUE, s: 20 }) +
       ln(80, 16, 80, 30) + resV(80, 30, 100, 7) + ln(80, 100, 80, 114) + pl([[120, 58], [92, 64]], PEN, 2.4) + arrow(90, 64.5, 168, PEN) +
@@ -279,8 +289,8 @@
         tx(160, 104, "covered: 75 kΩ", { s: 17, c: "#a3360f" });
     },
     ldrDivider: () => ln(30, 16, 196, 16, RED, 2.4) + ln(30, 114, 196, 114, BLUE, 2.4) + tx(184, 11, "6 V", { s: 13, c: RED }) + ln(90, 16, 90, 26) + circ(90, 40, 13, "#fffdf6") + resV(90, 30, 50, 4) +
-      ln(90, 53, 90, 72) + resV(90, 72, 104, 6) + ln(90, 104, 90, 114) + circ(90, 62, 3.5, PEN) + probe([[93, 62], [152, 62]], RED) + meter(166, 62, "V") +
-      probe([[166, 76], [166, 114]], PEN) + circ(166, 114, 3, PEN, PEN) +
+      ln(90, 53, 90, 72) + resV(90, 72, 104, 6) + ln(90, 104, 90, 114) + circ(90, 62, 3.5, PEN) + meter(166, 56, "V") +
+      probeTo(93, 63, 166, 56, "red", -5) + probeTo(178, 112, 166, 56, "black", -4) +
       tx(128, 84, "light: 5 V", { s: 14 }) + tx(128, 102, "dark: 0.7 V", { s: 14, c: "#a3360f" }) + tx(50, 44, "sensor", { s: 14 }) + tx(52, 92, "10 kΩ", { s: 14 }),
     nightLight: () => {
       const x = 156, y = 84;
@@ -293,7 +303,7 @@
     // a board pin set HIGH: a switch inside the board joins it to 5 V, and the LED on it lights
     pinOut: () => `<rect x="10" y="14" width="76" height="106" rx="8" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` + tx(48, 32, "board", { s: 15 }) +
       circ(36, 52, 3.5, RED, RED) + tx(26, 57, "5V", { s: 13, c: RED, a: "end" }) + circ(36, 88, 3.5, BLUE, BLUE) + tx(26, 93, "0V", { s: 13, c: BLUE, a: "end" }) +
-      ln(62, 70, 39, 54) + circ(62, 70, 3.5, PEN, PEN) + ln(62, 70, 86, 70) + tx(72, 62, "D13", { s: 12 }) + pl([[86, 108], [36, 108], [36, 92]], BLUE) + tx(64, 104, "GND", { s: 11 }) +
+      ln(62, 70, 39, 54) + circ(62, 70, 3.5, PEN, PEN) + ln(62, 70, 86, 70) + tx(72, 62, "D13", { s: 12 }) + pl([[86, 108], [36, 108], [36, 92]]) + tx(64, 104, "GND", { s: 11 }) +
       current([[86, 70], [102, 70]]) + ln(86, 70, 102, 70) + resH(102, 138, 70) + current([[138, 70], [176, 70], [176, 82]]) + ln(138, 70, 176, 70) + ln(176, 70, 176, 85) +
       ledV(176, 92) + ln(176, 99, 176, 108) + current([[176, 100], [176, 108], [92, 108]]) + ln(176, 108, 86, 108) +
       tx(150, 32, "HIGH: lit", { s: 16, c: "#a3360f" }) + tx(150, 48, "LOW: dark", { s: 16 }),
