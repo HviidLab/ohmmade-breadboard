@@ -80,29 +80,58 @@
       <div class="scr-row">${open_ ? `<button type="button" class="btn primary" id="op-go">Start ${first.id} · ${esc(first.title)} →</button>` : ""}<button type="button" class="btn" id="op-map">Level map</button></div></div>`,
       open_ ? "#op-go" : "#op-map");
     on(host, "#op-go", () => play(first, true));
-    on(host, "#op-map", showMap);
+    on(host, "#op-map", () => showMap(n));
   }
 
-  function showMap() {
+  // Notebook cards learned but not looked at yet, for the "new" badges.
+  function newCards() { const st = BB.Store.get(); return (st.notebook || []).filter((id) => !(st.nbSeen || []).includes(id)).length; }
+  const nbButton = (id) => { const n = newCards(); return `<button type="button" class="btn" id="${id}">Notebook${n ? ` <span class="badge">${n} new</span>` : ""}</button>`; };
+  const smooth = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+  // A row of chapter numbers that jumps to each chapter on a long screen (the map, the Notebook).
+  function chips(prefix, cls = () => "") {
+    return `<nav class="lm-chips" aria-label="Go to a chapter"><span>Chapter</span>${BB.Levels.chapters.map((c) =>
+      `<button type="button" class="lm-chip${cls(c)}" data-go="${prefix}${c.n}" title="Chapter ${c.n}: ${esc(c.title)}" aria-label="Chapter ${c.n}: ${esc(c.title)}">${c.n}</button>`).join("")}</nav>`;
+  }
+  function wireChips(host) {
+    host.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { const t = host.querySelector(`#${b.dataset.go}`); if (t) t.scrollIntoView({ block: "start", behavior: smooth() }); }));
+  }
+
+  // The map. A bar stays on top while it scrolls: the way back, the Notebook, the playtest data and a jump to each
+  // chapter. Each chapter shows its progress, Sparky's line from its opener and a button into the opener.
+  // It opens at `chapter`, or else at the chapter being played.
+  function showMap(chapter) {
+    if (typeof chapter !== "number") chapter = undefined;           // a button's click event, when it is the handler
     BB.Title.hide();
     const prog = progress(), s = summary(prog), next = nextLevel(prog), all_ = openAll();
-    const ch = BB.Levels.chapters.map((c) => `<section class="lm-chapter"><h2><span>Chapter ${c.n}</span>${esc(c.title)}${c.intro ? `<button type="button" class="lm-about" data-ch="${c.n}">About this chapter</button>` : ""}</h2>
+    const done = (l) => !!(prog[l.id] || {}).done;
+    const ch = BB.Levels.chapters.map((c) => {
+      const n = c.levels.filter(done).length, got = c.levels.reduce((k, l) => k + ((prog[l.id] || {}).stars || 0), 0);
+      return `<section class="lm-chapter" id="lm-ch${c.n}"><div class="lm-chead"><h2><span>Chapter ${c.n}</span>${esc(c.title)}</h2>
+        <p class="lm-cprog">${n} of ${c.levels.length} levels · ${got} of ${3 * c.levels.length} ★</p>
+        ${c.intro ? `<p class="lm-lede">“${esc(c.intro.lede)}”</p><button type="button" class="btn lm-about" data-ch="${c.n}">Chapter intro: questions and new words</button>` : ""}</div>
       <ol class="lm-path">${c.levels.map((lv) => {
         const p = prog[lv.id] || {}, open_ = unlocked(lv, prog, all_), cur = next === lv;
         return `<li><button type="button" class="lm-node${p.done ? " done" : ""}${cur ? " current" : ""}" data-id="${lv.id}" ${open_ ? "" : "disabled"}>
           <span class="lm-n">${lv.id}</span><span class="lm-t">${esc(lv.title)}</span><span class="lm-s" aria-label="${p.stars || 0} of 3 stars">${open_ ? stars(p.stars || 0) : "locked"}</span></button></li>`;
-      }).join("")}</ol></section>`).join("");
+      }).join("")}</ol></section>`;
+    }).join("");
+    const later = COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n));
     const host = show("levelmap", `<div class="scr-inner">
-      <div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★${all_ ? ' · <span class="lm-all">All levels open (playtest switch)</span>' : ""}</p></div>
+      <div class="lm-bar"><div class="lm-bar-row"><button type="button" class="btn" id="lm-title">← Title screen</button>
+        <div class="lm-bar-t"><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★${all_ ? ' · <span class="lm-all">All levels open (playtest switch)</span>' : ""}</p></div>
+        ${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}${nbButton("lm-notebook")}<button type="button" class="btn" id="lm-playtest">Playtest data</button></div>
+        ${chips("lm-ch", (c) => (c.levels.every(done) ? " done" : "") + (next && next.chapter === c.n ? " current" : ""))}</div>
       ${ch}
-      ${(() => { const later = COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n)); return later.length ? `<section class="lm-coming"><h2>Coming next</h2><ul>${later.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>` : ""; })()}
-      <div class="scr-row">${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}<button type="button" class="btn" id="lm-notebook">Notebook</button><button type="button" class="btn" id="lm-playtest">Playtest data</button><button type="button" class="btn" id="lm-title">Title screen</button></div></div>`, ".lm-node.current, .lm-node:not([disabled])");
+      ${later.length ? `<section class="lm-coming"><h2>Coming next</h2><ul>${later.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>` : ""}</div>`, ".lm-node.current, .lm-node:not([disabled])");
     host.querySelectorAll(".lm-node").forEach((b) => b.addEventListener("click", () => play(BB.Levels.get(b.dataset.id))));
     host.querySelectorAll(".lm-about").forEach((b) => b.addEventListener("click", () => opener(+b.dataset.ch)));
+    wireChips(host);
     on(host, "#lm-notebook", () => notebook("map"));
     on(host, "#lm-finale", finale);
     on(host, "#lm-playtest", () => playtest("map"));
     on(host, "#lm-title", () => { hideAll(); BB.Title.show(); });
+    const at = host.querySelector(`#lm-ch${chapter || (next ? next.chapter : 1)}`);
+    if (at && (chapter || (next && next.chapter > 1))) at.scrollIntoView({ block: "start" });
     try { history.replaceState(null, "", "#map"); } catch (e) { /* ignore */ }
   }
 
@@ -246,10 +275,12 @@
       <p>Circuit drawings use symbols. The battery's long plate is +; the LED's triangle points the way current flows.</p></div></li>`;
     const pages = BB.Levels.chapters.map((ch) => `<section class="nb-page" id="nb-ch${ch.n}"><h2 class="nb-ch">Chapter ${ch.n} · ${esc(ch.title)}</h2>
       <ol class="nb-grid">${summary_(ch)}${ch.n === 1 ? symbols : ""}${ch.levels.flatMap((l) => l.teaches).map((id) => card(BB.Concepts.get(id))).join("")}</ol></section>`).join("");
-    const host = show("notebook", `<div class="nb-book"><div class="nb-head"><h1>My Notebook</h1>
-      <p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div>${SAFE}${pages}
-      <div class="scr-row"><button type="button" class="btn primary" id="nb-back">Back</button></div></div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
-    on(host, "#nb-back", () => (from === "pause" ? pause() : from === "map" ? showMap() : from === "finale" ? finale() : (hideAll(), BB.Title.show())));
+    const back = { level: "Back to the level", pause: "Menu", map: "Level map", finale: "Back" }[from] || "Title screen";
+    const host = show("notebook", `<div class="nb-book"><div class="nb-bar"><div class="nb-bar-row"><button type="button" class="btn primary" id="nb-back">← ${back}</button>
+      <div class="nb-head"><h1>My Notebook</h1><p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div></div>${chips("nb-ch")}</div>
+      ${SAFE}${pages}</div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
+    wireChips(host);
+    on(host, "#nb-back", () => (from === "level" ? (close(), BB.CoachUI.refreshNotebook()) : from === "pause" ? pause() : from === "map" ? showMap() : from === "finale" ? finale() : (hideAll(), BB.Title.show())));
     if (chapter) { const pg = host.querySelector(`#nb-ch${chapter}`); if (pg) pg.scrollIntoView({ block: "start" }); }
     host.querySelectorAll(".nb-card[data-id]").forEach((b) => b.addEventListener("click", () => zoom(host, b.dataset.id)));
     BB.Store.update((s) => { s.nbSeen = learned.slice(); });          // seen now: the stamps go next time
@@ -339,5 +370,5 @@
     if (back) back.click(); else close();
   }, true);
 
-  BB.LevelMap = { play, opener, finale, init, showMap, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
+  BB.LevelMap = { play, opener, finale, init, showMap, newCards, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
 })(window.BB = window.BB || {});

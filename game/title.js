@@ -23,7 +23,8 @@
         ${next ? `<button type="button" class="ts-go" id="ts-go"><span class="ts-k">${fresh ? "Start" : "Continue"}</span><span class="ts-m">${next.id} · ${next.title}</span></button>`
                : `<button type="button" class="ts-go" id="ts-go"><span class="ts-k">All ${s.total} levels done</span><span class="ts-m">The finale and your certificate</span></button>`}
         <div class="ts-more">
-          <button type="button" class="ts-alt" id="ts-map"><span class="ts-k">Level map</span><span class="ts-s">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</span></button>
+          <button type="button" class="ts-alt" id="ts-map"><span class="ts-k">Level map</span><span class="ts-s">${s.done} of ${s.total} levels · ${s.stars} ★</span></button>
+          <button type="button" class="ts-alt" id="ts-notebook"><span class="ts-k">Notebook</span><span class="ts-s">${notes()}</span></button>
           <button type="button" class="ts-alt" id="ts-sandbox"><span class="ts-k">Sandbox</span><span class="ts-s">${hasBench ? "Your bench, as you left it" : "Every part, no goals"}</span></button>
         </div>
         ${saves(s)}
@@ -42,6 +43,7 @@
     $("ts-go").addEventListener("click", () => { hide(); if (next) BB.LevelMap.play(next); else BB.LevelMap.finale(); });
     $("ts-map").addEventListener("click", () => { hide(); BB.LevelMap.showMap(); });
     $("ts-sandbox").addEventListener("click", () => { hide(); G.enterSandbox(); });
+    $("ts-notebook").addEventListener("click", () => { hide(); BB.LevelMap.notebook("title"); });
     wireSaves(s);
     $("ts-go").focus();
     try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignore */ }
@@ -50,20 +52,22 @@
   // Start over, and its undo. Undo stays offered until a level is finished in the new run.
   const has = (o) => !!o && Object.keys(o).length > 0;
   const tally = (s) => `${s.done} level${s.done === 1 ? "" : "s"} and ${s.stars} ★`;
+  function notes() {
+    const n = (BB.Store.get().notebook || []).length, k = BB.LevelMap.newCards();
+    return n ? `${n} idea${n === 1 ? "" : "s"}${k ? ` · <b>${k} new</b>` : ""}` : "Every idea you learn";
+  }
   function saves(s) {
-    const st = BB.Store.get(), old = BB.Store.backup();
-    if (old && s.done === 0) {
-      const o = BB.LevelMap.summary(old.levels);
-      return `<div class="ts-saves" id="ts-saves"><button type="button" class="ts-link" id="ts-undo">Bring back my old progress (${tally(o)})</button></div>`;
-    }
-    if (s.done || (st.notebook || []).length || has(st.telemetry))
-      return '<div class="ts-saves" id="ts-saves"><button type="button" class="ts-link" id="ts-over">Start over…</button></div>';
-    return "";
+    const st = BB.Store.get(), old = BB.Store.backup(), b = [];
+    if (old && s.done === 0) b.push(`<button type="button" class="btn" id="ts-undo">Bring back my old progress (${tally(BB.LevelMap.summary(old.levels))})</button>`);
+    else if (s.done || (st.notebook || []).length || has(st.telemetry)) b.push('<button type="button" class="btn" id="ts-over">Start over…</button>');
+    b.push('<button type="button" class="btn" id="ts-playtest">Playtest data</button>');
+    return `<div class="ts-saves" id="ts-saves">${b.join("")}</div>`;
   }
   function wireSaves(s) {
     const box = $("ts-saves");
     if (!box) return;
     const undo = $("ts-undo"), over = $("ts-over");
+    $("ts-playtest").addEventListener("click", () => { hide(); BB.LevelMap.playtest("title"); });
     if (undo) undo.addEventListener("click", () => { BB.Store.restore(); show(); BB.HUD.toast("Your old progress is back.", 4000); });
     if (over) over.addEventListener("click", () => {
       const pt = has(BB.Store.get().telemetry);

@@ -64,6 +64,7 @@
     $("lv-zout").addEventListener("click", () => zoom(1 / 1.2));
     $("lv-fit").addEventListener("click", () => G.fitLevel());
     $("lv-pause").addEventListener("click", () => BB.LevelMap.pause());
+    $("lv-notebook").addEventListener("click", () => BB.LevelMap.notebook("level"));
     window.addEventListener("keydown", (e) => {
       if (G.mode !== "level" || e.target.matches("input, select, textarea")) return;
       const free = e.target === document.body || !!e.target.closest("#mentor");     // Enter belongs to the focused button, if any
@@ -85,9 +86,16 @@
     $("mentor-act").replaceChildren();
     aside(null);
     refresh();
+    refreshNotebook();
     for (const n of [$("mentor-avatar"), $("mentor")]) n.removeAttribute("style");
     lastBox = null;
     requestAnimationFrame(() => walk(null));
+  }
+  // The level's Notebook button gets a dot while the Notebook has cards not looked at yet.
+  function refreshNotebook() {
+    const n = BB.LevelMap.newCards(), b = $("lv-notebook");
+    b.classList.toggle("has-new", n > 0);
+    b.setAttribute("aria-label", n ? `Notebook, ${n} new` : "Notebook");
   }
   function leave() {
     stopSpeaking(); shownParts = []; shownReply = null;
@@ -473,5 +481,5 @@
   }
 
 
-  BB.CoachUI = { SPARK, howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  BB.CoachUI = { SPARK, refreshNotebook, howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});
