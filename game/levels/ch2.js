@@ -472,6 +472,15 @@
             FINISH("Case closed. Measure first, then change things: that is how you fix any circuit."),
           ],
           goals: [{ text: "Light the LED", when: ok, hold: 0.6 }],
+          // Sparky reads the meter with the player (the method from 2-8): 0 V across a good part, the battery's voltage at the fault
+          react: [{ hold: 0.8, when: (S) => {
+            const v = volts(S);
+            if (v === null || ok(S) || on(S, "bb:+T", "bb:-T")) return null;
+            if (Math.abs(v) > 2.5 && on(S, ...show)) return `${shownV(v)} here: the battery's whole voltage shows up across this spot. This is where the loop is broken.`;
+            const q = S.parts("led").concat(S.parts("resistor"), S.parts("wire")).find((x) => S.across(x));
+            if (q && Math.abs(v) < 0.3) return `About 0 V across this ${q.type === "led" ? "LED" : q.type}: with no current, a part that works has no voltage across it. Where does the battery's voltage show up?`;
+            return null;
+          } }],
           challenge: { text: "Find the fault with the meter, then fix it with one change", when: (S, m, C) => {
               const quiet = mode(S, "cont") && !M(S).beep && on(S, ...show);
               if (!changes(C) && ((on(S, ...show) && Math.abs(volts(S) || 0) > 2.5) || quiet)) m.found = true;
