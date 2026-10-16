@@ -113,11 +113,34 @@
       bus = { master: m, voice: audio.createGain(), sfx: audio.createGain() };
       bus.voice.connect(m); bus.sfx.connect(m);
       for (const k of Object.keys(VOL)) bus[k].gain.value = VOL[k] * VOL[k];
+      loadRecorded(audio);
     }
     if (audio.state === "suspended") audio.resume().catch(() => {});
     return audio;
   }
   const out = (kind = "sfx") => bus[kind];
+
+  // ---------- recorded sounds (sounds.js: Sparky's voice, a pop, the short's buzz, the hiss, the star, level complete) ----------
+  // Decoded once, when sound first starts. Until then, or if decoding fails, the synthesized sound plays instead.
+  const rec = {};
+  let recLoading = false;
+  function loadRecorded(a) {
+    if (recLoading || !BB.SoundData) return;
+    recLoading = true;
+    for (const [k, d] of Object.entries(BB.SoundData)) {
+      fetch(d.src).then((r) => r.arrayBuffer()).then((b) => a.decodeAudioData(b)).then((buf) => { rec[k] = buf; }).catch(() => {});
+    }
+  }
+  // Play a recorded sound; `at` and `len` play a slice of it (fading out over its last 40%). Returns null if not loaded.
+  function playRec(a, k, opt = {}) {
+    if (!rec[k]) return null;
+    const src = a.createBufferSource(), g = a.createGain(), t = a.currentTime;
+    src.buffer = rec[k]; src.loop = !!opt.loop; src.playbackRate.value = opt.rate || 1;
+    src.connect(g).connect(opt.into || out(opt.bus));
+    if (opt.len) { g.gain.setValueAtTime(1, t + opt.len * 0.6); g.gain.linearRampToValueAtTime(0, t + opt.len); src.start(t, opt.at || 0, opt.len + 0.01); }
+    else src.start(t);
+    return src;
+  }
   // A sample to hear a new volume: Sparky saying a few syllables, or a chime.
   function sample(kind) {
     if (kind === "voice") [..."hiimsparky"].forEach((c, k) => setTimeout(() => voice(c, { excited: k > 7 }), k * 55));
@@ -190,6 +213,7 @@
 
   function pop() {
     const a = ctx(); if (!a) return;
+    if (playRec(a, "pop")) return;
     const len = Math.floor(a.sampleRate * 0.18), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
     const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
@@ -208,6 +232,7 @@
   // A short rising chime: n notes (1 for a bonus star, 3 for a finished level).
   function chime(n = 1) {
     const a = ctx(); if (!a) return;
+    if (playRec(a, n >= 3 ? "complete" : "star")) return;
     const notes = [880, 1108.7, 1318.5].slice(0, Math.max(1, n));
     notes.forEach((f, k) => {
       const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + k * 0.11;
@@ -223,6 +248,14 @@
   function voice(ch, mods = {}) {
     voiced++;
     const a = ctx(); if (!a) return;
+    // recorded: the letter picks one of Sparky's syllables and its pitch; only its first 90 ms play, so he keeps up with the text
+    const syl = rec.voice && BB.SoundData.voice.syl;
+    if (syl && syl.length) {
+      const code = ch.toLowerCase().charCodeAt(0), [at, len] = syl[code % syl.length];
+      const st = SCALE[code % SCALE.length] / 2 + (mods.question ? 3 : 0) + (mods.excited ? 1.5 : 0);
+      playRec(a, "voice", { bus: "voice", at, len: Math.min(len, 0.09), rate: Math.pow(2, (st - 2) / 12) * (0.98 + Math.random() * 0.04) });
+      return;
+    }
     const c = ch.toLowerCase(), semi = SCALE[c.charCodeAt(0) % SCALE.length] + (mods.question ? 5 : 0) + (mods.excited ? 2 : 0);
     const f0 = 520 * Math.pow(2, semi / 12) * (0.98 + Math.random() * 0.04), t = a.currentTime, dur = 0.07;
     const o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
@@ -260,6 +293,12 @@
   // Continuous sounds (a short circuit's buzz, a hot part's hiss): built once, faded in and out.
   function bed(a, kind) {
     const g = a.createGain(); g.gain.value = 0; g.connect(out());
+    const k = kind === "hum" ? "buzz" : "hiss";
+    if (rec[k]) {                       // recorded, on repeat; `level` below is set for the synth, so scale it back to full
+      const sg = a.createGain(); sg.gain.value = kind === "hum" ? 1 / 0.07 : 1 / 0.025; sg.connect(g);
+      playRec(a, k, { loop: true, into: sg });
+      return g;
+    }
     if (kind === "hum") {
       const o = a.createOscillator(), lp = a.createBiquadFilter(), trem = a.createOscillator(), td = a.createGain(), body = a.createGain();
       o.type = "sawtooth"; o.frequency.value = 100; lp.type = "lowpass"; lp.frequency.value = 900;
@@ -311,5 +350,5 @@
   function setMuted(m) { muted = m; if (m) beep(false); }
   function unlock() { ctx(); }
 
-  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, get recorded() { return Object.keys(rec).sort(); }, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});
