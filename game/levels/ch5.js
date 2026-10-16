@@ -165,7 +165,8 @@
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T6", "a6", 330), V.LED("led1", "c6", "c7", "red"), V.WIRE("w1", "e7", "-T7")),
-          rules: { tray: [{ type: "led", color: "blue", n: 1 }, { type: "resistor", value: 270, n: 1 }, { type: "wire", n: 1 }], banner: true },
+          // the red LED's wire may move, so a curious player can also try red and blue in a row (and move it back)
+          rules: { tray: [{ type: "led", color: "blue", n: 1 }, { type: "resistor", value: 270, n: 1 }, { type: "wire", n: 1 }], allow: allow({ move: ["w1"], legs: ["w1"] }), banner: true },
           ui: { strips: true },
           beats: [
             { id: "p", say: "Put a blue LED side by side with the red one, in the same two strips, sharing the resistor. Which one will light?",
@@ -173,13 +174,19 @@
             { id: "share", say: "Find out: plug the blue LED into the same two strips as the red one, longer leg on the + side.",
               hints: [{ say: "Into d6 and d7, say: the same strips as the red LED, which is in c6 and c7." }, { show: [V.LED("h", "d6", "d7", "blue")] }],
               waitFor: { when: shared, hold: 0.6 } },
-            { id: "fix", reply: "p", say: "Side by side they have the same voltage, about 2 V: too little for blue. Give blue its own resistor and strips.",
+            { id: "fix", reply: "p", say: "Side by side, they have the same voltage across them, about 2 V: too little for blue. Give blue its own resistor and strips.",
               hints: [{ say: "Move the blue LED to free strips. Then 270 Ω from the + rail to its + leg, and a wire from its − leg to the − rail." },
                 { show: [V.RES("h1", "+T12", "a12", 270), V.LED("h2", "c12", "c13", "blue"), V.WIRE("h3", "e13", "-T13")] }],
               waitFor: { when: both, hold: 0.6 } },
             FINISH("Each LED gets its own resistor. Side by side on one, the LED that needs the least voltage draws almost all the current."),
           ],
           goals: [{ text: "Both LEDs lit, each with its own resistor", when: both, hold: 0.6 }],
+          // red and blue in a row also light, dimly: say so, and what this level asks instead
+          react: [{ hold: 0.8, when: (S, C) => {
+            const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 0.001), b = S.battery(), ib = Math.abs((b && b.rd.I) || 0);
+            if (!C.beat || C.beat.id === "p" || ls.length !== 2 || !ls.every((q) => Math.abs(q.rd.I - ib) <= 0.03 * ib)) return null;
+            return `In a row, both light: red 2 V + blue 3 V leaves about 1 V for the resistor, so only ${shownmA(ib)}. That works too (next level!). Here: side by side, each with its own resistor.`;
+          } }],
           challenge: { text: "Both LEDs within 3 mA of each other", when: (S) => { const ls = S.parts("led").filter((q) => lit(q, 0.005)); return both(S) && ls.length === 2 && Math.abs(ls[0].rd.I - ls[1].rd.I) <= 0.003; } },
           solution: [{ choose: "right" }, { place: { type: "led", color: "blue" }, at: V.hs("d6", "d7") }, { wait: 1 }, { move: "led", to: V.hs("c12", "c13") },
             { place: { type: "resistor", value: 270 }, at: V.hs("+T12", "a12") }, { wire: V.hs("e13", "-T13") }, { wait: 1 }, { next: 1 }],
