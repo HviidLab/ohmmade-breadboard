@@ -569,7 +569,5 @@
   }
 
   function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level, the sandbox)
-  // Drop whatever is being dragged or carried (Sparky's blackboard is about to cover the bench).
-  function cancel() { st = null; lastPtr = null; float(null); trayState(null); R.clearGhost(); R.highlight(null); if (kb) { kb = null; show(); } }
-  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, cancel, get carrying() { return !!kb; }, get busy() { return !!st || !!kb; } };
+  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, get carrying() { return !!kb; } };
 })(window.BB = window.BB || {});

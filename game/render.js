@@ -695,5 +695,5 @@
     }
   }
 
-  BB.Render = { cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, setView: (v) => { Object.assign(view, v); apply(); }, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

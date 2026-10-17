@@ -396,7 +396,5 @@
     return `<svg viewBox="0 0 64 48" aria-hidden="true"><defs><filter id="ink${k}" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="${k % 9}"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter></defs><g filter="url(#ink${k})">${body}</g></svg>`;
   }
 
-  // For the blackboard (chalk-art.js): the same pen strokes and part symbols, and a drawing without its wrapper.
-  const kit = { PEN, RED, BLUE, DOT, HL, GREY, ln, pl, tx, circ, current, arrow, battery, resH, resV, ledV, meter, probeTo, term, cross, tick, burst, slot, loopWires, loopPath, X0, X1, Y0, Y1, YM };
-  BB.NotebookArt = { diagram, symbol, ids: () => Object.keys(D), body: (id) => (D[id] ? D[id]() : ""), kit };
+  BB.NotebookArt = { diagram, symbol, ids: () => Object.keys(D) };
 })(window.BB = window.BB || {});

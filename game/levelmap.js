@@ -265,7 +265,6 @@
         row("1, 2", "Pick up the red or the black probe"),
         row("R · Delete", "Flip · take off the part under the cursor"),
         row("Esc", "Put down nothing (cancel); with nothing carried: the menu"),
-        row("?", "I don't get it: Sparky explains the idea on a blackboard (← → between boards, Esc puts the bench back)"),
         row("Enter, Space", "On a control: use it (dial, socket, switch, button, light sensor, pin)"),
         row("Arrow keys on a knob", "Turn it (Shift: finely)"),
         row("+ · − · F", "Zoom in · out · show the whole level"),
@@ -340,24 +339,22 @@
     }).filter((r) => r.attempts);
   }
   const slowest = (beats) => (beats && beats.length ? beats.reduce((a, b) => (b.t > a.t ? b : a)) : null);
-  // the blackboard lectures of an attempt: "loop at place, 4/4, 22 s"
-  const talks = (ls) => (ls || []).map((l) => `${l.c}${l.beat ? ` at ${l.beat}` : ""}, ${l.boards}/${l.of}, ${l.s} s`).join("; ");
   const steps = (beats) => beats.map((b) => `${b.id} ${b.t} s${b.hints ? ` (${b.hints} hint${b.hints > 1 ? "s" : ""})` : ""}`).join(", ");
   function playtestTable() {
     const rows = playtestRows();
     if (!rows.length) return '<p class="scr-sub">No levels played yet.</p>';
-    return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Lectures</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
+    return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
       const s = slowest(r.last && r.last.beats);
       return `<tr><td>${r.id}</td><td>${r.attempts}${r.reloads ? ` (page reloaded ${r.reloads}×)` : ""}</td><td>${r.last ? `${r.last.t} s` : "—"}</td><td>${r.last ? r.last.hints : "—"}</td>
-        <td>${esc(talks([...((r.last && r.last.lectures) || []), ...((r.open && r.open.lectures) || [])]) || "—")}</td><td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
+        <td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
     }).join("")}</table>`;
   }
   function playtestText() {
     const lines = [`Ohmmade Breadboard playtest data, ${new Date().toISOString().slice(0, 10)}`];
     for (const r of playtestRows()) {
       lines.push(`${r.id} ${r.title}: ${r.attempts} attempt${r.attempts > 1 ? "s" : ""}${r.reloads ? `, page reloaded ${r.reloads} time${r.reloads > 1 ? "s" : ""}` : ""}`);
-      if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}${r.last.lectures && r.last.lectures.length ? `. Lectures: ${talks(r.last.lectures)}` : ""}`);
-      if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}${r.open.lectures && r.open.lectures.length ? `. Lectures: ${talks(r.open.lectures)}` : ""}`);
+      if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}`);
+      if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}`);
     }
     if (lines.length === 1) lines.push("No levels played yet.");
     return lines.join("\n");
@@ -368,7 +365,7 @@
       ${playtestTable()}
       <textarea class="pt-text" readonly rows="8" aria-label="Playtest data as text">${esc(playtestText())}</textarea>
       <label class="pt-switch"><input type="checkbox" id="pt-open"${openAll() ? " checked" : ""}> Open all levels, to try any level without finishing the ones before it. Your progress is not changed.</label>
-      <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><a class="btn" href="lectures.html" target="_blank" rel="noopener">Read all blackboard lectures</a><button type="button" class="btn" id="pt-back">Back</button>
+      <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><button type="button" class="btn" id="pt-back">Back</button>
       <button type="button" class="btn" id="pt-reset">Reset</button><span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
     on(host, "#pt-copy", async () => {
       const ta = host.querySelector(".pt-text"), say = (t) => { host.querySelector("#pt-ok").textContent = t; };

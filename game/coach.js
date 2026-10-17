@@ -50,7 +50,6 @@
       this.broken = new Set();             // types of parts that failed during this attempt
       this.t = 0; this.idle = 0; this.hint = 0; this.held = 0; this.beatT = 0;
       this.tele = [];                      // [{id, t, hints}] per beat
-      this.lectures = [];                  // [{c, beat, boards, of, s}] per blackboard lecture (lecture.js)
       this.finished = false;
     }
     get beat() { return this.lv.beats[this.i] || null; }
