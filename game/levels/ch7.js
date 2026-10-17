@@ -12,7 +12,7 @@
   // a push button across the centre gap: legs in rows r and r + 2 (e and f), so each row's two legs are joined
   const BUTTON = (V, id, r, latch = false) => Object.assign({ id, type: "button", legs: V.hs(`e${r}`, `f${r}`, `e${r + 2}`, `f${r + 2}`), pairs: "across", pressed: false }, latch ? { latch: true } : {});
   const down = (S, id) => { const q = part(S, id); return !!q && !!q.part.pressed; };
-  const LATCH_HINT = { say: "These buttons stay down when you click them, and pop up when you click again. Real push buttons spring back." };
+  const LATCH_HINT = { say: "These buttons stay down when clicked and pop up when clicked again, like a lamp's on/off button. Most push buttons spring back." };
 
   const L = [
     {
@@ -204,7 +204,7 @@
     "words": [
       {
         "w": "Push button",
-        "d": "A switch that closes the loop while you press it, and springs back when you let go.",
+        "d": "A normally open (NO) switch: it closes the loop only while you press it, and springs back when you let go.",
         "sym": "button"
       },
       {

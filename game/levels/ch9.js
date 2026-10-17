@@ -35,7 +35,7 @@
             { id: "name", reply: "p", say: () => `${fmtI(seen.ib ?? 0.0005)} into B switches ${fmtI(seen.ic ?? 0.012)} through the LED. A small current controls a big one.`,
               waitFor: NEXT },
             Object.assign(FINISH("It can pass about 200 × the base current (that varies a lot by part). So it is fully on, almost a closed switch: the 330 Ω sets the current."),
-              { note: "leg order differs by part: a BC547 is C, B, E (flat side to you), a 2N2222 is E, B, C. Check its datasheet." }),
+              { note: "leg order differs by part: a BC547 is C, B, E (flat side to you); 2N2222s come as E, B, C or C, B, E. Check the datasheet." }),
           ],
           goals: [{ text: "Light the LED through the transistor", when: on }],
           challenge: { text: "Switch it off again by taking the wire away", when: (S, m) => { if (lit(part(S, "led1"))) m.on = true; return !!m.on && !S.parts("wire").some((q) => !["w1", "w2"].includes(q.id)); } },
@@ -128,7 +128,7 @@
     "words": [
       {
         "w": "Transistor",
-        "d": "A switch worked by a small current, with three legs: C, B and E.",
+        "d": "A part where a small current into B controls a big one from C to E. Here it is a switch; it can also amplify.",
         "sym": "npn"
       },
       {

@@ -37,7 +37,7 @@
               waitFor: { when: (S) => { if (two(S)) seen.i = reads(S); return two(S); } } },
             { id: "p2", reply: "p1", say: () => `${shownmA(seen.i ?? 0.003)}. In a row, called series, the resistances add: 1 kΩ + 1 kΩ = 2 kΩ. And 1 kΩ + 2 kΩ?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
-            Object.assign(FINISH("3 kΩ in all, so 6 V ÷ 3 kΩ = 2 mA. Resistors in series add up."), { reply: "p2" }),
+            Object.assign(FINISH("3 kΩ in all, so 6 V ÷ 3 kΩ = 2 mA. Resistances in series add up."), { reply: "p2" }),
           ],
           goals: [{ text: "Two 1 kΩ resistors in a row", when: two }],
           challenge: { text: "Then build 1 kΩ + 2 kΩ and read the 2 mA you worked out", when: (S) => resWith(S, 1000).length === 1 && resWith(S, 2000).length === 1 && near(reads(S), 0.0019, 0.0021) },
@@ -107,7 +107,7 @@
               } } },
             { id: "p2", reply: "p1", say: "6 V across both: side by side, called parallel, each has the whole voltage across it. So the 1 kΩ draws about 6 mA. And the 2 kΩ?",
               predict: P2, waitFor: { predict: true } },
-            Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch has the full voltage across it and draws its own current."), { reply: "p2" }),
+            Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch has the same voltage across it and draws its own current."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure across both resistors", when: (S, m) => {
             if (acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 5.5) m.a = true;
@@ -217,7 +217,8 @@
               hints: [{ say: "In a row, the two LEDs need 2 V each: 4 V. What is left for the resistor?" }, { say: `That leaves 6 − 4 = 2 V. Which size lets about ${W.aim} mA through: 2 V ÷ ${W.aim} mA = …?` },
                 { show: [V.RES("h1", "+T6", "a6", W.r), V.LED("h2", "c6", "c7", "red"), V.LED("h3", "d7", "d8", "red"), V.WIRE("h4", "e8", "-T8")] }],
               waitFor: { when: two, hold: 0.8 } },
-            FINISH("LEDs in a row add up their voltages, so less is left for the resistor. Chapter 5 done!"),
+            Object.assign(FINISH("LEDs in a row add up their voltages, so less is left for the resistor. Chapter 5 done!"),
+              { note: "in a row, if one LED fails and opens the loop, they all go dark; side by side, the rest stay lit." }),
           ],
           goals: [{ text: `Two red LEDs in a row, each ${W.lo} to ${W.hi} mA, one resistor`, when: two, hold: 0.8 }],
           react: [{ when: (S) => {

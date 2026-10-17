@@ -151,7 +151,7 @@
     "words": [
       {
         "w": "Light sensor (LDR)",
-        "d": "A resistor that reacts to light: low in the light, high in the dark.",
+        "d": "A light-dependent resistor, also sold as a photocell or photoresistor: low resistance in the light, high in the dark.",
         "sym": "ldr"
       },
       {

@@ -167,7 +167,8 @@
               waitFor: { when: (S) => { if (reads(S)) { seen.i = M(S).value; } return reads(S); } } },
             { id: "p", say: () => `${shownmA(seen.i ?? 0.012)}: that many thousandths of an amp flow round${(seen.i ?? 1) < 0 ? " (the minus: red is on the − side)" : ""}. What if you pull out a probe?`,
               highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
-            Object.assign(FINISH("The meter is part of the loop now. Pull a probe out and see the dots stop everywhere."), { reply: "p" }),
+            Object.assign(FINISH("The meter is part of the loop now. Pull a probe out and see the dots stop everywhere."),
+              { reply: "p", note: "after measuring current, move the red lead back to VΩ and the dial to OFF, or the next voltage check blows the fuse." }),
           ],
           goals: [{ text: "Measure the LED's current", when: reads }],
           challenge: { text: "Read the current with no minus sign", when: (S) => reads(S) && M(S).value > 0 },
@@ -313,6 +314,8 @@
         const P = V.predict(["Resistor A", "Resistor B"], V.L.safe === "A" ? 0 : 1, V.L.safe === "A" ? [null, tiny] : [tiny, null]);
         const reads = (S, t) => { const q = part(S, ID[t]), ok = !!q && S.across(q) && ohms(S) !== null && S.near(ohms(S), R[t], 0.03); if (ok) seen[t] = ohms(S); return ok; };
         const ok = (S) => S.parts("led").some(safe);
+        // the safe resistor's own bands, for the Real bench note
+        const bands = V.ohms === 470 ? "yellow, violet, brown is 470 Ω" : "orange, orange, brown is 330 Ω";
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.LED("led1", "c6", "c7"), V.WIRE("w1", "e7", "-T7"),
@@ -332,7 +335,8 @@
               highlight: { holes: V.hs("+T6", "a6") },
               hints: [{ say: "Drag the resistor so one leg is on the red + rail and the other in the LED's + strip." }, { show: [V.RES("h", "+T6", "a6", V.ohms)] }],
               waitFor: { when: ok, hold: 0.6 } },
-            FINISH("Resistance is a resistor's size, in ohms. Measure with the battery off, best with the part out: the battery and other parts fool the meter."),
+            Object.assign(FINISH("Resistance is a resistor's size, in ohms. Measure with the battery off, best with the part out: the battery and other parts fool the meter."),
+              { note: `real resistors show their value in colour bands: ${bands}. The meter checks the bands.` }),
           ],
           goals: [{ text: "Light the LED safely", when: ok, hold: 0.6 }],
           challenge: { text: "Check your resistor with Ω where it sits, battery off", when: (S) => {
@@ -444,14 +448,14 @@
     },
     {
       id: "2-10", title: "Detective", teaches: [], uses: ["volts", "across", "break", "continuity", "loop", "strip", "rail", "polarity", "resistor"], shifts: [0, 4, 8],
-      card: { name: "Measure first", text: "Before you change anything, measure. Where most of the voltage shows up, or a wire stays quiet, there is your fault." },
+      card: { name: "Measure first", text: "Before you change anything, measure. Where most of the voltage shows up, or, with the battery off, a wire stays quiet, there is your fault." },
       colors: ["red", "yellow", "green"],
       // the fault: the LED one strip off (seed 0: it needs the meter most), a wire broken inside, or the LED the wrong way round. Probes that show it; the one-change fix.
       layouts: [
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c8"), V.WIRE("wire1", "e8", "-T8")],
           show: ["b6", "b7"], fix: { wire: ["d6", "d7"] }, hint: "Follow the loop strip by strip. Is each part's leg in the same strip as the next part?" },
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"), Object.assign(V.WIRE("wire1", "e7", "-T7"), { broken: true })],
-          show: ["b7", "-T9"], fix: { wire: ["d7", "-T12"] }, hint: "Is every wire really joining its two ends? The beep can tell." },
+          show: ["b7", "-T9"], fix: { wire: ["d7", "-T12"] }, hint: "Switch the battery off, then put a probe at each end of each wire. The broken one stays quiet. Switch it on again after." },
         { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c6"), V.WIRE("wire1", "e7", "-T7")],
           show: ["b6", "b7"], fix: { flip: "led1" }, hint: "Look at each LED leg. Which way should the longer + leg face?" },
       ],
@@ -463,7 +467,7 @@
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("V")),
           rules: { tray: [{ type: "wire", n: 1 }, { type: "led", color: V.c1, n: 1 }],
-            allow: allow({ move: ["led1", "wire1"], legs: ["led1", "wire1"], flip: ["led1"], remove: ["led1", "wire1"], replace: ["led1", "meter"] }), banner: true },
+            allow: allow({ ctl: ["meter", "bat"], move: ["led1", "wire1"], legs: ["led1", "wire1"], flip: ["led1"], remove: ["led1", "wire1"], replace: ["led1", "meter"] }), banner: true },
           beats: [
             { id: "case", say: V.say("This one should light, but it doesn't. Use the meter to find out why, then fix it.",
               "A dark LED, and no idea why. Find the fault with the meter, then fix it."),
@@ -476,6 +480,8 @@
           react: [{ hold: 0.8, when: (S) => {
             const v = volts(S);
             if (v === null || ok(S) || on(S, "bb:+T", "bb:-T")) return null;
+            const b = S.battery();
+            if (b && b.part.on === false) return "The battery is off, so there is no voltage to find. Switch it on to measure voltage, or use the beep.";
             if (Math.abs(v) > 2.5 && on(S, ...show)) return `${shownV(v)} here: most of the battery's voltage shows up across this spot. This is where the loop is broken.`;
             const q = S.parts("led").concat(S.parts("resistor"), S.parts("wire")).find((x) => S.across(x));
             if (q && Math.abs(v) < 0.3) return `About 0 V across this ${q.type === "led" ? "LED" : q.type}: with no current, a part that works has no voltage across it. Where does the battery's voltage show up?`;

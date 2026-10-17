@@ -188,8 +188,10 @@
       <div class="scr-row fn-name"><label for="fn-in">Your name for the certificate</label><input id="fn-in" type="text" maxlength="40" value="${esc(name)}" autocomplete="off">
         <button type="button" class="btn" id="fn-print">Print it</button></div>
       <div class="fn-next"><h2>Do it for real</h2>
-        <p>A starter kit with: a breadboard (830 holes), a 4 × AA box with a switch, resistors from 100 Ω to 100 kΩ, red, yellow, green and blue LEDs,
-        push buttons, a 10 kΩ knob, a light sensor, NPN transistors such as BC547 (legs C, B, E; a 2N2222 has them the other way round, E, B, C: check the datasheet), 100 µF and 1000 µF capacitors rated 16 V or more, jumper wires and a multimeter.</p>
+        <p>A starter kit with: a breadboard (830 holes), a 4 × AA battery holder with a switch, resistors from 100 Ω to 100 kΩ, red, yellow, green and blue LEDs,
+        push buttons, a 10 kΩ potentiometer (the knob), a light sensor (sold as an LDR, photoresistor or photocell, such as GL5528), NPN transistors such as BC547
+        (legs C, B, E; 2N2222s come as E, B, C or C, B, E: check the datasheet), 100 µF and 1000 µF capacitors rated 16 V or more, jumper wires, a multimeter,
+        small side cutters and safety glasses.</p>
         <p>The controller board showed you its code. Real boards, such as Arduino, run code like those lines; start with the blink and the button programs.</p>
         <p>Keep the Safe bench card in your Notebook close. And the sandbox is always open for new ideas.</p></div>
       <div class="scr-row"><button type="button" class="btn primary" id="fn-sandbox">Open the sandbox</button><button type="button" class="btn" id="fn-nb">Notebook</button>
@@ -280,12 +282,30 @@
   // Always in the Notebook: what is safe in the game is not always safe on a real bench.
   const SAFE = `<section class="nb-page"><h2 class="nb-ch">Safe bench</h2><ol class="nb-grid"><li class="nb-wide"><div class="nb-card nb-safe">
     <h2>Safe here, careful there</h2><p>In the game you can break anything. On a real bench:</p><ul>
-    <li>Use AA or AAA alkaline packs, or a controller board on USB. Never mains, and never bare Li-ion or LiPo cells: shorted, they can catch fire.</li>
-    <li>Never short a battery: wires and cells get hot enough to burn.</li>
+    <li>Use AA or AAA alkaline packs, or a controller board on USB. Never work on anything wired to mains, and never use bare Li-ion or LiPo cells: shorted, they can catch fire.</li>
+    <li>Never short a battery: wires and cells get hot enough to burn you, and a cell can leak or burst.</li>
+    <li>Wear safety glasses when you cut leads or wires: the snipped ends fly.</li>
     <li>If a part gets hot or smells, disconnect it, and let it cool before you touch it.</li>
-    <li>Electrolytic capacitors: stripe to −, never above the voltage printed on them, and keep your face away when you switch on.</li>
+    <li>Electrolytic capacitors: stripe to −, rated well above your supply (16 V or more for the 6 V pack), and keep your face away when you switch on. Don't touch what leaks out of a burst part.</li>
+    <li>After measuring current, move the meter's red lead back to VΩ and turn the dial to OFF.</li>
     <li>Every LED gets its resistor, and so does every transistor base and every pin that drives a part.</li>
-    <li>Never join the 6 V pack to a controller board's pin: its pins are made for at most 5 V.</li></ul></div></li></ol></section>`;
+    <li>Never join the 6 V pack to a controller board's pin: its pins are made for at most 5 V. Touch grounded metal before you handle the board: static can harm its chip.</li></ul></div></li></ol></section>`;
+  // The real bench skills the game's parts hide (Electronics for Dummies treats them as basics): reading parts and the meter.
+  const REAL = `<section class="nb-page"><h2 class="nb-ch">Real bench</h2><ol class="nb-grid">
+    <li class="nb-wide"><div class="nb-card nb-safe"><span class="nb-art" style="display:block;max-width:440px;margin:0 auto">${BB.NotebookArt.diagram("bands")}</span><h2>Reading a resistor</h2>
+    <p>A real resistor shows its value in colour bands: black 0, brown 1, red 2, orange 3, yellow 4, green 5, blue 6, violet 7, grey 8, white 9.
+    The first two bands are digits, the third says how many zeros follow, and a gold band means the value is within 5 %. Yellow, violet, red is 47 and two zeros: 4.7 kΩ. Can't read them? Measure it, with the part out of the circuit.</p></div></li>
+    <li class="nb-wide"><div class="nb-card nb-safe"><h2>Which leg is which</h2><ul>
+    <li>LED: the + leg (anode) is the longer one; the − leg (cathode) is by the flat edge of the rim. Trimmed legs? Look for the flat edge.</li>
+    <li>Electrolytic capacitor: the − leg is by the stripe, the + leg is longer. Its can shows the most voltage it can take. Small ceramic capacitors have no right way round.</li>
+    <li>Transistor: the leg order differs from part to part. A BC547 is C, B, E with its flat side to you; 2N2222s come as E, B, C or C, B, E. Check the datasheet: its pin drawing is often seen from below.</li>
+    <li>Push buttons are normally open (NO, they close while pressed) or normally closed (NC). A 4-leg button's legs are joined in pairs.</li>
+    <li>A potentiometer is marked with its full resistance, like 10K. A light sensor is sold as an LDR, photocell or photoresistor.</li></ul></div></li>
+    <li class="nb-wide"><div class="nb-card nb-safe"><h2>Meter habits</h2><ul>
+    <li>Real meters have V⎓ for batteries and V~ for mains; use V⎓. If yours has ranges, pick one above what you expect, like 20 V for the 6 V pack.</li>
+    <li>Measure resistance with the battery off and the part on its own, and keep your fingers off the probe tips.</li>
+    <li>After measuring current, move the red lead back to VΩ and the dial to OFF, or the next voltage check blows the fuse.</li>
+    <li>A capacitor keeps its charge after the battery is off: empty it through a resistor before you measure.</li></ul></div></li></ol></section>`;
   const teacher = (id) => BB.Levels.all().find((l) => l.teaches.includes(id));
   function ideaCard(c, isNew) {
     return `${isNew ? '<span class="nb-new">New!</span>' : ""}<span class="nb-art">${BB.NotebookArt.diagram(c.id)}</span>
@@ -301,13 +321,13 @@
     // each chapter's summary card once its last level is done; the circuit symbols at the start of chapter 1
     const summary_ = (ch) => ch.levels.filter((l) => l.card && (prog[l.id] || {}).done).map((l) => `<li class="nb-wide"><div class="nb-card nb-sum"><h2>${esc(l.card.name)}</h2><p>${esc(l.card.text)}</p></div></li>`).join("");
     const symbols = `<li><div class="nb-card nb-sym"><span class="nb-art">${BB.NotebookArt.diagram("symbols")}</span><h2>Circuit symbols</h2>
-      <p>Circuit drawings use symbols. The battery's long plate is +; the LED's triangle points the way current flows.</p></div></li>`;
+      <p>Circuit drawings use symbols. The battery's long plate is +; the LED's triangle points the way current flows, and its two arrows are the light. In Europe a resistor is often drawn as a small box.</p></div></li>`;
     const pages = BB.Levels.chapters.map((ch) => `<section class="nb-page" id="nb-ch${ch.n}"><h2 class="nb-ch">Chapter ${ch.n} · ${esc(ch.title)}</h2>
       <ol class="nb-grid">${summary_(ch)}${ch.n === 1 ? symbols : ""}${ch.levels.flatMap((l) => l.teaches).map((id) => card(BB.Concepts.get(id))).join("")}</ol></section>`).join("");
     const back = { level: "Back to the level", pause: "Menu", map: "Level map", finale: "Back" }[from] || "Title screen";
     const host = show("notebook", `<div class="nb-book"><div class="nb-bar"><div class="nb-bar-row"><button type="button" class="btn primary" id="nb-back">← ${back}</button>
       <div class="nb-head"><h1>My Notebook</h1><p class="scr-sub">${learned.length} of ${BB.Concepts.LIST.length} ideas learned</p></div></div>${chips("nb-ch")}</div>
-      ${SAFE}${pages}</div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
+      ${SAFE}${REAL}${pages}</div><div class="nb-zoom" id="nb-zoom" hidden></div>`, "#nb-back");
     wireChips(host);
     on(host, "#nb-back", () => (from === "level" ? (close(), BB.CoachUI.refreshNotebook()) : from === "pause" ? pause() : from === "map" ? showMap() : from === "finale" ? finale() : (hideAll(), BB.Title.show())));
     if (chapter) { const pg = host.querySelector(`#nb-ch${chapter}`); if (pg) pg.scrollIntoView({ block: "start" }); }

@@ -106,7 +106,7 @@
               hints: [{ say: "Remove the resistor, draw a wire between its two holes, then drag the knob." }], waitFor: { when: popped, hold: 0.05 } },
             { id: "fix", reply: "p", say: "Pop! With the knob at almost 0 Ω, almost nothing held the current back. Put the 220 Ω back instead of the wire, with a fresh LED.",
               hints: [{ say: "Take the wire off, put the 220 Ω back in its holes, then click the burned part and press Fresh one." }], waitFor: { when: fixed, hold: 0.6 } },
-            FINISH("A knob in the loop makes a dimmer. Keep a fixed resistor in the loop too, for when the knob is turned right down."),
+            FINISH("A knob in the loop makes a dimmer. Keep a fixed resistor in the loop too, for when the knob is at almost 0 Ω."),
           ],
           goals: [{ text: "The dimmer working again, safely", when: fixed, hold: 0.6 }],
           challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
@@ -176,7 +176,7 @@
       },
       {
         "w": "Potentiometer (knob)",
-        "d": "A resistor with a wiper that slides along its track when you turn the knob.",
+        "d": "A resistor with a wiper that slides along its track when you turn the knob. It is marked with its full resistance, such as 10K.",
         "sym": "pot"
       },
       {

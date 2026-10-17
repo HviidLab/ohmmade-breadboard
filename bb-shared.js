@@ -26,7 +26,7 @@ const BBShared = (() => {
   const BANDS = { 0: "#1a1a1a", 1: "#8b4513", 2: "#d42a2a", 3: "#f08c00", 4: "#fab005", 5: "#2f9e44", 6: "#1c7ed6", 7: "#7048e8", 8: "#868e96", 9: "#f8f9fa" };
   function bands(v) {
     const d = String(v), z = d.length - 2;
-    return [BANDS[d[0]], BANDS[d[1]], BANDS[z], "#c9a227"];
+    return [BANDS[d[0]], BANDS[d[1]], BANDS[z], "#a67c1f"];
   }
   const LABEL = (v) => (v >= 1000 ? `${v / 1000}k` : `${v}`);
 

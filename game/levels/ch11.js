@@ -48,7 +48,8 @@
             { id: "high", say: "Find out: click D13's badge on the board. H means HIGH, L means LOW.", hints: [PIN], waitFor: { when: hi, hold: 0.3 } },
             { id: "low", reply: "p", say: "HIGH joined D13 to 5 V, so a current flowed. Now set it LOW, which joins it to GND, the board's 0 V.",
               waitFor: { when: lo, hold: 0.3 } },
-            FINISH("A pin is a switch you control: HIGH gives about 5 V, LOW 0 V. In code: pinMode(13, OUTPUT); then digitalWrite(13, HIGH);"),
+            Object.assign(FINISH("A pin is a switch you control: HIGH gives about 5 V, LOW 0 V. In code: pinMode(13, OUTPUT); then digitalWrite(13, HIGH);"),
+              { note: "static from your body can harm the board's chip: touch grounded metal first, and hold the board by its edges." }),
           ],
           goals: [{ text: "Light the LED from D13", when: hi }, { text: "Switch it off from D13", when: (S, m) => { if (hi(S)) m.on = true; return !!m.on && lo(S); } }],
           challenge: { text: "Blink it: on, off, on, off", when: (S, m) => { const now = led(S); if (now !== !!m.was) { m.n = (m.n || 0) + 1; m.was = now; } return (m.n || 0) >= 4; } },
@@ -206,7 +207,8 @@
             { id: "press", say: "Find out: press the button.", allow: { program: false }, hints: [PRESS], waitFor: { when: copyOn, hold: 0.3 } },
             { id: "swap", reply: "p", say: "D2 reads HIGH, so the program sets D13 HIGH. Click the screen to change the program, then try the button.",
               hints: [{ say: "Click the board's screen once: the program becomes “D13 is the opposite of D2”.", highlight: { lcd: "board" } }], waitFor: { when: tried } },
-            FINISH("Same wires, a new program, and the LED does the opposite. The ! in the code means \"not\". In a controller, the program decides."),
+            Object.assign(FINISH("Same wires, a new program, and the LED does the opposite. The ! in the code means \"not\". In a controller, the program decides."),
+              { note: "on a real board, the code line on the screen sits inside loop(), which the board runs over and over, many thousands of times a second." }),
           ],
           goals: [{ text: "Light the LED with the button", when: copyOn }, { text: "Make the button switch it off", when: oppOff }],
           challenge: { text: "Then switch back to “copies”", when: (S, m) => { if (rule(S) === "opposite") m.o = true; return !!m.o && rule(S) === "copy"; } },
@@ -279,7 +281,7 @@
       {
         "w": "GND (ground)",
         "d": "The board's 0 V point, like the battery's −.",
-        "sym": "battery"
+        "sym": "gnd"
       },
       {
         "w": "IN (input)",
@@ -298,7 +300,7 @@
       },
       {
         "w": "Program",
-        "d": "Rules the board runs, written as code such as pinMode(13, OUTPUT); then digitalWrite(13, HIGH);",
+        "d": "Rules the board runs over and over: code in loop(), such as digitalWrite(13, HIGH); after pinMode(13, OUTPUT); in setup().",
         "sym": "chip"
       }
     ]

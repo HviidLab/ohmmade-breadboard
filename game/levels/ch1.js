@@ -331,7 +331,7 @@
               waitFor: { when: (S) => !S.shortNow(), hold: 0.05 } },
             Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and the voltage between the rails collapsed to near 0 V."
               : "Phew! A huge current poured through the wire, the voltage between the rails collapsed to near 0 V, and the LED went dark.")),
-            { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and some batteries can catch fire." }),
+            { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and a cell can leak, burst or catch fire." }),
           ],
           goals: [{ text: "Light the LED, with no short circuit", when: (S) => anyLit(S) && !S.shortNow(), hold: 0.6 }],
           challenge: { text: "Pull the short out before the batteries get hot (3 seconds)", when: (S, m) => {

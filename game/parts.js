@@ -78,7 +78,7 @@
       },
       stresses: () => ({ heat: { rated: 1, tau: 20, square: false, smoke: 10, fail: 18, x: (rd) => rd.Pint } }),      // a full short: hot in 3 s, ruined in 6 s
       legI: (rd) => [-(rd.I || 0), rd.I || 0],
-      failText: () => "The batteries overheated in a short circuit. Real cells get hot enough to burn you, and can leak. Always put a resistance in the path.",
+      failText: () => "The batteries overheated in a short circuit. Real cells get hot enough to burn you, and can leak or even burst. Always put a resistance in the path.",
     },
 
     led: {
@@ -126,7 +126,7 @@
                 out.value = R;
                 if (I < -1e-9 || R < 0) {           // something else pushes current into the probes: the circuit is powered
                   out.display = "Err";
-                  out.note = "The circuit is on: switch it off to measure resistance.";
+                  out.note = "The circuit is on: switch the battery off to measure resistance. (A real meter just shows a wrong number, not Err.)";
                 } else if (!(R < 40e6) || V > m.ohmV * 0.999) out.display = "OL";
                 if (mode === "cont") out.beep = R < 50;
               }

@@ -249,7 +249,7 @@
 
   function bandColors(v) {
     const s = String(Math.round(v)), d1 = +s[0], d2 = +(s[1] || 0), z = Math.max(s.length - 2, 0);
-    return [BANDS[d1], BANDS[d2], BANDS[z], "#c9a227"];
+    return [BANDS[d1], BANDS[d2], BANDS[z], "#a67c1f"];       // gold: a dark metallic gold, not to be confused with yellow
   }
 
   // Draw one part into group g. dead = destroyed. Returns refs for dynamic updates.
@@ -270,8 +270,9 @@
         shade(body, cap);
         r.body = el("path", { d: cap, fill: dead ? "#3b2a1c" : "#ecd3a4", stroke: dead ? "#1a120c" : "#a8834c", "stroke-width": 1.4 }, body);
         if (!dead) {
-          const x0 = -len / 2 + hh * 0.9, span = len - hh * 1.8;
-          bandColors(part.value).forEach((c, k) => el("rect", { x: x0 + (k < 3 ? k * span * 0.24 : span * 0.82), y: -hh + 0.7, width: 3.6, height: 2 * hh - 1.4, fill: c }, body));
+          // the bands scale with the body, so they never run into each other; a wider gap before the tolerance band, as on a real resistor
+          const x0 = -len / 2 + hh * 0.9, span = len - hh * 1.8, bw = Math.min(3.6, span * 0.15);
+          bandColors(part.value).forEach((c, k) => el("rect", { x: x0 + (k < 3 ? k * span * 0.24 : span - bw), y: -hh + 0.7, width: bw, height: 2 * hh - 1.4, fill: c }, body));
           el("rect", { x: -len / 2 + hh * 0.6, y: -hh + 2, width: len - hh * 1.2, height: 3, rx: 1.5, fill: "#fff", opacity: 0.35 }, body);
         } else el("path", { d: `M${-len / 2 + 6} -3 l6 5 l5 -6 l6 7`, stroke: "#120b06", "stroke-width": 2, fill: "none" }, body);
         r.heat = el("path", { d: cap, fill: "#ff5a1a", opacity: 0 }, body);
@@ -309,7 +310,7 @@
         break;
       }
       case "cap": {
-        leg(g, a, mid); leg(g, b, mid);
+        legKink(g, a, mid); leg(g, b, mid);          // the + leg is the longer one, as on a real can
         const rr = part.value >= 1e-3 ? 16 : part.value >= 1e-4 ? 13 : 11, ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
         el("circle", { cx: mid[0] + 2, cy: mid[1] + 3, r: rr, fill: "rgba(4, 10, 20, .32)" }, g);
         // the charge ring: fills with amber as the capacitor charges (effects.js sets how far)
@@ -318,9 +319,11 @@
         r.fill = el("circle", { cx: mid[0], cy: mid[1], r: rr + 4.5, fill: "none", stroke: "#ffb547", "stroke-width": 3.5, "stroke-linecap": "round",
           "stroke-dasharray": `0 ${r.fillC}`, transform: `rotate(-90 ${mid[0]} ${mid[1]})`, style: "filter: drop-shadow(0 0 3px rgba(255, 181, 71, .8))" }, g);
         r.body = el("circle", { cx: mid[0], cy: mid[1], r: rr, fill: dead ? "#2c2f36" : "#3a63d6", stroke: dead ? "#14161a" : "#1c3474", "stroke-width": 1.4 }, g);
-        // the light stripe marks the − side
-        const sx = mid[0] + Math.cos(ang) * rr * 0.58, sy = mid[1] + Math.sin(ang) * rr * 0.58;
-        el("circle", { cx: sx, cy: sy, r: rr * 0.34, fill: dead ? "#4a4d55" : "#c9d6f6" }, g);
+        // the light stripe down the can's side marks the − leg, with its "−" signs (EfD Fig 4-5)
+        const arcAt = (t) => [mid[0] + Math.cos(ang + t) * (rr - 2.6), mid[1] + Math.sin(ang + t) * (rr - 2.6)], [p1, p2] = [arcAt(-0.75), arcAt(0.75)];
+        el("path", { d: `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)}A${rr - 2.6} ${rr - 2.6} 0 0 1 ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`, fill: "none", stroke: dead ? "#4a4d55" : "#c9d6f6", "stroke-width": 5, "stroke-linecap": "round" }, g);
+        const mx = mid[0] + Math.cos(ang) * (rr - 2.6), my = mid[1] + Math.sin(ang) * (rr - 2.6);
+        el("line", { x1: mx - 1.8, y1: my, x2: mx + 1.8, y2: my, stroke: "#1c3474", "stroke-width": 1.4, transform: `rotate(${(ang * 180) / Math.PI + 90} ${mx} ${my})` }, g);
         el("circle", { cx: mid[0] - rr * 0.3, cy: mid[1] - rr * 0.32, r: rr * 0.22, fill: "#fff", opacity: dead ? 0 : 0.35 }, g);
         el("path", { d: `M${mid[0] - rr * 0.45} ${mid[1]}h${rr * 0.9}M${mid[0]} ${mid[1] - rr * 0.45}v${rr * 0.9}`, stroke: dead ? "#ffb08a" : "#9fb4ea", "stroke-width": 1.5, opacity: 0.85 }, g);
         el("text", { x: a[0] - 4, y: a[1] + 19, fill: C.pos, "font-family": "IBM Plex Mono, monospace", "font-size": 11, "font-weight": 600 }, g).textContent = "+";

@@ -135,14 +135,15 @@
           ui: { strips: true },
           goalsFrom: 2,
           beats: [
-            { id: "intro", say: `This resistor lost its label. 6 V pushes about ${+mA.toFixed(1)} mA through it. Turn the rule round: resistance = voltage ÷ current.`,
+            { id: "intro", say: `This resistor's colour bands are too worn to read. 6 V pushes about ${+mA.toFixed(1)} mA through it. Turn the rule round: resistance = voltage ÷ current.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "p", say: `Volts ÷ mA gives kΩ. So how big is it? 6 V ÷ ${+mA.toFixed(1)} mA = …`, predict: P, waitFor: { predict: true } },
             { id: "check", reply: "p", say: "Let's check: battery off, dial to Ω, the red lead back into VΩ, then measure across the resistor.",
               hints: [{ say: "Battery switch off. Dial to Ω, red lead back in VΩ. Then one probe on each side of the resistor." }, RING(V.hs("+T8", "b6"))],
               waitFor: { when: checked } },
             { id: "p2", say: `One more, in your head: 6 V pushes ${I2} mA through another resistor. How big is that one?`, predict: P2, waitFor: { predict: true } },
-            Object.assign(FINISH(`6 V ÷ ${I2} mA = ${R2} kΩ. Know two of voltage, current and resistance, and you can work out the third.`), { reply: "p2" }),
+            Object.assign(FINISH(`6 V ÷ ${I2} mA = ${R2} kΩ. Know two of voltage, current and resistance, and you can work out the third.`),
+              { reply: "p2", note: "real resistors show their value in colour bands: yellow, violet, red is 47 × 100 = 4.7 kΩ. Gold means ±5 %. Can't read them? Measure." }),
           ],
           goals: [{ text: "Check the resistor with Ω", when: checked }],
           challenge: { text: "Then close the loop with a wire and measure the voltage across it", when: (S) => { const q = part(S, "resX"); return !!q && mode(S, "V") && S.across(q) && Math.abs(M(S).value || 0) > 5.5; } },
@@ -171,7 +172,7 @@
             { id: "try", say: "Find out: put the 33 Ω resistor straight across the rails, one leg on +, one on −.", highlight: { nets: ["bb:+T", "bb:-T"] },
               hints: [{ say: "Drag it from the tray so one leg lands on the red + rail and the other on the blue − rail." }, { show: [V.RES("h", "+T10", "-T13", 33)] }],
               waitFor: { when: hot, hold: 0.05 } },
-            { id: "pull", say: "It's scorching hot! Pull it out, quick!",
+            { id: "pull", say: "It's scorching hot! Get it out of the loop, quick! On a real bench: battery off first, and don't touch it.",
               hints: [{ say: "Drag it onto the parts tray, or click it and press Remove." }], waitFor: { when: gone, hold: 0.05 } },
             { id: "name", reply: "p", say: (C) => `${C.broken.has("resistor") ? "Too late, it burned. " : "Phew. "}6 V pushed 180 mA (0.18 A) through it. Power = voltage × current: 6 V × 0.18 A ≈ 1 watt (W).`, waitFor: NEXT },
             { id: "cool", say: "Resistors like these are made for ¼ W. For the 1 kΩ, power = 6 V × 6 mA = 0.036 W. Put it across the rails instead: it stays cool.", hints: [{ show: [V.RES("h", "+T10", "-T13", 1000)] }],
@@ -252,7 +253,7 @@
       {
         "w": "Power",
         "d": "How fast a part turns electrical energy into heat or light: voltage × current. Resistors like these are made for ¼ W.",
-        "sym": "fuse"
+        "sym": "heat"
       }
     ]
   });

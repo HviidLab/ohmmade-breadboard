@@ -186,7 +186,7 @@
     "words": [
       {
         "w": "Capacitor",
-        "d": "A part that stores energy: + charge on one plate, − on the other.",
+        "d": "A part that stores energy: two plates kept apart by an insulator, + charge on one, − on the other.",
         "sym": "cap"
       },
       {
@@ -201,7 +201,7 @@
       },
       {
         "w": "Electrolytic",
-        "d": "A capacitor with a + leg and a striped − leg. Backwards, it can swell and vent.",
+        "d": "A capacitor with a + leg and a striped − leg. Backwards, it can swell and vent. Small ceramic capacitors have no right way round.",
         "sym": "cap"
       }
     ]

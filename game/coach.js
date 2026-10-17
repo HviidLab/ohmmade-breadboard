@@ -23,7 +23,7 @@
     resistor: "The resistor burned out: it got far too hot.",
     wire: "The wire got so hot its insulation melted: far too much current went through it.",
     battery: "The batteries overheated in a short circuit. Click the battery pack for fresh ones.",
-    meter: "Pop! The meter's fuse blew: on mA, the meter is almost a wire. A real one then just reads 0 mA. Click the meter for a new fuse.",
+    meter: "The meter's fuse blew: on mA, the meter is almost a wire. A real one then just reads 0 mA. Click the meter for a new fuse.",
     uno: "A pin gave far too much current and is damaged. Click the board for a fresh one.",
   };
   const SHORT = "Careful: that would join + to − through only wire. That is a short circuit, so I undid it.";

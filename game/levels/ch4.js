@@ -139,7 +139,7 @@
             { id: "fix", reply: "p", say: "300 Ω, rounded up to the next size: 330 Ω. Swap it in for the 390 Ω.", hints: [SWAP_HINT],
               waitFor: { when: ten, hold: 0.6 } },
             Object.assign(FINISH("Each colour needs its own voltage: red about 2 V, yellow and green a little more, blue and white about 3 V."),
-              { note: "some bright green LEDs are made like blue ones and need about 3 V. If in doubt, measure across a new LED first." }),
+              { note: "some bright green LEDs are made like blue ones and need about 3 V. If in doubt, light a new LED through 1 kΩ and measure across it." }),
           ],
           goals: [{ text: "The blue LED at 8 to 10 mA", when: ten }],
           challenge: { text: "Measure the blue LED's current with the meter", when: (S) => !!blue(S) && lit(blue(S), 0.005) && S.readsCurrentOf(blue(S), 0.005, 0.02) },
@@ -225,10 +225,10 @@
   ];
 
   K.chapter(4, "LED maths", L, {
-    "lede": "LEDs are fussy: each colour needs its own voltage, and too much current pops them. Time to do the sums yourself.",
+    "lede": "LEDs are fussy: each colour needs its own voltage, and too much current burns them out. Time to do the sums yourself.",
     "cover": "chooseR",
     "questions": [
-      "How much voltage is across an LED, whatever the resistor?",
+      "How much voltage is across a lit LED, whatever the resistor?",
       "How do you pick the resistor for the current you want?",
       "Why does a blue LED need a different resistor from a red one?"
     ],
@@ -250,7 +250,7 @@
       },
       {
         "w": "The 20 mA limit",
-        "d": "The most a small LED is made for. Far above it, it overheats and dies.",
+        "d": "The forward current on a small LED's datasheet: the most it is made for. Far above, it overheats and dies. Peaks are for millisecond pulses.",
         "sym": "mA"
       }
     ]
