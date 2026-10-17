@@ -1,6 +1,6 @@
 // Chapter 5: Series and parallel. Parts in a row (series) share one current and add their resistances, and they share
 // out the voltage; parts side by side (parallel) each get the whole voltage, and their currents add up. Then a surprise:
-// two LEDs side by side on one resistor (only the one needing less voltage lights), and a challenge with LEDs in a row.
+// two LEDs side by side on one resistor (only the one needing less voltage lights), and an open puzzle: four lights on a small battery.
 // Same rules as Chapters 2 to 4: a question in every level, predict first, the goal and not the holes, hints on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
@@ -194,42 +194,85 @@
       },
     },
     {
-      id: "5-6", title: "Christmas lights", teaches: [], uses: ["seriesR", "seriesShare", "ledCurrent", "ledDrop", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0],
+      id: "5-6", title: "A string of lights", teaches: [], shifts: [0], colors: ["red", "yellow", "green"],
+      uses: ["seriesR", "seriesShare", "sameCurrent", "parallelV", "parallelI", "ownResistor", "ledCurrent", "ledDrop", "current", "resistor", "polarity", "loop", "strip", "rail"],
       card: { name: "Series and parallel", text: "In a row, parts share one current and share out the voltage. Side by side, they have the same voltage across them and the currents add up." },
       layouts: [{}],
       make: (V) => {
-        const W = V.pick([{ lo: 8, hi: 11, aim: 10, r: 220 }, { lo: 4, hi: 7, aim: 5, r: 390 }, { lo: 12, hi: 16, aim: 14, r: 150 }]);     // the current window, and an answer
-        // two LEDs in the window, in a row (each carries the battery's whole current), and one resistor carrying it
-        const two = (S) => {
-          const ls = S.parts("led").filter((q) => q.ok && q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000), b = S.battery(), ib = Math.abs((b && b.rd.I) || 0);
-          return ls.length === 2 && ls.every((q) => Math.abs(q.rd.I - ib) <= 0.03 * ib) && S.parts("resistor").filter((q) => q.ok && Math.abs(q.rd.I || 0) > 1e-5).length === 1;
+        // Four LEDs, two 220 Ω, and the battery may give 20 mA at most. Worked with the simulator's models (battery 6 V with
+        // 0.5 Ω inside; LED n = 2, 2.0 / 2.1 / 2.2 V at 12 mA for red / yellow / green); currents per LED, then the battery's:
+        //   two rows side by side, each row 220 Ω + two LEDs in a row:  9.29 / 8.47 / 7.65 mA each, battery 18.6 / 16.9 / 15.3 mA  ✓
+        //     (the meter on mA in the main line adds its 1 Ω:            9.22 / 8.40 / 7.58 mA,       battery 18.4 / 16.8 / 15.2 mA  ✓)
+        //   each 220 Ω with two LEDs side by side:                       9.11 / 8.89 / 8.67 mA each,  battery 36.5 / 35.6 / 34.7 mA  ✗ (too much)
+        //   all four side by side on one 220 Ω:                          4.63 / 4.52 / 4.41 mA each,  battery 18.5 / 18.1 / 17.6 mA  ✗ (too little each)
+        //   all four in one row (220 Ω, or both):                         about 1.5 V each, a few µA: dark                          ✗ (4 × 2 V = 8 V > 6 V)
+        //   three in a row + 220 Ω, one LED + 220 Ω:                      1.9 / 1.1 / 0.4 mA and 17.9 / 17.5 / 17.0 mA            ✗
+        //   two pairs side by side in a row, on 220 Ω:                    4.91 / 4.48 / 4.06 mA each,  battery 9.8 / 9.0 / 8.1 mA    ✗
+        //   the same on both 220 Ω side by side (110 Ω), or two rows sharing them: 9.29 / 8.47 / 7.65 mA, battery 18.6 / 16.9 / 15.3 mA:
+        //     the numbers of the answer, but LEDs (or rows) side by side share one resistance, against "one resistor per LED" (5-5):
+        //     real LEDs differ, so one path would hog the current. So the goal also asks that the current never splits except at
+        //     the battery's + and −: every other point joins just two parts that carry current (the meter on mA counts as a wire).
+        //   With only these designs lighting all four, the window (5 to 10 mA) and the limit (20 mA) have 7 % or more to spare.
+        //   (A 330 Ω for the second row would give green 5.3 mA, too close to 5: so two 220 Ω, two rows alike.)
+        const c = V.c1, vf = BB.Devices.ledParams(c).vf, LO = 0.005, HI = 0.010, MAX = 0.020;
+        const leds = (S) => S.parts("led").filter((q) => q.ok);
+        const ib = (S) => { const b = S.battery(); return Math.abs((b && b.rd.I) || 0); };
+        const inWindow = (q) => q.rd.I >= LO && q.rd.I <= HI;
+        // the current splits only at the battery's two ends: away from them, each point joins exactly two parts carrying current
+        const rowsOnly = (S) => {
+          const up = new Map(), find = (x) => { while (up.has(x)) x = up.get(x); return x; };
+          const join = (a, b) => { if (!a || !b) return; a = find(a); b = find(b); if (a !== b) up.set(a, b); };
+          for (const q of S.parts("wire")) if (q.ok && !q.part.broken) join(q.nets[0], q.nets[1]);
+          const m = S.meter;
+          if (m && m.mode === "mA" && m.socket === "mA" && m.fuseOK && m.red && m.com) join(BB.netKey(m.red), BB.netKey(m.com));
+          const b = S.battery(); if (!b) return false;
+          const ends = new Set(b.nets.map(find)), n = new Map();
+          for (const q of [...S.parts("led"), ...S.parts("resistor")]) {
+            if (!q.ok || Math.abs(q.rd.I || 0) < 1e-4) continue;
+            for (const net of q.nets) { const k = find(net); if (!ends.has(k)) n.set(k, (n.get(k) || 0) + 1); }
+          }
+          return [...n.values()].every((x) => x === 2);
         };
+        const built = (S) => { const ls = leds(S); return ls.length === 4 && ls.every(inWindow) && ib(S) <= MAX && rowsOnly(S); };
+        const a = ((6 - 2 * vf) / 0.22).toFixed(1), a2 = (2 * (6 - 2 * vf) / 0.22).toFixed(1);     // mA through two LEDs in a row with 220 Ω, by (battery − LEDs) ÷ resistance; two such rows
         return {
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), METER("mA", "mA")),
-          rules: { tray: [{ type: "led", color: "red", n: 2 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 150, n: 1 }, { type: "resistor", value: 220, n: 1 }, { type: "resistor", value: 390, n: 1 }, { type: "resistor", value: 470, n: 1 },
-            { type: "wire", n: 2 }], allow: allow({ replace: ["meter"] }), banner: true },
+          rules: { tray: [{ type: "led", color: c, n: 4 }, { type: "resistor", value: 220, n: 2 }, { type: "wire", n: 4 }], allow: allow({ replace: ["meter"] }), banner: true },
           ui: { strips: true },
           beats: [
-            { id: "brief", say: V.say(`Christmas lights: two red LEDs in a row, with one resistor, each at ${W.lo} to ${W.hi} mA.`,
-              `Two red LEDs one after the other, one resistor for both, and ${W.lo} to ${W.hi} mA through them.`), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Build it. Ask for a hint if you get stuck.",
-              hints: [{ say: "In a row, the two LEDs need 2 V each: 4 V. What is left for the resistor?" }, { say: `That leaves 6 − 4 = 2 V. Which size lets about ${W.aim} mA through: 2 V ÷ ${W.aim} mA = …?` },
-                { show: [V.RES("h1", "+T6", "a6", W.r), V.LED("h2", "c6", "c7", "red"), V.LED("h3", "d7", "d8", "red"), V.WIRE("h4", "e8", "-T8")] }],
-              waitFor: { when: two, hold: 0.8 } },
-            Object.assign(FINISH("LEDs in a row add up their voltages, so less is left for the resistor. Chapter 5 done!"),
-              { note: "in a row, if one LED fails and opens the loop, they all go dark; side by side, the rest stay lit." }),
+            { id: "brief", say: V.say(`A little decoration has four ${c} lights: here, the four LEDs. To run for weeks on its battery, it may draw 20 mA at most.`,
+              `Four ${c} LEDs are the lights of a little decoration. Its battery must last for weeks, so it may give 20 mA at most.`), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Light all four, each at 5 to 10 mA, while the battery gives 20 mA at most. The meter can check. Ask for a hint if you get stuck.",
+              hints: [{ say: "Side by side, the branches' currents add up at the battery. In a row, one current goes through every part. Which helps here?" },
+                { say: `Two LEDs in a row with 220 Ω: (6 − ${vf.toFixed(1)} − ${vf.toFixed(1)}) V ÷ 220 Ω ≈ ${a} mA through both. Two such rows side by side: about ${a2} mA.` },
+                { show: [V.RES("h1", "+T6", "a6", 220), V.LED("h2", "c6", "c7", c), V.LED("h3", "d7", "d8", c), V.WIRE("h4", "e8", "-T8"),
+                  V.RES("h5", "+T12", "a12", 220), V.LED("h6", "c12", "c13", c), V.LED("h7", "d13", "d14", c), V.WIRE("h8", "e14", "-T14")] }],
+              waitFor: { when: built, hold: 0.8 } },
+            Object.assign(FINISH("In a row, two LEDs share one current, so one resistor serves both: half the battery current of two side by side. Chapter 5 done!"),
+              { note: "in a row, if one LED fails and opens the loop, every LED in that row goes dark; side by side, the rest stay lit." }),
           ],
-          goals: [{ text: `Two red LEDs in a row, each ${W.lo} to ${W.hi} mA, one resistor`, when: two, hold: 0.8 }],
-          react: [{ when: (S) => {
-            const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 0.002);
-            if (ls.length !== 2 || two(S)) return null;
-            if (ls.every((q) => q.rd.I >= W.lo / 1000 && q.rd.I <= W.hi / 1000)) return "Both lit, but side by side. Here they go in a row: the current goes through one, then the other.";
-            return `Both lit, but at ${shownmA(ls[0].rd.I)}. You need ${W.lo} to ${W.hi} mA: the meter can check it.`;
+          goals: [{ text: `All four ${c} LEDs at 5 to 10 mA each, and the battery at most 20 mA`, when: built, hold: 0.8 }],
+          react: [{ hold: 1, when: (S, C) => {
+            if (!C.beat || C.beat.id !== "build" || built(S)) return null;
+            const ls = leds(S);
+            if (ls.length !== 4) return null;
+            // all four in one row: about 1.5 V across each, almost no current
+            if (ls.every((q) => q.rd.I < 5e-4 && q.rd.V > 1) && ls.reduce((t, q) => t + q.rd.V, 0) > 5)
+              return `Four ${c} LEDs in one row need about 4 × ${vf.toFixed(1)} = ${(4 * vf).toFixed(1)} V to light, and the battery has only 6 V. So they stay dark.`;
+            if (!ls.every((q) => q.rd.I > 0.001)) return null;
+            if (ls.every(inWindow) && ib(S) > MAX) return `Each LED gets its share, but the battery gives ${shownmA(ib(S))}: too much for this small battery, which may give 20 mA at most.`;
+            if (ls.every(inWindow)) return "All lit, under 20 mA, but the current splits after a resistor. Real LEDs differ, so one path would hog it. Give each path its own resistor.";
+            const off = ls.reduce((w, q) => (Math.abs(q.rd.I - 0.0075) > Math.abs(w.rd.I - 0.0075) ? q : w));
+            const alike = ls.every((q) => Math.abs(q.rd.I - off.rd.I) <= 0.03 * off.rd.I);
+            return `All four lit, but ${alike ? "each" : "one"} LED has ${shownmA(off.rd.I)}. They need 5 to 10 mA each.`;
           } }],
-          challenge: { text: "Use only one wire", when: (S) => two(S) && S.parts("wire").length <= 1 },
-          solution: [{ next: 1 }, { place: { type: "resistor", value: W.r }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] },
-            { place: { type: "led", color: "red" }, at: ["d7", "d8"] }, { wire: ["e8", "-T8"] }, { wait: 1.2 }, { next: 1 }],
+          challenge: { text: "Measure the battery's whole current with the meter", when: (S) => built(S) && S.readsCurrentOf(S.battery(), 0.005, MAX) },
+          // both rows end in strip 20, and the meter carries their current on to the − rail: the battery's whole current
+          solution: [{ next: 1 }, { place: { type: "resistor", value: 220 }, at: ["+T6", "a6"] }, { place: { type: "led", color: c }, at: ["c6", "c7"] },
+            { place: { type: "led", color: c }, at: ["d7", "d8"] }, { wire: ["e8", "a20"] }, { place: { type: "resistor", value: 220 }, at: ["+T12", "a12"] },
+            { place: { type: "led", color: c }, at: ["c12", "c13"] }, { place: { type: "led", color: c }, at: ["d13", "d14"] }, { wire: ["e14", "b20"] },
+            { probe: ["c20", "-T20"] }, { wait: 1.5 }, { next: 1 }],
         };
       },
     },

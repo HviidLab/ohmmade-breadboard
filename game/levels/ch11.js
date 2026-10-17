@@ -238,17 +238,24 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "brief", say: V.say("Build a night light with the board. Its program sets D13 HIGH while A0 reads under 500: see the code on its screen.",
-              "Your turn: the program is ready. Build the night light around it."), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Build a light-sensor divider into A0, and the LED on D13. Then test it: in the light, and covered.",
-              hints: [{ say: "The divider: the light sensor from the + rail to a strip, the 10 kΩ from that strip to the − rail. Wire the strip to A0." },
+            { id: "brief", say: V.say("A porch light: the board must switch the yellow LED on at dusk and off in daylight. Its program is on its screen: read it first.",
+              "Your turn: a porch light, run by the board's program. Read the program on its screen first."), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Build what the program needs, then test it: in the light, and covered (that is dusk).",
+              hints: [{ say: "The program sets D13 HIGH while A0 reads under 500. So A0 needs a voltage that falls in the dark: a divider with the light sensor." },
+                { say: "The divider: the light sensor from the + rail to a strip, the 10 kΩ from that strip to the − rail. Wire the strip to A0." },
                 { say: "The LED: a wire from D13, the 330 Ω, the LED, then the − rail." },
                 { show: [{ id: "h1", type: "ldr", legs: V.hs("+T17", "a17") }, V.RES("h2", "c17", "c20", 10000), V.WIRE("h3", "a20", "-T20"), V.WIRE("h4", "b17", "U.A0"),
                   V.WIRE("h5", "U.D13", "a14"), V.RES("h6", "b14", "b11", 330), V.LED("h7", "c11", "c10", "yellow"), V.WIRE("h8", "e10", "-T10")] }],
               waitFor: { when: tested } },
-            FINISH("A night light run by a program. Chapter 11 done!"),
+            FINISH("A porch light run by a program: dusk switches it on. Chapter 11 done!"),
           ],
           goals: [{ text: "Off in the light, on in the dark", when: tested }],
+          // On in daylight: with the sensor on the − side of the divider, A0 reads high in the dark and low in the light (1.85 kΩ light, 75 kΩ covered, 10 kΩ, 5 V).
+          react: [{ hold: 1, when: (S) => {
+            const sen = S.parts("ldr")[0], lit = S.parts("led").some((q) => q.ok && q.rd.I > 0.003);
+            if (!sen || !lit || (sen.part.lux ?? 200) <= 5 || !S.uno || !(S.uno.analog("A0") < 500)) return null;      // only when the program itself turned it on
+            return `The LED is on in the light: A0 reads ${S.uno.analog("A0")}, under 500. A0 must fall in the dark: which side of the divider is the sensor on?`;
+          } }],
           challenge: { text: "Use at most three wires", when: (S, m) => { m.max = Math.max(m.max || 0, S.parts("wire").filter((q) => !["p5", "pg"].includes(q.id)).length); return false; },
             final: (C, m) => (m.max || 0) <= 3 },
           solution: [{ next: 1 }, { place: { type: "ldr", lux: 200 }, at: V.hs("+T17", "a17") }, { place: { type: "resistor", value: 10000 }, at: V.hs("c17", "c20") },

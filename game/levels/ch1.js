@@ -367,48 +367,83 @@
       }),
     },
     {
-      id: "1-10", title: "Two lights", teaches: [], uses: ["loop", "strip", "rail", "gap", "polarity", "resistor", "short"],
-      card: { name: "Two circuits, one battery", text: "Each LED gets its own resistor. Both share the same rails, so one battery lights them all." },
-      layouts: [{}], colors: ["red", "yellow", "green", "blue"], colors2: ["green", "red", "yellow", "blue"], values: [330, 470],
+      id: "1-10", title: "Bike lights", teaches: [], uses: ["loop", "strip", "rail", "gap", "polarity", "resistor", "short"],
+      card: { name: "Two loops, one battery", text: "Give each light its own loop from + to −, with its own resistor. Take one out, and the other keeps shining." },
+      layouts: [{}],
       make: (V) => {
-        // Judged by what the circuit does, not where the parts sit, so any good layout counts: two LEDs lit safely, and
-        // each has a resistor of its own: one that carries that LED's current but not the whole battery's. (In a row,
-        // the resistor carries the battery's whole current; a shared resistor carries both LEDs' current.)
-        const sep = (S) => {
-          const ls = S.parts("led").filter(safe), bat = S.battery(), total = Math.abs((bat && bat.rd.I) || 0);
-          if (ls.length < 2) return false;
-          const rs = S.parts("resistor").filter((q) => q.ok).map((q) => Math.abs(q.rd.I || 0)), used = new Set();
-          return ls.every((q) => {
-            const i = Math.abs(q.rd.I), k = rs.findIndex((r, j) => !used.has(j) && Math.abs(r - i) <= 0.05 * i + 1e-4 && Math.abs(r - total) > 0.2 * total);
-            if (k >= 0) used.add(k);
-            return k >= 0;
-          });
+        // The capstone: a bike's white front light and red back light on one battery; one may break, the other must stay on.
+        // Judged by behaviour, never by holes: (1) both LEDs lit safely, (2) one LED taken out and the other still lit with
+        // the same current as before, (3) both lit again. Worked numbers (devices.js: 6 V, 0.5 Ω inside; red 2.0 V and white
+        // 3.1 V at 12 mA, white with 10 Ω more; lit means 3 mA or more, safe 20 mA or less), 330 Ω resistors:
+        //   own loops (the answer): red (6 − 2.0)/330 ≈ 12.1 mA, white (6 − 3.1)/340 ≈ 8.9 mA; battery 21.0 mA. Take one out:
+        //     the other changes by less than 0.1 % (only the 0.5 Ω inside the battery is shared). Passes (1), (2), (3).
+        //   both in a row, one resistor: (6 − 2.0 − 3.1)/340 ≈ 3.5 mA through both: dim, but lit, so (1) alone would pass.
+        //     Take one out and the loop is open: 0 mA. Fails (2). Rewiring the last LED alone gives 12.1 or 8.9 mA, not
+        //     3.5 mA, so the "same current" check stops a row from passing (2) by a rebuild.
+        //   both in a row, two resistors: 1.9 mA: not lit. Fails (1).
+        //   side by side on one resistor: red 12.1 mA, white 0.00 mA (red holds the pair near 2 V; white needs about 3 V).
+        //     Fails (1). The same with the two resistors side by side (red 23.6 mA: too much, white 0).
+        //   an LED with no resistor burns out (red alone straight across the rails), so it never counts as safe.
+        // That is why the colours are fixed: with yellow at the front, side by side on one resistor would light both
+        // (red 9.5, yellow 2.7 mA), and a row would be bright (6.1 mA).
+        const leds = (S) => S.parts("led");
+        const bothOn = (S) => { const ls = leds(S); return ls.length === 2 && ls.every(safe); };
+        const I = (q) => Math.abs(q.rd.I || 0);
+        // one LED off the board, the other lit as brightly as when both were on
+        const oneOut = (S, m) => {
+          const ls = leds(S), was = ls.length === 1 && m.I && m.I[ls[0].id];
+          return !!was && safe(ls[0]) && Math.abs(I(ls[0]) - was) <= 0.15 * was;
         };
+        // How far the test has got: 0, 1 both on, 2 one out and the other on, 3 both on again. Each state holds 0.4 s.
+        const stage = (S, m) => {
+          m.n = m.n || 0;
+          if (m.n >= 3) return 3;
+          if (m.n < 2 && bothOn(S)) m.I = Object.fromEntries(leds(S).map((q) => [q.id, I(q)]));
+          const now = m.n === 1 ? oneOut(S, m) : bothOn(S);
+          if (!now) m.t = null;
+          else if (m.t === null || m.t === undefined) m.t = S.t;
+          else if (S.t - m.t >= 0.4) { m.n++; m.t = null; }
+          return m.n;
+        };
+        // the reactions remember, per attempt, whether both LEDs were last lit in a row
+        const rowMem = new WeakMap();
         return {
         region: { rows: [1, 40], cols: "a-j", rails: "top" },
         start: start(V.BAT("+T3", "-T4")),
-        rules: { tray: [{ type: "resistor", value: V.ohms, n: 2 }, { type: "led", color: V.c1, n: 1 }, { type: "led", color: V.c2, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
+        rules: { tray: [{ type: "resistor", value: 330, n: 2 }, { type: "led", color: "red", n: 1 }, { type: "led", color: "white", n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
+        goalsFrom: 1,
         ui: { strips: true },
         beats: [
-          { id: "brief", say: V.say("Last one: light both LEDs at the same time, each with its own resistor.", "Final test: both LEDs lit at once, and each one gets its own resistor."), waitFor: { next: true, label: "Start" } },
-          { id: "build", say: "Build it.",
-            hints: [{ say: "Build two LED circuits side by side. Both can use the same rails." },
-              { show: [V.RES("h1", "+T8", "a8"), V.LED("h2", "c8", "c9"), V.WIRE("h3", "e9", "-T9"), V.RES("h4", "+T16", "a16"), V.LED("h5", "c16", "c17", V.c2), V.WIRE("h6", "e17", "-T17")] }],
-            waitFor: { when: sep } },
-          FINISH("Two lights, one battery. That is Chapter 1 done!"),
+          { id: "brief", say: V.say("A bike has a white front light and a red back light, both run by one battery. Here the two LEDs are the two lights.",
+            "Bike lights: white at the front, red at the back, one battery for both. The white and the red LED are the two lights."), waitFor: { next: true, label: "Start" } },
+          { id: "build", say: V.say("If one light breaks, the other must keep shining. Build it, then test it: take one LED out, and put it back.",
+            "One light may break; the other must still shine. Build them, then test: take one LED out, then put it back."),
+            hints: [{ say: "Taking an LED out opens any loop it is part of. Can each light have a loop that the other LED is not in?" },
+              { say: "Every loop can start at the red + rail and end at the blue − rail.", highlight: { nets: ["bb:+T", "bb:-T"] } },
+              { show: [V.RES("h1", "+T8", "a8", 330), V.LED("h2", "c8", "c9", "red"), V.WIRE("h3", "e9", "-T9"), V.RES("h4", "+T16", "a16", 330), V.LED("h5", "c16", "-T16", "white")] }],
+            waitFor: { when: (S, m) => stage(S, m) >= 3 } },
+          FINISH("Each light has its own loop from + to −, so one can go out and the other keeps shining. Chapter 1 done!"),
         ],
-        goals: [{ text: "Light both LEDs safely, each in its own loop", when: sep, hold: 0.6 }],
-        react: [{ when: (S) => {
-          // both LEDs carry current (with a shared resistor, the one that needs less voltage takes nearly all of it)
-          const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 2e-4), bat = S.battery(), total = Math.abs((bat && bat.rd.I) || 0);
-          if (ls.length < 2 || !ls.some((q) => lit(q)) || sep(S) || ls.some((q) => q.rd.I > 0.02)) return null;
-          if (ls.every((q) => Math.abs(Math.abs(q.rd.I) - total) <= 0.05 * total)) return "You built them in a row: one loop. That works too (more in chapter 5), but here each LED needs its own path from + to −.";
-          return "They share one resistor. Give each LED a resistor of its own.";
+        goals: [
+          { text: "Both lights on, safely", when: (S, m) => stage(S, m) >= 1 },
+          { text: "Take one LED out: the other stays on", when: (S, m) => stage(S, m) >= 2 },
+          { text: "Put it back: both on again", when: (S, m) => stage(S, m) >= 3 },
+        ],
+        react: [{ when: (S, C) => {
+          const m = rowMem.get(C) || {}, ls = leds(S), bat = S.battery(), total = Math.abs((bat && bat.rd.I) || 0);
+          rowMem.set(C, m);
+          if (ls.length === 2 && ls.every((q) => lit(q))) m.row = ls.every((q) => Math.abs(I(q) - total) <= 0.05 * total);
+          if (ls.length === 1 && m.row && ls[0].ok && I(ls[0]) < 3e-4) return "In a row, both lights are in one loop. Take one out and that loop is open, so the other goes dark too.";
+          // side by side on one resistor: the red LED lit, the white one forward the same way across the same two strips, dark
+          const red = ls.find((q) => q.part.color === "red"), white = ls.find((q) => q.part.color === "white");
+          if (ls.length === 2 && red && white && white.ok && lit(red) && I(white) < 3e-4 && S.same(red.nets[0], white.nets[0]) && S.same(red.nets[1], white.nets[1]))
+            return "Side by side on one resistor, the red LED lets current through far more easily, so almost none goes through the white one.";
+          return null;
         } }],
-        challenge: { text: "Use at most one wire", when: (S) => sep(S) && wires(S).length <= 1 },
-        solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T8", "a8"] }, { place: { type: "led", color: V.c1 }, at: ["c8", "c9"] },
-          { place: { type: "led", color: V.c2 }, at: ["c16", "-T16"] }, { place: { type: "resistor", value: V.ohms }, at: ["+T16", "a16"] }, { wire: ["e9", "-T9"] },
-          { wait: 1 }, { next: 1 }],
+        challenge: { text: "Use at most one wire", when: (S, m) => stage(S, m) >= 3 && bothOn(S) && wires(S).length <= 1 },
+        solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T8", "a8"] }, { place: { type: "led", color: "red" }, at: ["c8", "c9"] },
+          { place: { type: "led", color: "white" }, at: ["c16", "-T16"] }, { place: { type: "resistor", value: 330 }, at: ["+T16", "a16"] }, { wire: ["e9", "-T9"] },
+          { wait: 1 }, { remove: "led" }, { wait: 1 }, { place: { type: "led", color: "white" }, at: ["c16", "-T16"] }, { wait: 1 }, { next: 1 }],
         };
       },
     },

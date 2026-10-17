@@ -1,12 +1,12 @@
 // Chapter 9: The transistor. A tiny current into the base lets a big current flow from collector to emitter, so a
-// transistor is a switch worked by a small current; the base needs its own resistor or it burns. Then a challenge:
-// a transistor switch worked by a button.
+// transistor is a switch worked by a small current; the base needs its own resistor or it burns. Then an open puzzle:
+// a tiny button, made for at most 2 mA, must switch an LED that needs about 11 mA.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js.
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, safe, part, FINISH } = K;
-  const { allow, REGION, NEXT } = K.meter;
+  const { allow, REGION, NEXT, shownmA } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 1 ? m.toFixed(2) : m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
   // the transistor in strips 12 (C), 13 (B) and 14 (E); the LED's loop from the + rail through it to the − rail
@@ -76,16 +76,44 @@
       },
     },
     {
-      id: "9-3", title: "Push to light", teaches: [], uses: ["npnSwitch", "baseR", "buttonLoop", "buttonLegs", "loop", "resistor", "polarity", "strip", "rail", "gap"], shifts: [0],
+      id: "9-3", title: "The weak button", teaches: [], uses: ["npnSwitch", "baseR", "buttonLoop", "buttonLegs", "current", "loop", "resistor", "polarity", "strip", "rail", "gap"],
+      shifts: [0],
       card: { name: "The transistor switch", text: "A tiny current into B, through a resistor, lets a big current flow from C to E. A small switch can control a big load." },
       layouts: [{}],
+      // A tiny button (like a key on a thin keypad) made for at most 2 mA must switch the green LED's ≈ 11 mA. The simulated
+      // button does not break at 11 mA: 2 mA is this button's rating, and the goal checks it. Worked numbers (6 V, 0.5 Ω inside,
+      // green LED 2.2 V at 12 mA, NPN β = 200, Vbe ≈ 0.7 V, a pressed button ≈ 0.2 Ω; in brackets what the simulator gives):
+      //  - right: LED loop + → 330 Ω → LED → C, E → −; the button feeds B through the 10 kΩ. Base (6 − 0.7) / 10 kΩ ≈ 0.53 mA
+      //    through the button ✓ (0.53 mA); β × 0.53 mA ≈ 106 mA ≫ what the 330 Ω allows, so the transistor is fully on and the LED gets
+      //    (6 − 2.2 − ~0.1) / 330 ≈ 11 mA ✓ (11.2 mA; the goal asks ≥ 5 mA). Button up: no base current, LED dark ✓.
+      //  - the button in the LED's own loop (with or without the transistor): ≈ (6 − 2.2) / 330 ≈ 11.5 mA through it ✗ (11.5 mA; 11.2 mA with the transistor).
+      //  - the button between E and − (or C and the LED): it carries Ic + Ib ≈ 11.2 + 0.5 mA ✗ (11.7 mA).
+      //  - resistors swapped (button + 330 Ω into B, 10 kΩ in the LED's loop): base (6 − 0.7) / 330 ≈ 16 mA through the button ✗ (15.3 mA),
+      //    and the LED only gets ≈ (6 − 2.2) / 10 kΩ ≈ 0.4 mA ✗ (0.40 mA).
+      //  - the button straight into B, no resistor: hundreds of mA, the base burns (the game's burn message) ✗.
+      //  - 10 kΩ from + to B and the button from B to −: on with the button up (11.2 mA), off with it down ✗ (the wrong way round).
+      // "Off" means under 0.5 mA, "on" at least 5 mA: resistors and an LED alone give no current gain, so a contact carrying
+      // ≤ 2 mA cannot change the LED's current by 4.5 mA. Only the transistor can pass this goal.
       make: (V) => {
-        const seen = {};
+        const LIMIT = 0.002, seen = {};
+        const WORD = ["", "", "twice", "three times", "four times", "five times", "six times", "seven times", "eight times", "nine times", "ten times"];
+        // the current through a button: through its contacts (pressed) or along a joined pair, whichever is biggest
+        const btnI = (b) => {
+          const l = b.rd.legI || [0, 0, 0, 0], into = b.part.pairs === "along" ? [l[0], l[2], l[1], l[3]] : l;
+          return Math.max(Math.abs(into[0] + into[1]), ...l.map((x) => Math.abs(x)));
+        };
+        const btnMax = (S) => Math.max(0, ...S.parts("button").map(btnI));
+        const ledI = (S) => Math.max(0, ...S.parts("led").filter((q) => q.ok).map((q) => q.rd.I || 0));
+        // the circuit as built, with the battery switch (not the button's state): a change means testing the new circuit again
+        const built = (S) => S.all.filter((q) => q.type !== "meter").map((q) => `${q.id}:${q.legs.join(",")}:${q.part.on !== false}`).join("|");
         const tested = (S, m) => {
-          const b = S.parts("button")[0], q = S.parts("npn")[0]; if (!b || !q || !q.ok) return false;
-          const on = S.parts("led").some((x) => lit(x));
-          if (!b.part.pressed && !on) m.off = true;
-          if (b.part.pressed && on) { m.on = true; if (q.rd.Ib > 0.002) seen.big = true; }
+          const bs = S.parts("button");
+          if (!bs.length || S.destroyed()) return false;
+          const key = built(S);
+          if (m.key !== key) { m.key = key; m.off = m.on = false; }
+          const down = bs.some((b) => b.part.pressed), i = ledI(S), ib = btnMax(S);
+          if (!down && i < 0.0005) m.off = true;
+          if (down && i >= 0.005 && ib <= LIMIT) { m.on = true; seen.ib = ib; seen.il = i; }
           return !!m.off && !!m.on;
         };
         return {
@@ -96,22 +124,32 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "brief", say: V.say("Build a transistor switch: the button sends a tiny current into B, and the transistor lights the LED.",
-              "Your turn: a button that switches the LED on through a transistor."), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Build it, then test it: button up, LED off; down, LED on. This button stays down when clicked; click again to let it up.",
-              hints: [{ say: "LED loop: + rail, 330 Ω, the LED, into C. E to the − rail." }, { say: "Base: + rail, the button, the 10 kΩ, into B." },
-                { show: [V.RES("h1", "+T6", "a6", 330), V.LED("h2", "c6", "c7", "green"), V.WIRE("h3", "e7", "e12"), { id: "h4", type: "npn", legs: ["c12", "c13", "c14"] },
-                  V.WIRE("h5", "a14", "-T14"), V.WIRE("h6", "+T17", "a17"), { id: "h7", type: "button", legs: ["e17", "f17", "e19", "f19"], pairs: "across" },
-                  V.RES("h8", "a19", "b13", 10000)] }],
+            { id: "brief", say: V.say("The keys of a thin keypad are tiny buttons, made for small currents. This one is made for at most 2 mA. The LED needs about 11 mA.",
+              "This tiny button is like a key on a thin keypad: it is made for at most 2 mA. The green LED needs about 11 mA."), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Make the button light the LED anyway: off with it up, on with it down. It stays down when clicked; click again to let it up.",
+              hints: [{ say: "The LED's 11 mA must not flow through the button. Which part lets a tiny current control a big one?" },
+                { say: "Let the LED's loop run through the transistor, C to E. The button only sends a tiny current into B, through the 10 kΩ.",
+                  highlight: { holes: V.hs("c12", "c13", "c14") } },
+                { show: [V.RES("h1", "+T11", "a11", 330), V.LED("h2", "b11", "b12", "green"), { id: "h3", type: "npn", legs: V.hs("c12", "c13", "c14") },
+                  V.WIRE("h4", "a14", "-T14"), V.WIRE("h5", "+T17", "a17"), { id: "h6", type: "button", legs: V.hs("e17", "f17", "e19", "f19"), pairs: "across" },
+                  V.RES("h7", "a19", "b13", 10000)] }],
               waitFor: { when: tested } },
-            FINISH("A press of a tiny button, a big current in the LED. Chapter 9 done!"),
+            Object.assign(FINISH(() => `Just ${shownmA(seen.ib ?? 0.00053)} through the button switched ${shownmA(seen.il ?? 0.0113)} through the LED, by way of the transistor. Chapter 9 done!`),
+              { note: "a real key or small switch has a current rating on its datasheet. Above it, its contacts wear out or burn." }),
           ],
-          goals: [{ text: "LED off with the button up, on with it down", when: tested }],
-          challenge: { text: "Keep the base current under 2 mA", final: () => !seen.big },
-          solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "green" }, at: ["c6", "c7"] }, { wire: ["e7", "e12"] },
-            { place: { type: "npn" }, at: ["c12", "c13", "c14"] }, { wire: ["a14", "-T14"] }, { wire: ["+T17", "a17"] },
-            { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: ["e17", "f17", "e19", "f19"] }, { place: { type: "resistor", value: 10000 }, at: ["a19", "b13"] },
-            { wait: 0.5 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.3 }, { next: 1 }],
+          goals: [{ text: "Off with the button up, on with it down, and at most 2 mA through the button", when: tested }],
+          react: [{ hold: 1, when: (S) => {
+            if (!S.parts("button").some((b) => b.part.pressed) || S.destroyed()) return null;
+            const ib = btnMax(S); if (ib <= LIMIT) return null;
+            const n = Math.round(ib / LIMIT);
+            if (ledI(S) < 0.003) return `${shownmA(ib)} flows through the button, but it is made for at most 2 mA.`;
+            return `The LED lights, but ${shownmA(ib)} flows through the button: ${n >= 2 ? `${WORD[n] || `${n} times`} what it is made for` : "more than it is made for"}.`;
+          } }],
+          challenge: { text: "Use at most two wires", when: (S, m) => S.parts("wire").length <= 2 && tested(S, m) },
+          solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: V.hs("+T11", "a11") }, { place: { type: "led", color: "green" }, at: V.hs("b11", "b12") },
+            { place: { type: "npn" }, at: V.hs("c12", "c13", "c14") }, { wire: V.hs("a14", "-T14") }, { wire: V.hs("+T17", "a17") },
+            { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: V.hs("e17", "f17", "e19", "f19") },
+            { place: { type: "resistor", value: 10000 }, at: V.hs("a19", "b13") }, { wait: 0.5 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.3 }, { next: 1 }],
         };
       },
     },
