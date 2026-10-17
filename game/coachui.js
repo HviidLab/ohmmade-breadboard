@@ -65,12 +65,14 @@
     $("lv-fit").addEventListener("click", () => G.fitLevel());
     $("lv-pause").addEventListener("click", () => BB.LevelMap.pause());
     $("lv-notebook").addEventListener("click", () => BB.LevelMap.notebook("level"));
+    $("lv-lecture").addEventListener("click", () => BB.Lecture.open());
     window.addEventListener("keydown", (e) => {
       if (G.mode !== "level" || e.target.matches("input, select, textarea")) return;
       const free = e.target === document.body || !!e.target.closest("#mentor");     // Enter belongs to the focused button, if any
       if (e.key === "Escape" && !G.paused) { e.preventDefault(); BB.LevelMap.pause(); }
       else if (e.key === "Enter" && !G.paused && typing && free) { e.preventDefault(); stopSpeaking(); }
       else if (e.key === "Enter" && !G.paused && $("mentor-next") && free) { e.preventDefault(); $("mentor-next").click(); }
+      else if (e.key === "?" && !G.paused && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); BB.Lecture.open(); }
     });
     // Hidden tuning overlay (the backquote key): per level, attempts, time and hints of the last finished attempt.
     // Kept on this computer only; nothing is sent anywhere.
@@ -98,6 +100,7 @@
     b.setAttribute("aria-label", n ? `Notebook, ${n} new` : "Notebook");
   }
   function leave() {
+    BB.Lecture.close({ instant: true });
     stopSpeaking(); shownParts = []; shownReply = null;
     lv = null; marks = null;
     $("lv").hidden = true;
@@ -128,22 +131,24 @@
     if (!typing) return;
     clearTimeout(typing.timer);
     typing.queue.forEach((q) => { q.el.textContent = q.text; });
+    const done = typing.done;
     typing = null;
+    if (done) done();
     talking(false);
     revealMarks();
   }
-  function speak(queue) {
+  function speak(queue, done) {
     stopSpeaking();
     queue = queue.filter((q) => q.text);
     if (!queue.length) return;
-    if (reduceMotion()) { queue.forEach((q) => { q.el.textContent = q.text; }); return; }
+    if (reduceMotion()) { queue.forEach((q) => { q.el.textContent = q.text; }); if (done) done(); return; }
     let qi = 0, ci = 0, syl = 0;
-    typing = { queue, timer: null };
+    typing = { queue, timer: null, done };
     queue.forEach((q) => { q.el.innerHTML = `<span class="ut">${esc(q.text)}</span>`; });   // full size from the start, so Sparky knows where to stand
     talking(true);
     const tick = () => {
       const q = queue[qi];
-      if (!q) { typing = null; talking(false); revealMarks(); return; }
+      if (!q) { typing = null; talking(false); revealMarks(); if (done) done(); return; }
       ci++;
       q.el.innerHTML = `${esc(q.text.slice(0, ci))}<span class="ut">${esc(q.text.slice(ci))}</span>`;
       const ch = q.text[ci - 1];
@@ -229,7 +234,7 @@
   // then only to the edge of the bench (above, below or beside it), never onto the board, the objective card, the top
   // buttons or the tray. With no room there, he points from home.
   const AWAY = 0.74;                       // his size away from home
-  let lastBox = null, layoutRaf = 0, walkTimer = null, atHome = true;
+  let lastBox = null, layoutRaf = 0, walkTimer = null, atHome = true, held = false;
   const rel = (r, st) => ({ left: r.left - st.left, top: r.top - st.top, right: r.right - st.left, bottom: r.bottom - st.top });
   const grow = (r, m) => ({ left: r.left - m, top: r.top - m, right: r.right + m, bottom: r.bottom + m });
   const meets = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
@@ -249,7 +254,7 @@
   }
   const targetBox = () => targetBoxes()[0] || null;
   function relayout() {
-    if (layoutRaf || !lv) return;
+    if (layoutRaf || !lv || held) return;
     layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; if (lv) walk(targetBox()); });
   }
   // The open bench on screen (the board's open rows, the battery and the meter), relative to the stage.
@@ -293,7 +298,7 @@
   // A longer line, an answer, a note or an aside made the bubble at home taller than the room the bench was fitted
   // around, so it would cover the bench: fit the bench again (called on every change of the bubble's size too).
   function outgrown() {
-    if (!lv || !atHome) return;
+    if (!lv || !atHome || held) return;
     const st = $("stage").getBoundingClientRect(), bub = $("mentor"), b = rel(bub.getBoundingClientRect(), st);
     const bench = benchBox(st), seen = { left: Math.max(bench.left, 0), top: Math.max(bench.top, 0), right: Math.min(bench.right, st.width), bottom: Math.min(bench.bottom, st.height) };
     if (meets(b, seen) && bub.offsetHeight > fittedFor + 4) { fittedFor = bub.offsetHeight; G.fitLevel(); }
@@ -330,7 +335,7 @@
   }
   // The board moved (pan, zoom, redraw) or the window changed: follow the target.
   function follow() {
-    if (!lv) return;
+    if (!lv || held) return;
     const box = targetBox();
     const moved = !!box !== !!lastBox || (box && ["left", "top", "right", "bottom"].some((k) => Math.abs(box[k] - lastBox[k]) > 20));
     if (moved) walk(box);
@@ -398,7 +403,7 @@
       li.dataset.key = it.key;
       li.className = it.n ? "" : "none";
       const color = it.type === "led" ? R.LEDC[it.color] && R.LEDC[it.color].icon : null;
-      li.innerHTML = `${H.icon(it.type, color)}<span class="hb-name">${esc(label(it))}</span><span class="hb-n">×${it.n}</span>`;
+      li.innerHTML = `${H.icon(it.type, color, it.value)}<span class="hb-name">${esc(label(it))}</span><span class="hb-n">×${it.n}</span>`;
       const startDrag = (e) => {
         if (!it.n) { aside(`No ${label(it).toLowerCase()} left. Take one off the board to use it again.`, 3500); return; }
         BB.Input.startNew(Object.assign({}, it), e);
@@ -459,7 +464,13 @@
   }
 
   // After every change: tray counts, the card, the objective.
-  function refresh() { if (!lv) return; refreshHotbar(); refreshPartCard(); refreshObjective(); }
+  function refresh() { if (!lv) return; refreshHotbar(); refreshPartCard(); refreshObjective(); refreshLecture(); }
+  // "I don't get it": shown when an idea of this level has a blackboard lecture; not once the level is finished.
+  function refreshLecture() {
+    const b = $("lv-lecture");
+    b.hidden = !BB.Lecture.available(lv);
+    b.disabled = !!(G.coach && G.coach.finished);
+  }
   // After the bench is redrawn: marks follow the parts.
   function redrawn() {
     if (!lv) return;
@@ -497,5 +508,18 @@
   }
 
 
-  BB.CoachUI = { SPARK, refreshNotebook, howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
+  // ---------- for the blackboard (lecture.js) ----------
+  // hold: Sparky stops following the level's marks (the bench is pushed away); his own moves come from goTo.
+  function hold(on) { held = !!on; if (!on) { lastBox = null; relayout(); } }
+  // Walk to a spot { sx, sy, w, aim }, his bubble left where it is; returns the walk's length in ms.
+  function goTo(p) {
+    const a = $("mentor-avatar"), st = $("stage").getBoundingClientRect(), cur = a.getBoundingClientRect(), b = $("mentor");
+    const dist = Math.hypot(p.sx - (cur.left - st.left), p.sy - (cur.top - st.top));
+    go(Object.assign({ bx: b.offsetLeft, by: b.offsetTop, side: "right" }, p));
+    return !a.style.left || dist < 6 || reduceMotion() ? 0 : Math.min(1.3, Math.max(0.4, dist / 650)) * 1000;
+  }
+  const homeSpot = () => { const st = $("stage").getBoundingClientRect(), w = baseW(), h = (w * 160) / 120; return { sx: 12, sy: st.height - h - 10, w, h }; };
+  const speakLine = (el, text, done) => speak([{ el, text }], done);
+
+  BB.CoachUI = { SPARK, hold, goTo, homeSpot, speakLine, benchBox: () => benchBox($("stage").getBoundingClientRect()), get held() { return held; }, refreshNotebook, howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };
 })(window.BB = window.BB || {});

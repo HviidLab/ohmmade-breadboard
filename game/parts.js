@@ -91,9 +91,9 @@
       stresses: (part) => ({ current: { rated: D.ledParams(part.color).imax, tau: 0.1, square: true, smoke: 6, fail: 12, x: (rd) => Math.max(rd.I, 0) } }),
       legI: (rd) => [rd.I || 0, -(rd.I || 0)],
       failText(part, rt) {
-        const p = D.ledParams(part.color), emf = P.battery.emf, raw = (emf - p.vf) / 0.02, r = e12AtLeast(raw);    // the 20 mA rule, rounded up (level 4-5)
-        return `The ${name(part).toLowerCase().replace(" led", " LED")} burned out: ${fmtA(rt.stress.current.peak)} flowed, and a standard LED takes about ${p.imax * 1000} mA. ` +
-          `It drops about ${p.vf.toFixed(1)} V, so from the ${emf} V pack a resistor of at least (${emf} − ${p.vf.toFixed(1)}) V ÷ 20 mA = ${fmtR(Math.round(raw))}${r > raw + 0.5 ? `, so ${fmtR(r)}` : ""} or more keeps it safe.`;
+        const p = D.ledParams(part.color), vf = p.vf.toFixed(1), emf = P.battery.emf, raw = (emf - p.vf) / 0.02, r = e12AtLeast(raw);    // the 20 mA rule, rounded up (level 4-5)
+        return `The ${name(part).toLowerCase().replace(" led", " LED")} burned out: ${fmtA(rt.stress.current.peak)} flowed, and a standard LED is rated for about ${p.imax * 1000} mA. ` +
+          `With about ${vf} V across the LED, it needs a resistor of at least (supply − ${vf} V) ÷ 20 mA. From the ${emf} V pack: (${emf} − ${vf}) V ÷ 20 mA = ${fmtR(Math.round(raw))}${r > raw + 0.5 ? `, so ${fmtR(r)}` : ""} or more; from the board's 5 V: ${fmtR(e12AtLeast((5 - p.vf) / 0.02))} or more.`;
       },
     },
 
@@ -233,7 +233,7 @@
       }),
       failText: (part, rt) => rt.cause === "base"
         ? `The transistor burned out: ${fmtA(rt.stress.base.peak)} went into its base. Always put a resistor (for example 10 kΩ) in series with the base.`
-        : "The transistor overheated and failed as a short from collector to emitter, so the LED is now stuck on. Limit the collector current with a resistor.",
+        : "The transistor overheated and failed as a short from collector to emitter, so whatever it switches is now stuck on. Limit the collector current with a resistor.",
     },
 
     // The controller board, USB powered. part.pins = {D13: "LOW"|"HIGH"|"INPUT", ...}. No legs: other parts plug into its sockets.

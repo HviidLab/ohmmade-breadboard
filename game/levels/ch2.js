@@ -81,7 +81,7 @@
                 { show: [V.WIRE("h1", "+T14", "j5"), V.WIRE("h2", "f9", "-T14")] }],
               waitFor: { when: bright } },
             Object.assign(FINISH("Voltage is the push. More voltage drives more current round the loop, and the LED glows brighter."),
-              { note: "a new pack of 4 AA cells reads about 6.3 V, a used one less. Rechargeable cells give only about 4.8 V." }),
+              { note: "a new pack of 4 AA cells reads about 6.3 V, a used one less. Rechargeable NiMH cells give about 4.8 V; never fit 3.7 V lithium cells." }),
           ],
           goals: [{ text: "Make the bottom LED as bright as the top one", when: bright, hold: 0.6 }],
           challenge: { text: "Make the dim LED bright by moving just two wire ends", final: (C) => (C.count.move || 0) <= 2 && !C.count.place },
@@ -264,7 +264,7 @@
         { parts: (V) => [V.LED("led1", "c6", "c7"), V.RES("res1", "e7", "-T7", 220)], at: ["+T8", "b6"], res: ["e7", "-T7"] },
       ],
       make: (V) => {
-        const P = V.predict(["More", "Less", "The same"], 1, ["a bigger resistor holds back more, so less current flows.", null, "the resistor sets how much flows: another size, another current."]), seen = {};
+        const P = V.predict(["More", "Less", "The same"], 1, ["a bigger resistor holds back more, so less current flows.", null, "the resistor sets how much flows: another value, another current."]), seen = {};
         const reads = (S) => { const q = part(S, "led1"); return lit(q, 0.001) && amps(S, q); };
         const only = (S, r) => { const rs = S.parts("resistor"); return rs.length === 1 && rs[0].part.value === r && reads(S); };
         const rec = (r) => (S) => { if (only(S, r)) seen[r] = M(S).value; return only(S, r); };
@@ -278,15 +278,15 @@
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
-            { id: "p", say: "Resistors come in sizes, measured in ohms (Ω); 1 kΩ is 1000 Ω. This one is 220 Ω. With a bigger resistor, more or less current?",
+            { id: "p", say: "Resistors come in sizes, in ohms (Ω), not by how big they look. 1 kΩ is 1000 Ω. This is 220 Ω. With a bigger one, more or less current?",
               highlight: { part: "res1" }, predict: P, waitFor: { predict: true } },
             { id: "r470", say: "Find out: swap in the 470 Ω resistor from the tray. Watch the meter and the LED.",
               hints: [{ say: "Click the resistor and press Remove. Then drag the 470 Ω one into the same holes." }], waitFor: { when: rec(470) } },
             { id: "r1k", say: () => `${shownmA(seen[470] ?? 0.0085)} with 470 Ω. Now try the 1 kΩ one: that is 1000 Ω.`, waitFor: { when: rec(1000) } },
-            { id: "name", reply: "p", say: () => `220 Ω ${shownmA(seen[220] ?? 0.018)}, 470 Ω ${shownmA(seen[470] ?? 0.0085)}, 1 kΩ ${shownmA(seen[1000] ?? 0.004)}. Bigger holds back more: less flow.`,
+            { id: "name", reply: "p", say: () => `220 Ω ${shownmA(seen[220] ?? 0.018)}, 470 Ω ${shownmA(seen[470] ?? 0.0085)}, 1 kΩ ${shownmA(seen[1000] ?? 0.004)}. Bigger holds back more: less current.`,
               highlight: { lcd: "meter" }, waitFor: NEXT },
             { id: "use", say: "Your turn: make the LED as bright as you can, but keep the current under 15 mA. Which resistor?",
-              hints: [{ say: "220 Ω let more than 15 mA through. 470 Ω gave far less. Which size lies between?" }], waitFor: { when: pick, hold: 0.6 } },
+              hints: [{ say: "220 Ω let more than 15 mA through. 470 Ω gave far less. Which value lies between?" }], waitFor: { when: pick, hold: 0.6 } },
             FINISH("Choosing the resistor sets the current. That is how you make an LED just as bright as you want."),
           ],
           goals: [{ text: "The brightest LED under 15 mA", when: pick }],
@@ -308,10 +308,10 @@
       // which of the two lettered resistors is the safe one
       layouts: [{ safe: "B" }, { safe: "A" }],
       make: (V) => {
-        const R = { [V.L.safe]: V.ohms, [V.L.safe === "A" ? "B" : "A"]: 22 }, ID = { A: "resA", B: "resB" };
-        const tiny = "a small resistor holds back almost nothing. The bigger one is the safe one.";
+        const R = { [V.L.safe]: V.ohms, [V.L.safe === "A" ? "B" : "A"]: 22 }, ID = { A: "resA", B: "resB" }, seen = {};
+        const tiny = "a small resistor holds back too little: far too much current flows. The bigger one is the safe one.";
         const P = V.predict(["Resistor A", "Resistor B"], V.L.safe === "A" ? 0 : 1, V.L.safe === "A" ? [null, tiny] : [tiny, null]);
-        const reads = (S, t) => { const q = part(S, ID[t]); return !!q && S.across(q) && ohms(S) !== null && S.near(ohms(S), R[t], 0.03); };
+        const reads = (S, t) => { const q = part(S, ID[t]), ok = !!q && S.across(q) && ohms(S) !== null && S.near(ohms(S), R[t], 0.03); if (ok) seen[t] = ohms(S); return ok; };
         const ok = (S) => S.parts("led").some(safe);
         return {
           region: REGION(V),
@@ -327,12 +327,12 @@
             { id: "measure", say: "Measure both resistors: one probe on each leg. On its own, a resistor needs no battery: the meter sends its own current.",
               hints: [RING(V.hs("c12", "c15")), RING(V.hs("h12", "h15"), "And resistor B.")],
               waitFor: { when: (S, m) => { if (reads(S, "A")) m.A = true; if (reads(S, "B")) m.B = true; return m.A && m.B; } } },
-            { id: "p", say: `A is ${fmtR(R.A)}, B is ${fmtR(R.B)}. Which one keeps the LED safe?`, predict: P, waitFor: { predict: true } },
+            { id: "p", say: () => `A reads ${shownR(seen.A ?? R.A)}, B reads ${shownR(seen.B ?? R.B)}. Which one keeps the LED safe?`, predict: P, waitFor: { predict: true } },
             { id: "use", reply: "p", say: "Put the safe one in the gap between the + rail and the LED.",
               highlight: { holes: V.hs("+T6", "a6") },
               hints: [{ say: "Drag the resistor so one leg is on the red + rail and the other in the LED's + strip." }, { show: [V.RES("h", "+T6", "a6", V.ohms)] }],
               waitFor: { when: ok, hold: 0.6 } },
-            FINISH("Resistance is a resistor's size, in ohms. Measure with the battery off, or the part on its own: the battery's voltage confuses the meter."),
+            FINISH("Resistance is a resistor's size, in ohms. Measure with the battery off, best with the part out: the battery and other parts fool the meter."),
           ],
           goals: [{ text: "Light the LED safely", when: ok, hold: 0.6 }],
           challenge: { text: "Check your resistor with Ω where it sits, battery off", when: (S) => {
@@ -385,7 +385,7 @@
                 RING(V.hs(...V.L.find), "Try here: probes in the rings."),
                 { say: `${V.L.hint} One wire there closes the loop.`, show: [V.WIRE("h", ...V.hs(...V.L.fix))] }],
               waitFor: { when: lit2 } },
-            FINISH("That's break hunting: with no current, no voltage drops across the parts, so most of it shows up across the break."),
+            FINISH("Break hunting: most of the voltage is across the break. The rest is across the LED: it needs about 1.4 V even for the meter's tiny current."),
           ],
           goals: [{ text: `Light the ${K.COLOR_WORD[V.c2]} LED`, when: lit2, hold: 0.6 }],
           challenge: { text: "Find the break with the meter before you fix it", when: (S, m) => {
@@ -476,7 +476,7 @@
           react: [{ hold: 0.8, when: (S) => {
             const v = volts(S);
             if (v === null || ok(S) || on(S, "bb:+T", "bb:-T")) return null;
-            if (Math.abs(v) > 2.5 && on(S, ...show)) return `${shownV(v)} here: the battery's whole voltage shows up across this spot. This is where the loop is broken.`;
+            if (Math.abs(v) > 2.5 && on(S, ...show)) return `${shownV(v)} here: most of the battery's voltage shows up across this spot. This is where the loop is broken.`;
             const q = S.parts("led").concat(S.parts("resistor"), S.parts("wire")).find((x) => S.across(x));
             if (q && Math.abs(v) < 0.3) return `About 0 V across this ${q.type === "led" ? "LED" : q.type}: with no current, a part that works has no voltage across it. Where does the battery's voltage show up?`;
             return null;
@@ -501,7 +501,7 @@
       { w: "Probes", d: "The meter's two leads. The red one goes where you measure; the black one (COM) is what you compare with.", sym: "probes" },
       { w: "Voltage (V)", d: "The push that drives current, measured in volts (V). Always across a part, or between two points.", sym: "V" },
       { w: "Milliamp (mA)", d: "Current is counted in amps; a milliamp is a thousandth of one. Measured through the meter: the current flows through it.", sym: "mA" },
-      { w: "Ohm (Ω)", d: "How much a resistor holds the current back. 1 kΩ (a kilo-ohm) is 1000 Ω.", sym: "resistor" },
+      { w: "Ohm (Ω)", d: "The unit of resistance, which is how much a part holds the current back. 1 kΩ (a kilo-ohm) is 1000 Ω.", sym: "resistor" },
       { w: "Fuse", d: "A thin wire inside the meter that burns through when far too much current flows, to save the meter.", sym: "fuse" },
     ],
   });

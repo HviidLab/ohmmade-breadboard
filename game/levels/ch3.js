@@ -154,7 +154,7 @@
       id: "3-5", title: "Hot resistor", teaches: ["power"], uses: ["ohmsLaw", "resistor", "short", "loop", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["The 1 kΩ", "The 33 Ω", "Neither"], 1, ["the big one lets little current through. The small one lets far more through, and more current means more heat.", null,
+        const P = V.predict(["The 1 kΩ", "The 33 Ω", "Neither"], 1, ["the big one lets little current through. On the same 6 V, the small one lets far more through: more power, more heat.", null,
           "every resistor warms up. The 33 Ω lets so much through that it gets very hot."]);
         const across = (S, q) => S.joins(q, "bb:+T", "bb:-T");      // straight across the rails (or strips wired to them)
         const hot = (S) => S.parts("resistor").some((q) => q.part.value === 33 && across(S, q) && (q.rt.level || 0) >= 1);
@@ -171,12 +171,12 @@
             { id: "try", say: "Find out: put the 33 Ω resistor straight across the rails, one leg on +, one on −.", highlight: { nets: ["bb:+T", "bb:-T"] },
               hints: [{ say: "Drag it from the tray so one leg lands on the red + rail and the other on the blue − rail." }, { show: [V.RES("h", "+T10", "-T13", 33)] }],
               waitFor: { when: hot, hold: 0.05 } },
-            { id: "pull", say: "It glows! Pull it out, quick!",
+            { id: "pull", say: "It's scorching hot! Pull it out, quick!",
               hints: [{ say: "Drag it onto the parts tray, or click it and press Remove." }], waitFor: { when: gone, hold: 0.05 } },
             { id: "name", reply: "p", say: (C) => `${C.broken.has("resistor") ? "Too late, it burned. " : "Phew. "}6 V pushed 180 mA (0.18 A) through it. Power = voltage × current: 6 V × 0.18 A ≈ 1 watt (W).`, waitFor: NEXT },
-            { id: "cool", say: "A small resistor is made for ¼ W. For the 1 kΩ, power = 6 V × 6 mA = 0.036 W. Put it across the rails instead: it stays cool.", hints: [{ show: [V.RES("h", "+T10", "-T13", 1000)] }],
+            { id: "cool", say: "Resistors like these are made for ¼ W. For the 1 kΩ, power = 6 V × 6 mA = 0.036 W. Put it across the rails instead: it stays cool.", hints: [{ show: [V.RES("h", "+T10", "-T13", 1000)] }],
               waitFor: { when: cool, hold: 1 } },
-            Object.assign(FINISH("A small resistor handles ¼ W. Work out voltage × current, and keep well below that."),
+            Object.assign(FINISH("Resistors like these handle ¼ W. Work out voltage × current, and keep well below that."),
               { note: "an overloaded resistor gets hot enough to burn fingers, and smokes. Unplug first, and let it cool before you touch it." }),
           ],
           goals: [{ text: "A resistor across the rails that stays cool", when: cool, hold: 1 }],
@@ -231,7 +231,7 @@
     "words": [
       {
         "w": "Ohm's law",
-        "d": "Current = voltage ÷ resistance. Know two of the three, and you can work out the third.",
+        "d": "For a resistor, current = voltage ÷ resistance. Know two of the three, and you can work out the third.",
         "sym": "Ω"
       },
       {
@@ -246,12 +246,12 @@
       },
       {
         "w": "Watt (W)",
-        "d": "How fast a part turns electrical energy into heat: voltage × current.",
+        "d": "The unit of power. 1 V across a part with 1 A through it makes 1 W.",
         "sym": "W"
       },
       {
         "w": "Power",
-        "d": "Watts. A small resistor is made for ¼ W; much more and it burns.",
+        "d": "How fast a part turns electrical energy into heat or light: voltage × current. Resistors like these are made for ¼ W.",
         "sym": "fuse"
       }
     ]

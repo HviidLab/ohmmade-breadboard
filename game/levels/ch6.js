@@ -1,6 +1,6 @@
 // Chapter 6: Dividers and the knob. Two resistors in a row make a middle point at part of the voltage; a potentiometer
 // is a middle point you can move with a knob; a knob in an LED's loop makes a dimmer, which needs a fixed resistor too.
-// Then a challenge: make exactly 2 V, with resistors or with the knob.
+// Then a challenge: make 2 V, with resistors or with the knob.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
@@ -63,9 +63,9 @@
           ui: { strips: true },
           goalsFrom: 4,
           beats: [
-            { id: "what", say: "This is a potentiometer, a knob with three legs. The outer legs go to + and −. The middle leg, the wiper, slides along between them.",
+            { id: "what", say: "This is a potentiometer, a knob with three legs. The outer legs go to + and −. The middle leg goes to the wiper, which slides along a track.",
               highlight: { part: "pot" }, waitFor: NEXT },
-            { id: "m", say: "Measure the wiper's voltage against the − rail.", hints: [RING(V.hs("e13", "-T16"), "The wiper is the middle leg. Try the rings.")],
+            { id: "m", say: "Measure the wiper's voltage against the − rail.", hints: [RING(V.hs("e13", "-T16"), "The wiper's leg is the middle one. Try the rings.")],
               waitFor: { when: (S) => { const v = vAt(S, w); const kn = part(S, "pot"); if (v !== null) { seen.v = v; seen.pos = kn ? kn.part.pos ?? 0.5 : 0.5; } return v !== null; } } },
             { id: "p", say: () => `${shownV(seen.v ?? 3)} with the knob ${Math.abs((seen.pos ?? 0.5) - 0.5) < 0.03 ? "in the middle" : "where it is"}. How far can turning the knob move the wiper's voltage?`, highlight: { lcd: "meter" }, predict: P, waitFor: { predict: true } },
             { id: "low", say: "Find out: drag the knob up or down until the meter shows less than 1 V.", highlight: { ctl: "knob", id: "pot" },
@@ -104,7 +104,7 @@
               highlight: { part: "r1" }, predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: take the 220 Ω out, bridge its gap with a wire, and turn the knob until the LED is at its brightest.",
               hints: [{ say: "Remove the resistor, draw a wire between its two holes, then drag the knob." }], waitFor: { when: popped, hold: 0.05 } },
-            { id: "fix", reply: "p", say: "Pop! At 0 Ω nothing held the current back. Put the 220 Ω back instead of the wire, with a fresh LED.",
+            { id: "fix", reply: "p", say: "Pop! With the knob at almost 0 Ω, almost nothing held the current back. Put the 220 Ω back instead of the wire, with a fresh LED.",
               hints: [{ say: "Take the wire off, put the 220 Ω back in its holes, then click the burned part and press Fresh one." }], waitFor: { when: fixed, hold: 0.6 } },
             FINISH("A knob in the loop makes a dimmer. Keep a fixed resistor in the loop too, for when the knob is turned right down."),
           ],
@@ -116,8 +116,8 @@
       },
     },
     {
-      id: "6-4", title: "Exactly 2 V", teaches: [], uses: ["divider", "potKnob", "seriesShare", "volts", "resistor", "strip", "rail"], shifts: [0],
-      card: { name: "Dividers", text: "Two resistors, or a knob, make a middle point at any part of the battery's voltage: 6 V × lower ÷ total." },
+      id: "6-4", title: "Make 2 V", teaches: [], uses: ["divider", "potKnob", "seriesShare", "volts", "resistor", "strip", "rail"], shifts: [0],
+      card: { name: "Dividers", text: "Two resistors, or a knob, make a middle point at any part of the battery's voltage: 6 V × the − side resistor ÷ both together. Draw current from the middle and it drops." },
       layouts: [{}],
       make: (V) => {
         // a strip (not a rail) that the meter reads at 2 V against the − rail, and which part of the circuit
@@ -127,7 +127,7 @@
         const two = (S) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), T.v - 0.15, T.v + 0.15); };
         const byKnob = (S) => two(S) && S.parts("pot").some((q) => S.same(q.nets[1], net(M(S).red)));      // the probe on the wiper's node
         return {
-          title: `Exactly ${T.v} V`,
+          title: `Make ${T.v} V`,
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), METER("V")),
           rules: { tray: [{ type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 22000, n: 1 }, { type: "resistor", value: 6800, n: 1 },
@@ -176,12 +176,12 @@
       },
       {
         "w": "Potentiometer (knob)",
-        "d": "A resistor with a sliding middle leg, moved by turning the knob.",
+        "d": "A resistor with a wiper that slides along its track when you turn the knob.",
         "sym": "pot"
       },
       {
         "w": "Wiper",
-        "d": "The knob's middle leg: it slides from one end to the other.",
+        "d": "The contact inside the knob, joined to its middle leg. It slides along the track from one end to the other.",
         "sym": "pot"
       },
       {

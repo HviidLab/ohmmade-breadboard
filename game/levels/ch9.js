@@ -34,7 +34,8 @@
               hints: [{ say: "The 10 kΩ runs from the B strip to strip 17. Join strip 17 to the + rail." }, { show: [V.WIRE("h", "+T17", "a17")] }], waitFor: { when: on, hold: 0.5 } },
             { id: "name", reply: "p", say: () => `${fmtI(seen.ib ?? 0.0005)} into B switches ${fmtI(seen.ic ?? 0.012)} through the LED. A small current controls a big one.`,
               waitFor: NEXT },
-            FINISH("It passes up to about 200 × the base current, far more than the LED needs. So it is fully on, a closed switch: the 330 Ω sets the current."),
+            Object.assign(FINISH("It can pass about 200 × the base current (that varies a lot by part). So it is fully on, almost a closed switch: the 330 Ω sets the current."),
+              { note: "leg order differs by part: a BC547 is C, B, E (flat side to you), a 2N2222 is E, B, C. Check its datasheet." }),
           ],
           goals: [{ text: "Light the LED through the transistor", when: on }],
           challenge: { text: "Switch it off again by taking the wire away", when: (S, m) => { if (lit(part(S, "led1"))) m.on = true; return !!m.on && !S.parts("wire").some((q) => !["w1", "w2"].includes(q.id)); } },
@@ -117,7 +118,7 @@
   ];
 
   K.chapter(9, "The transistor", L, {
-    "lede": "A tiny current can control a big one. That is the transistor, the part that fills every computer.",
+    "lede": "A tiny current can control a big one. That is the transistor, and billions of its cousins fill every computer.",
     "cover": "npnSwitch",
     "questions": [
       "What does a tiny current into the base do?",
@@ -142,7 +143,7 @@
       },
       {
         "w": "Fully on",
-        "d": "With plenty of base current the transistor is like a closed switch: the LED's resistor sets the current.",
+        "d": "With plenty of base current the transistor is almost a closed switch: the LED's resistor sets the current.",
         "sym": "switch"
       }
     ]

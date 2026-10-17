@@ -62,7 +62,7 @@
     if (!type) { floater.hidden = true; floater.dataset.type = ""; return; }
     const col = color || (st && st.d && st.d.color) || BB.HUD.defaults.ledColor;
     const key = type === "led" ? `led:${col}` : type;
-    if (floater.dataset.type !== key) { floater.innerHTML = BB.HUD.icon(type, type === "led" ? R.LEDC[col].icon : null); floater.dataset.type = key; }
+    if (floater.dataset.type !== key) { floater.innerHTML = BB.HUD.icon(type, type === "led" ? R.LEDC[col].icon : null, st && st.d && st.d.value); floater.dataset.type = key; }
     floater.style.left = `${cx - 44}px`; floater.style.top = `${cy - 28}px`;
     floater.hidden = false;
   }
@@ -395,7 +395,7 @@
       const n = hole.startsWith("U.") ? `board socket ${BB.Uno.label(hole.slice(2))}` : BBShared.netName(BBShared.net(hole));
       const occ = G.doc.occupancy().get(hole);
       const what = occ ? `\n${BB.Parts.name(G.doc.get(occ.id))} leg` : "";
-      BB.HUD.tooltip(`${hole}: ${n}\n${v === null ? "not connected" : `${v.toFixed(2)} V vs ground`}${what}`, e.clientX, e.clientY);
+      BB.HUD.tooltip(`${hole}: ${n}\n${v === null ? "not connected" : `${v.toFixed(2)} V from the − rail`}${what}`, e.clientX, e.clientY);
     } else if (partEl) {
       R.highlight(null);
       BB.HUD.tooltip(BB.HUD.partTip(G, partEl.dataset.part), e.clientX, e.clientY);
@@ -569,5 +569,7 @@
   }
 
   function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level, the sandbox)
-  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, get carrying() { return !!kb; } };
+  // Drop whatever is being dragged or carried (Sparky's blackboard is about to cover the bench).
+  function cancel() { st = null; lastPtr = null; float(null); trayState(null); R.clearGhost(); R.highlight(null); if (kb) { kb = null; show(); } }
+  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, cancel, get carrying() { return !!kb; }, get busy() { return !!st || !!kb; } };
 })(window.BB = window.BB || {});

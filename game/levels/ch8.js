@@ -1,6 +1,6 @@
-// Chapter 8: Capacitors and time. A capacitor stores charge (an LED keeps glowing after the battery goes off), filling
+// Chapter 8: Capacitors and time. A capacitor stores energy (an LED keeps glowing after the battery goes off), filling
 // it through a resistor takes time (fast at first, then slower), R × C sets how long, and an electrolytic capacitor is
-// one-way (backwards it vents). Then a challenge: keep an LED glowing after a button is let go.
+// has a right way round (backwards it can vent). Then a challenge: keep an LED glowing after a button is let go.
 // Each capacitor shows a charge ring that fills with amber. Same rules as before: a question in every level, predict
 // first, the goal and not the holes, hints only on request. Data only, built with the kit from ch1.js.
 (function (BB) {
@@ -15,11 +15,11 @@
 
   const L = [
     {
-      id: "8-1", title: "A bucket for charge", teaches: ["capStore"], uses: ["switch", "parallelV", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4, 8],
+      id: "8-1", title: "A store of energy", teaches: ["capStore"], uses: ["switch", "parallelV", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["It goes out at once", "It fades out over a second", "It stays on"], 1, ["the capacitor filled up while the battery was on, and now it empties through the LED.", null,
-          "a capacitor holds only a little: it empties through the LED, and the glow fades."]);
+        const P = V.predict(["It goes out at once", "It fades out over a second", "It stays on"], 1, ["the capacitor filled up while the battery was on, and now it lets its energy out through the LED.", null,
+          "a capacitor holds only a little energy: it lets it out through the LED, and the glow fades."]);
         const led = (S) => part(S, "led1");
         const faded = (S, m) => { if (onOff(S) && lit(led(S))) m.on = true; if (m.on && !onOff(S) && lit(led(S), 0.001)) m.glow = true; return !!m.glow && !onOff(S) && !lit(led(S), 0.0003); };
         return {
@@ -30,11 +30,11 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "The blue can is a capacitor. It stores energy: think of a little bucket for charge. Its ring shows how full it is. Switch off: the LED…",
+            { id: "p", say: "The blue can is a capacitor. It stores energy: + charge on one plate, − on the other. Its ring shows how full it is. Switch off: the LED…",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
             { id: "off", say: "Find out: switch the battery off, and watch the LED and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: faded } },
-            Object.assign(FINISH("The capacitor filled up while the battery was on, then emptied through the LED: a short glow."), { reply: "p" }),
+            Object.assign(FINISH("The capacitor filled up while the battery was on, then let its energy out through the LED: a short glow."), { reply: "p" }),
           ],
           goals: [{ text: "Watch the LED fade with the battery off", when: faded }],
           challenge: { text: "Fill it and let it glow out twice", when: (S, m) => { const on = onOff(S); if (m.prev === true && !on) m.n = (m.n || 0) + 1; m.prev = on; return (m.n || 0) >= 2; } },
@@ -46,7 +46,7 @@
       id: "8-2", title: "Filling takes time", teaches: ["capTime"], uses: ["capStore", "volts", "switch", "resistor", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["At once", "It takes a few seconds", "It never fills"], 1, ["the resistor holds the current back, so the bucket fills slowly.", null,
+        const P1 = V.predict(["At once", "It takes several seconds", "It never fills"], 1, ["the resistor holds the current back, so the capacitor fills slowly.", null,
           "current flows in until the capacitor's voltage nearly matches the battery's: then it is full."]);
         const P2 = V.predict(["At the start", "Near the end", "The same all the way"], 0, [null, "near the end it is slowest: the capacitor pushes back, so less voltage is left across the resistor.",
           "as it fills, its own voltage grows, so less is left across the resistor, and less current flows in."]);
@@ -62,7 +62,7 @@
               highlight: { part: "c1" }, predict: P1, waitFor: { predict: true } },
             { id: "fill", say: "Find out: switch the battery on, and watch the meter and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: full } },
-            { id: "p2", reply: "p1", say: "A few seconds. When did it fill fastest?", predict: P2, waitFor: { predict: true } },
+            { id: "p2", reply: "p1", say: "Several seconds. When did it fill fastest?", predict: P2, waitFor: { predict: true } },
             Object.assign(FINISH("Fast at first, slower as it fills: its own voltage grows, so less is left across the resistor, and less current flows in."), { reply: "p2" }),
           ],
           goals: [{ text: "Fill the capacitor above 5 V", when: full }],
@@ -97,7 +97,7 @@
               highlight: { parts: ["cA", "cB", "cC"] }, predict: P, waitFor: { predict: true } },
             { id: "race", say: "Find out: switch on, and watch the three rings.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: race } },
             { id: "name", reply: "p", say: "Multiply: kΩ × µF gives milliseconds. 1 kΩ × 1000 µF = 1000 ms = 1 s; 10 kΩ × 100 µF = 1 s too. The right one: 10 s.", waitFor: NEXT },
-            FINISH("R × C, in seconds, is the capacitor's time: in that time it fills about two thirds of the way. Bigger R or C, slower."),
+            FINISH("R × C is the time constant of the resistor and capacitor: in that time the capacitor fills about two thirds. Bigger R or C, slower."),
           ],
           goals: [{ text: "Watch left and middle win the race", pre: "Watch the race", when: race }],
           challenge: { text: "Wait until the right one passes half full", when: (S) => vc(S, "cC") > 3 },
@@ -110,7 +110,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["It swells up and vents", "It fills up the other way", "Nothing at all"], 0, [null,
-          "an electrolytic capacitor works one way only. Backwards, current leaks through it and heats it up.", "backwards, current leaks through it, and it heats up until it vents."]);
+          "an electrolytic capacitor has a right way round. Backwards, current leaks through it and heats it up.", "backwards, current leaks through it, and it heats up and can vent."]);
         const vented = (S) => S.parts("cap").some((q) => !q.ok);
         const right = (S) => S.parts("cap").some((q) => q.ok && q.rd.Vc > 5);
         return {
@@ -120,13 +120,13 @@
           demo: { cap: 1 }, simText: { cap: null },
           ui: { strips: true },
           beats: [
-            { id: "p", say: "This capacitor is in backwards: its + leg is on the − rail. The stripe marks the − leg. What happens when you switch on?",
+            { id: "p", say: "This capacitor is in backwards: its + leg is on the − rail. On this can, the stripe marks the − leg. What happens when you switch on?",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
             { id: "on", say: "Find out: switch the battery on, and watch.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: vented, hold: 0.05 } },
             { id: "fix", reply: "p", say: "It swelled and vented. Turn it the right way round, + leg to the + rail, and take a fresh one.",
               hints: [{ say: "Switch the battery off first. Then click the capacitor: Flip (or the R key), then Fresh one." }], waitFor: { when: right, hold: 0.5 } },
-            Object.assign(FINISH("An electrolytic capacitor is one-way, like an LED: + leg to the + side, stripe to the − side."),
-              { note: "a backwards electrolytic capacitor can burst and spray hot liquid. Check the stripe before you switch on, and keep your face away." }),
+            Object.assign(FINISH("An electrolytic capacitor has a right way round, like an LED: + leg to the + side, stripe to the − side."),
+              { note: "a backwards electrolytic capacitor can burst. Cans mark the − leg; small tantalum beads mark + instead. Check, and keep your face away." }),
           ],
           goals: [{ text: "A capacitor charged the right way round", when: right, hold: 0.5 }],
           challenge: { text: "Switch the battery off before you fix it", when: (S, m, C) => { if (C.count.replace && m.off === undefined) m.off = !onOff(S); return m.off === true; } },
@@ -163,7 +163,7 @@
                 { show: [V.RES("h1", "a8", "a10", 100), CAP(V, "h2", "c10", "c11", 1e-3), V.WIRE("h3", "e11", "-T11"), V.RES("h4", "d10", "d14", 470), V.LED("h5", "c14", "c15"),
                   V.WIRE("h6", "e15", "-T15")] }],
               waitFor: { when: glow, hold: 0.05 } },
-            FINISH("Your own fading light: the capacitor fills while you press, and empties slowly through the LED. Chapter 8 done!"),
+            FINISH("Your own fading light: the capacitor fills while you press, and lets its energy out slowly through the LED. Chapter 8 done!"),
           ],
           goals: [{ text: "The LED glows on for a second after you let go", when: glow, hold: 0.05 }],      // a moment, then it fades: reaching one second is the goal
           challenge: { text: "Use the capacitor the right way round the first time", final: (C) => !C.broken.has("cap") && (C.count.flip || 0) === 0 },
@@ -181,27 +181,27 @@
     "questions": [
       "What does an LED do when the battery goes off but a capacitor still feeds it?",
       "Why does filling a capacitor take time?",
-      "Which way round must a capacitor go?"
+      "Which way round must an electrolytic capacitor go?"
     ],
     "words": [
       {
         "w": "Capacitor",
-        "d": "A part that stores energy as charge on two plates. Think of a little bucket.",
+        "d": "A part that stores energy: + charge on one plate, − on the other.",
         "sym": "cap"
       },
       {
         "w": "Microfarad (µF)",
-        "d": "The unit of capacitance, a millionth of a farad. More µF stores more.",
+        "d": "A unit of capacitance: a millionth of a farad. More µF stores more.",
         "sym": "cap"
       },
       {
-        "w": "Time (R × C)",
-        "d": "Resistance × capacitance: about two thirds full after that long. kΩ × µF gives milliseconds.",
+        "w": "Time constant (R × C)",
+        "d": "Resistance × capacitance, for a resistor and capacitor together: about two thirds full after that long. kΩ × µF gives milliseconds.",
         "sym": "clock"
       },
       {
         "w": "Electrolytic",
-        "d": "A capacitor with a + leg and a striped − leg. Backwards, it swells and vents.",
+        "d": "A capacitor with a + leg and a striped − leg. Backwards, it can swell and vent.",
         "sym": "cap"
       }
     ]

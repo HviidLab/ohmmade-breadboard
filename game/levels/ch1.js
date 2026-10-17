@@ -144,7 +144,7 @@
           beats: [
             { id: "look", say: V.say("Look closely: each group of 5 holes sits in one slot. A metal strip inside joins them, so whatever is plugged in there is connected.",
               "See the slots? Each group of 5 holes has one metal strip inside, so everything plugged into it is connected."), highlight: { nets: [V.n(`bb:L${t1}`)] }, waitFor: { next: true } },
-            { id: "p", say: "If the LED's legs went into these two holes, would it light?", highlight: { holes: V.hs(`c${V.L.ask[0]}`, `c${V.L.ask[1]}`) }, predict: P, waitFor: { predict: true } },
+            { id: "p", say: "If the LED's legs went into these two holes, would it be part of the loop?", highlight: { holes: V.hs(`c${V.L.ask[0]}`, `c${V.L.ask[1]}`) }, predict: P, waitFor: { predict: true } },
             { id: "plug", reply: "p", say: V.L.yes ? "Both strips are in the loop. Plug the LED in there, or anywhere else in the same strips."
               : "Those strips are not in the loop. Plug the LED in where it closes the loop.",
               highlight: { nets: [V.n(`bb:L${t1}`), V.n(`bb:L${t2}`)] },
@@ -175,8 +175,8 @@
           rules: { tray: [{ type: "wire", n: 1 }], guardShorts: true },
           ui: { strips: true },
           beats: [
-            { id: "rails", say: V.say("These long lines are the rails. Each rail is one strip that runs the whole length of the board.",
-              "Meet the rails: two long strips that run the whole length of the board."), highlight: { nets: ["bb:+T", "bb:-T"] }, waitFor: { next: true } },
+            { id: "rails", say: V.say("These long lines are the rails. Each rail is one strip that runs the whole length of this board.",
+              "Meet the rails: two long strips that run the whole length of this board."), highlight: { nets: ["bb:+T", "bb:-T"] }, waitFor: { next: true } },
             { id: "feed", say: `The battery feeds them: + to the red rail, − to the blue rail. ${Lt.feed}`, highlight: [{ holes: V.hs("+T3", "-T4") }, { part: "res1" }], waitFor: { next: true } },
             { id: "p", say: `Would a wire from the LED to the far end of the ${Lt.word}, at column ${V.r(30)}, close the loop?`, highlight: { holes: [V.h(`${Lt.rail}30`)] }, predict: P, waitFor: { predict: true } },
             { id: "wire", reply: "p", say: `The whole rail is one strip. Wire the LED's free strip to the ${Lt.word}.`,
@@ -203,7 +203,7 @@
       make: (V) => {
         const Lt = V.L, P = V.predict(["The LED is broken", "Something is not really connected", "The battery is flat"], 1,
           ["a dark LED is not always broken. First check that every part is really joined into the loop.", null,
-            "a flat battery is rare. When a circuit stays dark, look for a joint that isn't really joined first."]);
+            "the battery could be flat, but a part that isn't really joined is far more common. Check the joints first."]);
         P.ok = "Good eye!";
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
@@ -274,7 +274,7 @@
           return S.joins(r, "bb:+T", l.nets[0]) ? "+" : S.joins(r, l.nets[1], "bb:-T") ? "-" : null;     // strips wired together count as one
         };
         const Lt = V.L, P = V.predict(["glow brighter", "stay the same", "burn out"], 2,
-          ["brighter for a moment, yes. But nothing holds the current down, so it climbs until the LED burns out.", "the resistor is what holds the current down. Without it, far more flows.", null]);
+          ["brighter for a moment, yes. But nothing holds the current down: far too much flows at once, and the LED burns out.", "the resistor is what holds the current down. Without it, far more flows.", null]);
         return {
           region: { rows: V.rows([1, 24]), cols: "a-j", rails: "top" },
           start: start(V.BAT("+T3", "-T4"), ...Lt.parts(V)),
@@ -329,8 +329,8 @@
               waitFor: { when: (S) => S.shortNow(), hold: 0.05 } },
             { id: "pull", say: "Short circuit! The LED went dark, and the wire and the batteries are heating up. Pull the wire out, quick!",
               waitFor: { when: (S) => !S.shortNow(), hold: 0.05 } },
-            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and the push between the rails collapsed to almost 0 V."
-              : "Phew! A huge current poured through the wire, the push between the rails collapsed to almost 0 V, and the LED went dark.")),
+            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and the voltage between the rails collapsed to near 0 V."
+              : "Phew! A huge current poured through the wire, the voltage between the rails collapsed to near 0 V, and the LED went dark.")),
             { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and some batteries can catch fire." }),
           ],
           goals: [{ text: "Light the LED, with no short circuit", when: (S) => anyLit(S) && !S.shortNow(), hold: 0.6 }],
@@ -358,7 +358,7 @@
             hints: [{ say: "The path: + rail, resistor, LED (+ leg first), then back to the − rail. Drop the resistor on the red rail." }, { highlight: { nets: ["bb:+T", "bb:-T"] } },
               { show: [V.RES("h1", "+T10", "a10"), V.LED("h2", "c10", "c11"), V.WIRE("h3", "e11", "-T11")] }],
             waitFor: { when: (S) => S.parts("led").some(safe) } },
-          FINISH("You built it from nothing. That is the circuit behind every little indicator light."),
+          FINISH("You built it from nothing. That is the circuit behind most little indicator lights."),
         ],
         goals: [{ text: "Light the LED safely", when: (S) => S.parts("led").some(safe), hold: 0.6 }],
         challenge: { text: "Use at most one wire", when: (S) => S.parts("led").some(safe) && wires(S).length <= 1 },
@@ -444,7 +444,7 @@
     "questions": [
       "What does a battery need before anything can light?",
       "How does a breadboard join parts without any soldering?",
-      "Why does an LED need a resistor beside it?"
+      "Why does an LED need a resistor in its loop?"
     ],
     "words": [
       {
@@ -465,7 +465,7 @@
       {
         "w": "Rail",
         "d": "A long strip along the board's edge, for the battery's + or −.",
-        "sym": "+"
+        "sym": "rail"
       },
       {
         "w": "LED",
@@ -480,7 +480,7 @@
       {
         "w": "Short circuit",
         "d": "A path from + to − with only wire in it: a huge current, and everything goes dark.",
-        "sym": "switch"
+        "sym": "short"
       }
     ]
   });

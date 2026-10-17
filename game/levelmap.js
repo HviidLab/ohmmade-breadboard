@@ -189,7 +189,7 @@
         <button type="button" class="btn" id="fn-print">Print it</button></div>
       <div class="fn-next"><h2>Do it for real</h2>
         <p>A starter kit with: a breadboard (830 holes), a 4 × AA box with a switch, resistors from 100 Ω to 100 kΩ, red, yellow, green and blue LEDs,
-        push buttons, a 10 kΩ knob, a light sensor, NPN transistors (such as BC547 or 2N2222), 100 µF and 1000 µF capacitors, jumper wires and a multimeter.</p>
+        push buttons, a 10 kΩ knob, a light sensor, NPN transistors such as BC547 (legs C, B, E; a 2N2222 has them the other way round, E, B, C: check the datasheet), 100 µF and 1000 µF capacitors rated 16 V or more, jumper wires and a multimeter.</p>
         <p>The controller board showed you its code. Real boards, such as Arduino, run code like those lines; start with the blink and the button programs.</p>
         <p>Keep the Safe bench card in your Notebook close. And the sandbox is always open for new ideas.</p></div>
       <div class="scr-row"><button type="button" class="btn primary" id="fn-sandbox">Open the sandbox</button><button type="button" class="btn" id="fn-nb">Notebook</button>
@@ -265,6 +265,7 @@
         row("1, 2", "Pick up the red or the black probe"),
         row("R · Delete", "Flip · take off the part under the cursor"),
         row("Esc", "Put down nothing (cancel); with nothing carried: the menu"),
+        row("?", "I don't get it: Sparky explains the idea on a blackboard (← → between boards, Esc puts the bench back)"),
         row("Enter, Space", "On a control: use it (dial, socket, switch, button, light sensor, pin)"),
         row("Arrow keys on a knob", "Turn it (Shift: finely)"),
         row("+ · − · F", "Zoom in · out · show the whole level"),
@@ -280,11 +281,12 @@
   // Always in the Notebook: what is safe in the game is not always safe on a real bench.
   const SAFE = `<section class="nb-page"><h2 class="nb-ch">Safe bench</h2><ol class="nb-grid"><li class="nb-wide"><div class="nb-card nb-safe">
     <h2>Safe here, careful there</h2><p>In the game you can break anything. On a real bench:</p><ul>
-    <li>Use only AA or AAA alkaline packs. Never lithium cells, power banks or mains.</li>
+    <li>Use AA or AAA alkaline packs, or a controller board on USB. Never mains, and never bare Li-ion or LiPo cells: shorted, they can catch fire.</li>
     <li>Never short a battery: wires and cells get hot enough to burn.</li>
     <li>If a part gets hot or smells, disconnect it, and let it cool before you touch it.</li>
-    <li>Electrolytic capacitors: stripe to −, below their voltage, face away when you switch on.</li>
-    <li>Every LED gets its resistor, every pin and every transistor base too.</li></ul></div></li></ol></section>`;
+    <li>Electrolytic capacitors: stripe to −, never above the voltage printed on them, and keep your face away when you switch on.</li>
+    <li>Every LED gets its resistor, and so does every transistor base and every pin that drives a part.</li>
+    <li>Never join the 6 V pack to a controller board's pin: its pins are made for at most 5 V.</li></ul></div></li></ol></section>`;
   const teacher = (id) => BB.Levels.all().find((l) => l.teaches.includes(id));
   function ideaCard(c, isNew) {
     return `${isNew ? '<span class="nb-new">New!</span>' : ""}<span class="nb-art">${BB.NotebookArt.diagram(c.id)}</span>
@@ -338,22 +340,24 @@
     }).filter((r) => r.attempts);
   }
   const slowest = (beats) => (beats && beats.length ? beats.reduce((a, b) => (b.t > a.t ? b : a)) : null);
+  // the blackboard lectures of an attempt: "loop at place, 4/4, 22 s"
+  const talks = (ls) => (ls || []).map((l) => `${l.c}${l.beat ? ` at ${l.beat}` : ""}, ${l.boards}/${l.of}, ${l.s} s`).join("; ");
   const steps = (beats) => beats.map((b) => `${b.id} ${b.t} s${b.hints ? ` (${b.hints} hint${b.hints > 1 ? "s" : ""})` : ""}`).join(", ");
   function playtestTable() {
     const rows = playtestRows();
     if (!rows.length) return '<p class="scr-sub">No levels played yet.</p>';
-    return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
+    return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Lectures</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
       const s = slowest(r.last && r.last.beats);
       return `<tr><td>${r.id}</td><td>${r.attempts}${r.reloads ? ` (page reloaded ${r.reloads}×)` : ""}</td><td>${r.last ? `${r.last.t} s` : "—"}</td><td>${r.last ? r.last.hints : "—"}</td>
-        <td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
+        <td>${esc(talks([...((r.last && r.last.lectures) || []), ...((r.open && r.open.lectures) || [])]) || "—")}</td><td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
     }).join("")}</table>`;
   }
   function playtestText() {
     const lines = [`Ohmmade Breadboard playtest data, ${new Date().toISOString().slice(0, 10)}`];
     for (const r of playtestRows()) {
       lines.push(`${r.id} ${r.title}: ${r.attempts} attempt${r.attempts > 1 ? "s" : ""}${r.reloads ? `, page reloaded ${r.reloads} time${r.reloads > 1 ? "s" : ""}` : ""}`);
-      if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}`);
-      if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}`);
+      if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}${r.last.lectures && r.last.lectures.length ? `. Lectures: ${talks(r.last.lectures)}` : ""}`);
+      if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}${r.open.lectures && r.open.lectures.length ? `. Lectures: ${talks(r.open.lectures)}` : ""}`);
     }
     if (lines.length === 1) lines.push("No levels played yet.");
     return lines.join("\n");
@@ -364,7 +368,7 @@
       ${playtestTable()}
       <textarea class="pt-text" readonly rows="8" aria-label="Playtest data as text">${esc(playtestText())}</textarea>
       <label class="pt-switch"><input type="checkbox" id="pt-open"${openAll() ? " checked" : ""}> Open all levels, to try any level without finishing the ones before it. Your progress is not changed.</label>
-      <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><button type="button" class="btn" id="pt-back">Back</button>
+      <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><a class="btn" href="lectures.html" target="_blank" rel="noopener">Read all blackboard lectures</a><button type="button" class="btn" id="pt-back">Back</button>
       <button type="button" class="btn" id="pt-reset">Reset</button><span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
     on(host, "#pt-copy", async () => {
       const ta = host.querySelector(".pt-text"), say = (t) => { host.querySelector("#pt-ok").textContent = t; };

@@ -45,7 +45,9 @@
   // LED in a vertical wire at x, pointing down (current flows downwards), centred on y; lit = glowing
   function ledV(x, y, lit = true, dim = false, fill = null) {
     const glow = lit ? `<circle cx="${x}" cy="${y}" r="${dim ? 11 : 17}" fill="rgba(255, 190, 70, ${dim ? 0.25 : 0.45})"/>` : "";
-    const rays = lit && !dim ? ln(x + 12, y - 8, x + 20, y - 14, DOT, 2.4) + ln(x + 13, y + 1, x + 22, y - 2, DOT, 2.4) : "";
+    const rc = lit && !dim ? DOT : PEN, ray = (x1, y1) => ln(x1, y1, x1 + 8, y1 - 8, rc, 1.8) +
+      `<path d="M-4 -3 L2 0 L-4 3" fill="none" stroke="${rc}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="translate(${x1 + 8} ${y1 - 8}) rotate(-45)"/>`;
+    const rays = ray(x + 11, y - 3) + ray(x + 14, y + 4);       // the LED symbol's two arrows: light going out
     return glow + `<path d="M${x - 10} ${y - 7} L${x + 10} ${y - 7} L${x} ${y + 7} Z" fill="${fill || (lit ? "#ffd27a" : "#fffdf6")}" stroke="${PEN}" stroke-width="2.2" stroke-linejoin="round"/>` +
       ln(x - 10, y + 7, x + 10, y + 7, PEN, 2.6) + rays;
   }
@@ -74,9 +76,9 @@
     return `<path d="${d}Z" fill="#ffd27a" stroke="${c}" stroke-width="2"/>`;
   };
   // a breadboard slot of five holes, vertical, top hole at y, 12 apart
-  const slot = (x, y, n = 5, bar = true) => `<rect x="${x - 9}" y="${y - 9}" width="18" height="${(n - 1) * 12 + 18}" rx="9" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/>` +
-    (bar ? `<rect x="${x - 3}" y="${y - 3}" width="6" height="${(n - 1) * 12 + 6}" rx="3" fill="#b9bec4" opacity=".9"/>` : "") +
-    Array.from({ length: n }, (_, k) => `<circle cx="${x}" cy="${y + k * 12}" r="2.6" fill="${PEN}"/>`).join("");
+  const slot = (x, y, n = 5, bar = true, p = 12) => `<rect x="${x - 9}" y="${y - 9}" width="18" height="${(n - 1) * p + 18}" rx="9" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/>` +
+    (bar ? `<rect x="${x - 3}" y="${y - 3}" width="6" height="${(n - 1) * p + 6}" rx="3" fill="#b9bec4" opacity=".9"/>` : "") +
+    Array.from({ length: n }, (_, k) => `<circle cx="${x}" cy="${y + k * p}" r="2.6" fill="${PEN}"/>`).join("");
 
   // the standard loop: battery on the left, resistor on top, LED on the right, plain wire below
   const X0 = 44, X1 = 176, Y0 = 26, Y1 = 104, YM = 65;
@@ -96,21 +98,21 @@
     switch: () => pl([[X0, YM - 5], [X0, Y0], [82, Y0]]) + resH(82, 134, Y0) + pl([[134, Y0], [X1, Y0], [X1, YM - 7]]) + pl([[X1, YM + 7], [X1, Y1], [128, Y1]]) +
       pl([[96, Y1], [X0, Y1], [X0, YM + 4]]) + circ(128, Y1, 3, PEN) + circ(96, Y1, 3, PEN) + ln(96, Y1, 124, Y1 - 16, PEN, 2.6) +
       battery(X0, YM) + ledV(X1, YM, false) + tx(112, Y1 + 20, "open: nothing flows", { s: 16 }),
-    strip: () => slot(64, 22) + slot(156, 22, 5, false) + tx(64, 106, "joined inside", { s: 16 }) + tx(156, 106, "the next strip", { s: 16 }) +
+    strip: () => slot(64, 22) + slot(156, 22) + tx(64, 106, "joined inside", { s: 16 }) + tx(156, 106, "the next strip", { s: 16 }) +
       `<path d="M82 28 C90 40 90 64 82 76" fill="none" stroke="${PEN}" stroke-width="2"/>` + tx(96, 58, "5", { s: 20 }) + cross(122, 52, 6),
     rail: () => `<rect x="18" y="30" width="186" height="20" rx="10" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/>` + ln(22, 25, 200, 25, RED, 2.4) +
       `<rect x="18" y="70" width="186" height="20" rx="10" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/>` + ln(22, 95, 200, 95, BLUE, 2.4) +
       Array.from({ length: 12 }, (_, k) => `<circle cx="${30 + k * 15.5}" cy="40" r="2.6" fill="${PEN}"/><circle cx="${30 + k * 15.5}" cy="80" r="2.6" fill="${PEN}"/>`).join("") +
-      tx(12, 45, "+", { c: RED, s: 22 }) + tx(12, 86, "−", { c: BLUE, s: 22 }) + tx(112, 117, "one strip, the whole length", { s: 16 }),
-    gap: () => slot(90, 12, 4) + slot(90, 80, 4) + slot(140, 12, 4) + slot(140, 80, 4) +
-      `<rect x="62" y="62" width="108" height="10" rx="5" fill="#d9cfb8"/>` + cross(115, 67, 7) + tx(192, 58, "not", { s: 17 }) + tx(192, 76, "joined", { s: 17 }) +
-      tx(40, 70, "gap", { s: 17 }),
+      tx(12, 45, "+", { c: RED, s: 22 }) + tx(12, 86, "−", { c: BLUE, s: 22 }) + tx(112, 117, "one strip, the whole board long", { s: 16 }),
+    gap: () => slot(90, 9, 5, true, 9.5) + slot(90, 77, 5, true, 9.5) + slot(140, 9, 5, true, 9.5) + slot(140, 77, 5, true, 9.5) +
+      `<rect x="62" y="59" width="108" height="8" rx="4" fill="#d9cfb8"/>` + cross(115, 63, 6) + tx(192, 56, "not", { s: 17 }) + tx(192, 74, "joined", { s: 17 }) +
+      tx(40, 68, "gap", { s: 17 }),
     polarity: () => ln(30, 64, 92, 64, PEN, 2.4) + ln(128, 64, 182, 64, PEN, 2.4) +
       `<path d="M92 50 L92 78 L120 64 Z" fill="#ffd27a" stroke="${PEN}" stroke-width="2.4" stroke-linejoin="round"/>` + ln(121, 49, 121, 79, PEN, 3) +
       tx(46, 54, "+ longer leg", { s: 16, c: RED }) + tx(160, 54, "− shorter", { s: 16, c: BLUE }) +
       arrow(150, 92, 0, "#2f8a43") + ln(66, 92, 148, 92, "#2f8a43", 2.4) + tick(176, 92) +
       ln(66, 112, 148, 112, RED, 2.4) + arrow(68, 112, 180, RED) + cross(176, 110, 6),
-    resistor: () => pl([[20, 40], [20, 22], [44, 22]]) + resH(44, 84, 22) + pl([[84, 22], [100, 22], [100, 34]]) + ledV(100, 44, true, true) + pl([[100, 51], [100, 66], [20, 66], [20, 48]]) +
+    resistor: () => pl([[20, 40], [20, 22], [44, 22]]) + resH(44, 84, 22) + pl([[84, 22], [100, 22], [100, 34]]) + `<g transform="translate(200 0) scale(-1 1)">${ledV(100, 44, true, true)}</g>` + pl([[100, 51], [100, 66], [20, 66], [20, 48]]) +
       battery(20, 44, false) + tx(60, 92, "with: a safe glow", { s: 16 }) + tick(60, 108) +
       pl([[130, 40], [130, 22], [200, 22], [200, 34]]) + burst(200, 46) + pl([[200, 56], [200, 66], [130, 66], [130, 48]]) + battery(130, 44, false) +
       tx(166, 92, "without: pop!", { s: 16, c: RED }),
@@ -167,7 +169,7 @@
     findR: () => ln(46, 50, 70, 50) + resH(70, 150, 50, 7) + ln(150, 50, 174, 50) + tx(110, 30, "?", { s: 30, c: RED }) +
       `<path d="M70 70 q40 12 80 0" fill="none" stroke="#a3360f" stroke-width="2"/>` + tx(110, 92, "6 V across, 4 mA through", { s: 17, c: "#a3360f" }) +
       tx(110, 118, "6 V ÷ 4 mA = 1.5 kΩ", { s: 20 }),
-    power: () => ln(26, 56, 46, 56) + resH(46, 104, 56, 7) + ln(104, 56, 124, 56) +
+    power: () => ln(26, 56, 46, 56) + resH(46, 86, 56, 6) + ln(86, 56, 124, 56) +
       `<path d="M58 36 q6 -8 0 -16 M74 38 q6 -9 0 -18 M90 36 q6 -8 0 -16" fill="none" stroke="${RED}" stroke-width="2.4" stroke-linecap="round"/>` +
       tx(66, 86, "33 Ω: about 1 W", { s: 16, c: RED }) + tx(66, 104, "too hot!", { s: 17, c: RED }) +
       ln(136, 56, 148, 56) + resH(148, 186, 56, 6) + ln(186, 56, 198, 56) + tx(168, 86, "1 kΩ: 0.036 W", { s: 14 }) + tick(168, 100) +
@@ -178,14 +180,17 @@
     ledCurrent: () => tx(110, 34, "(battery − LED) ÷ resistor", { s: 21 }) + ln(28, 44, 192, 44, HL, 7) +
       tx(110, 76, "(6 − 2) V ÷ 0.22 kΩ", { s: 20 }) + tx(110, 106, "≈ 18 mA", { s: 22, c: "#a3360f" }),
     chooseR: () => ln(30, 58, 46, 58) + resH(46, 92, 58, 6) + ln(92, 58, 112, 58) + `<g transform="rotate(-90 132 58)">${ledV(132, 58)}</g>` + ln(140, 58, 190, 58) +
-      tx(69, 38, "?", { s: 26, c: RED }) + tx(110, 96, "(6 − 2) V ÷ 10 mA = 400 Ω", { s: 18 }) + tx(110, 120, "round up: 470 Ω", { s: 18, c: "#a3360f" }),
+      tx(69, 38, "?", { s: 26, c: RED }) + tx(22, 63, "+", { s: 18, c: RED }) + tx(198, 63, "−", { s: 18, c: BLUE }) + tx(110, 96, "(6 − 2) V ÷ 10 mA = 400 Ω", { s: 18 }) + tx(110, 120, "round up: 470 Ω", { s: 18, c: "#a3360f" }),
     ledColours: () => {
       const one = (x, fill, v) => `<path d="M${x - 12} 40 L${x + 12} 40 L${x} 58 Z" fill="${fill}" stroke="${PEN}" stroke-width="2.2" stroke-linejoin="round"/>` +
-        ln(x - 12, 58, x + 12, 58, PEN, 2.6) + ln(x, 24, x, 40) + ln(x, 58, x, 74) + tx(x, 98, v, { s: 20, c: "#a3360f" });
+        ln(x - 12, 58, x + 12, 58, PEN, 2.6) + ln(x, 24, x, 40) + ln(x, 58, x, 74) + tx(x, 98, v, { s: 20, c: "#a3360f" }) +
+        [[x + 12, 46], [x + 15, 53]].map(([x1, y1]) => ln(x1, y1, x1 + 7, y1 - 7, PEN, 1.6) +
+          `<path d="M-3.5 -2.6 L1.8 0 L-3.5 2.6" fill="none" stroke="${PEN}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(${x1 + 7} ${y1 - 7}) rotate(-45)"/>`).join("");     // the LED symbol's arrows
       return one(44, "#ff6b5a", "2 V") + one(96, "#ffd84a", "2.1 V") + one(148, "#5fd47a", "2.2 V") + one(196, "#6f8cff", "3 V") + tx(110, 124, "each colour its own voltage", { s: 16 });
     },
-    ledMax: () => `<g transform="rotate(-90 70 60)">${ledV(70, 60)}</g>` + tx(70, 100, "under 20 mA", { s: 17 }) + tick(70, 114) +
-      burst(160, 58, 18) + tx(160, 100, "80 mA: pop!", { s: 17, c: RED }) + tx(110, 22, "smallest: (6 − 2) V ÷ 20 mA = 200 Ω", { s: 15 }),
+    ledMax: () => ln(40, 60, 63, 60) + `<g transform="rotate(-90 70 60)">${ledV(70, 60)}</g>` + ln(77, 60, 100, 60) + tx(34, 65, "+", { s: 17, c: RED }) + tx(106, 65, "−", { s: 17, c: BLUE }) +
+      tx(70, 100, "under 20 mA", { s: 17 }) + tick(70, 114) +
+      burst(160, 58, 18) + tx(160, 100, "75 mA: pop!", { s: 17, c: RED }) + tx(110, 22, "smallest: (6 − 2) V ÷ 20 mA = 200 Ω", { s: 15 }),
     // Chapter 5: series and parallel
     seriesR: () => ln(20, 56, 36, 56) + resH(36, 86, 56, 6) + ln(86, 56, 118, 56) + resH(118, 168, 56, 6) + ln(168, 56, 200, 56) +
       tx(61, 36, "1 kΩ", { s: 18 }) + tx(143, 36, "1 kΩ", { s: 18 }) + tx(110, 92, "1 kΩ + 1 kΩ = 2 kΩ", { s: 21, c: "#a3360f" }) + tx(110, 118, "in a row, they add up", { s: 16 }),
@@ -210,7 +215,7 @@
     divider: () => ln(30, 16, 190, 16, RED, 2.4) + ln(30, 114, 190, 114, BLUE, 2.4) + tx(20, 21, "+", { c: RED, s: 20 }) + tx(20, 119, "−", { c: BLUE, s: 20 }) +
       ln(90, 16, 90, 24) + resV(90, 24, 56, 6) + ln(90, 56, 90, 74) + resV(90, 74, 106, 6) + ln(90, 106, 90, 114) + circ(90, 65, 4, PEN) +
       meter(160, 72, "V", "3 V", 194, 78) + probeTo(93, 66, 160, 72, "red", -6) + probeTo(172, 112, 160, 72, "black", -4) + tx(60, 44, "10 kΩ", { s: 15 }) + tx(60, 94, "10 kΩ", { s: 15 }) +
-      tx(110, 128, "6 V × lower ÷ total", { s: 15 }),
+      tx(110, 128, "6 V × R(− side) ÷ R(both)", { s: 15 }),
     potKnob: () => ln(30, 16, 150, 16, RED, 2.4) + ln(30, 114, 150, 114, BLUE, 2.4) + tx(20, 21, "+", { c: RED, s: 20 }) + tx(20, 119, "−", { c: BLUE, s: 20 }) +
       ln(80, 16, 80, 30) + resV(80, 30, 100, 7) + ln(80, 100, 80, 114) + pl([[120, 58], [92, 64]], PEN, 2.4) + arrow(90, 64.5, 168, PEN) +
       `<path d="M126 48 q14 16 0 32" fill="none" stroke="#a3360f" stroke-width="2"/>` + tx(178, 60, "0 V", { s: 18, c: "#a3360f" }) + tx(178, 80, "to 6 V", { s: 18, c: "#a3360f" }) +
@@ -251,9 +256,9 @@
         pl([[128, 40], [150, 40], [150, 59]]) + ledV(150, 66, true, true) + pl([[150, 73], [150, 104], [70, 104], [70, 64]]) + cap(70, 58) + tx(110, 24, "it empties", { s: 17, c: "#a3360f" }) +
         tx(110, 124, "through the LED: a short glow", { s: 16 });
     },
-    capTime: () => ln(30, 108, 200, 108, PEN, 2) + ln(30, 108, 30, 18, PEN, 2) + `<path d="M30 108 C60 40 100 28 196 24" fill="none" stroke="${DOT}" stroke-width="4"/>` +
+    capTime: () => ln(30, 108, 200, 108, PEN, 2) + ln(30, 108, 30, 18, PEN, 2) + `<path d="M30 108 C60 40 100 32 196 28" fill="none" stroke="${DOT}" stroke-width="4"/>` +
       ln(30, 24, 200, 24, GREY, 1.4) + tx(14, 30, "6 V", { s: 15 }) + tx(196, 124, "time", { s: 15 }) + tx(80, 60, "fast", { s: 17, c: "#a3360f" }) + tx(160, 46, "slow", { s: 17, c: "#a3360f" }),
-    tau: () => tx(110, 36, "R × C = seconds", { s: 24 }) + ln(40, 46, 180, 46, HL, 7) + tx(110, 78, "1 kΩ × 1000 µF = 1 s", { s: 19, c: "#a3360f" }) +
+    tau: () => tx(110, 36, "R × C = time", { s: 24 }) + ln(40, 46, 180, 46, HL, 7) + tx(110, 78, "1 kΩ × 1000 µF = 1 s", { s: 19, c: "#a3360f" }) +
       tx(110, 108, "10 kΩ × 1000 µF = 10 s", { s: 19 }),
     capPolarity: () => {
       // straight plate = + (marked), curved plate = −; flipped: the + plate faces the − side
@@ -271,7 +276,7 @@
         pl([[x - 8, y + 4], [x, y + 11], [x, y + 17]]) + arrow(x - 1, y + 10, 40, PEN) + ln(x - 24, y, x - 8, y);
       return current([[x, 10], [x, 120]], 9) + current([[46, y], [x - 24, y]], 18) + ln(x, 10, x, 22) + resV(x, 22, 40, 4) + ledV(x, 50) + ln(x, 57, x, y - 17) +
         ln(x, y + 17, x, 120) + npn + ln(46, y, 62, y) + resH(62, 104, y, 4) + ln(104, y, x - 24, y) +
-        tx(84, y - 14, "tiny", { s: 17, c: "#a3360f" }) + tx(x + 40, 44, "big", { s: 19, c: "#a3360f" }) + tx(34, y + 5, "B", { s: 17 }) +
+        tx(84, y - 14, "tiny", { s: 17, c: "#a3360f" }) + tx(x + 40, 44, "big", { s: 19, c: "#a3360f" }) + tx(127, y - 6, "B", { s: 15 }) +
         tx(x + 22, y - 12, "C", { s: 15 }) + tx(x + 22, y + 26, "E", { s: 15 }) +
         tx(x + 12, 18, "+", { s: 16, c: RED }) + tx(x + 12, 128, "−", { s: 16, c: BLUE }) + tx(40, 76, "+", { s: 15, c: RED });
     },
@@ -312,7 +317,7 @@
       tx(60, 120, "GND", { s: 12, c: BLUE }) + burst(42, 42, 10) + tx(80, 92, "64 mA", { s: 16, c: RED, a: "start" }) +
       `<line x1="112" y1="14" x2="112" y2="120" stroke="${GREY}" stroke-width="1.6" stroke-dasharray="4 5"/>` +
       tx(158, 20, "with 330 Ω", { s: 15 }) + tx(122, 46, "D13", { s: 12 }) + ln(134, 42, 142, 42) + resH(142, 176, 42) + ln(176, 42, 188, 42) + ln(188, 42, 188, 58) +
-      ledV(188, 65) + ln(188, 72, 188, 104) + tx(188, 120, "GND", { s: 12, c: BLUE }) + tx(144, 92, "9 mA", { s: 16, c: "#a3360f" }) + tick(146, 104),
+      ledV(188, 65) + ln(188, 72, 188, 104) + tx(188, 120, "GND", { s: 12, c: BLUE }) + tx(144, 92, "8 mA", { s: 16, c: "#a3360f" }) + tick(146, 104),
     // a knob's middle leg into A0: the push becomes a number
     analogRead: () => tx(46, 18, "5 V", { s: 14, c: RED }) + ln(46, 22, 46, 32) + resV(46, 32, 100) + ln(46, 100, 46, 110) + tx(46, 126, "0 V", { s: 14, c: BLUE }) +
       arrow(56, 66, 180, PEN) + ln(56, 66, 114, 66) + tx(84, 60, "A0", { s: 14 }) +
@@ -326,8 +331,8 @@
       tx(96, 40, "HIGH", { s: 17, c: RED }) + tx(96, 77, "?", { s: 19, c: GREY }) + tx(96, 110, "LOW", { s: 17, c: BLUE }) +
       tx(168, 52, "a pin set to IN", { s: 15 }) + tx(168, 70, "reads the voltage;", { s: 15 }) + tx(168, 88, "it puts none out", { s: 15 }),
     // a button from 5 V into D2, and the pull-down from D2 to GND
-    pullDown: () => ln(18, 14, 110, 14, RED, 2.2) + tx(124, 19, "5 V", { s: 14, c: RED }) + ln(60, 14, 60, 28) + circ(60, 28, 2.6, PEN, PEN) + ln(60, 28, 72, 42) +
-      circ(60, 46, 2.6, PEN, PEN) + tx(88, 36, "button", { s: 14, a: "start" }) + ln(60, 46, 60, 66) + circ(60, 66, 3.5, PEN, PEN) + ln(60, 66, 140, 66) +
+    pullDown: () => ln(18, 14, 110, 14, RED, 2.2) + tx(124, 19, "5 V", { s: 14, c: RED }) + ln(60, 14, 60, 28) + circ(60, 28, 2.6, PEN, PEN) + ln(70, 24, 70, 50, PEN, 2.6) + ln(70, 37, 80, 37) +
+      circ(60, 46, 2.6, PEN, PEN) + tx(86, 41, "button", { s: 14, a: "start" }) + ln(60, 46, 60, 66) + circ(60, 66, 3.5, PEN, PEN) + ln(60, 66, 140, 66) +
       `<rect x="140" y="50" width="66" height="32" rx="6" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` + tx(173, 72, "D2: IN", { s: 15 }) +
       ln(60, 66, 60, 76) + resV(60, 76, 106) + ln(60, 106, 60, 120) + ln(18, 120, 110, 120, BLUE, 2.2) + tx(124, 124, "GND", { s: 14, c: BLUE }) +
       tx(30, 96, "10 kΩ", { s: 14 }) + tx(173, 102, "holds it LOW", { s: 14, c: "#a3360f" }) + tx(173, 117, "till pressed", { s: 14, c: "#a3360f" }),
@@ -335,9 +340,10 @@
     program: () => `<rect x="58" y="22" width="104" height="86" rx="8" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` +
       `<rect x="68" y="30" width="84" height="26" rx="5" fill="rgba(120, 200, 160, .25)" stroke="${PEN}" stroke-width="1.6"/>` + tx(110, 49, "D13 = D2", { s: 15 }) +
       tx(72, 96, "D2", { s: 13 }) + tx(146, 96, "D13", { s: 13 }) + `<path d="M80 86 C 96 66, 124 66, 138 84" fill="none" stroke="${DOT}" stroke-width="2.4" stroke-dasharray="5 4"/>` + arrow(138, 84, 55) +
-      ln(20, 82, 32, 82) + circ(32, 82, 2.6, PEN, PEN) + ln(32, 82, 44, 72) + circ(48, 82, 2.6, PEN, PEN) + ln(48, 82, 58, 82) + tx(36, 66, "button", { s: 13 }) +
+      ln(20, 82, 32, 82) + circ(32, 82, 2.6, PEN, PEN) + ln(28, 74, 52, 74, PEN, 2.6) + ln(40, 74, 40, 67) + circ(48, 82, 2.6, PEN, PEN) + ln(48, 82, 58, 82) + tx(30, 61, "button", { s: 13 }) +
+      ln(53, 82, 53, 90) + resV(53, 90, 108, 4) + ln(53, 108, 53, 113) + tx(53, 124, "GND", { s: 11, c: BLUE }) + tx(30, 102, "10 kΩ", { s: 11 }) +
       tx(12, 78, "5 V", { s: 13, c: RED }) + ln(162, 82, 166, 82) + resH(166, 184, 82, 4) + ln(184, 82, 196, 82) + ln(196, 82, 196, 92) +
-      ledV(196, 99, true, true) + ln(196, 106, 196, 112) + tx(196, 126, "GND", { s: 12, c: BLUE }) + tx(108, 124, "the program decides", { s: 15, c: "#a3360f" }),
+      ledV(196, 99, false) + ln(196, 106, 196, 112) + tx(196, 126, "GND", { s: 12, c: BLUE }) + tx(126, 124, "the program decides", { s: 13, c: "#a3360f" }),
   };
 
   // The symbols circuit drawings use (the Notebook's first card): battery, resistor, LED, capacitor, switch, meter.
@@ -377,6 +383,10 @@
     ldr: () => circ(32, 31, 14, "#fffdf6") + resH(20, 44, 31, 4) + arrow(18, 13, 50, "#e0a21c") + arrow(30, 11, 60, "#e0a21c"),
     npn: () => circ(36, 24, 15, "#fffdf6") + ln(30, 15, 30, 33, PEN, 3) + ln(30, 20, 41, 12) + ln(30, 28, 41, 36) + ln(10, 24, 30, 24) + arrow(40, 35, 40, PEN),
     gap: () => `<rect x="6" y="8" width="20" height="32" rx="6" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/><rect x="38" y="8" width="20" height="32" rx="6" fill="#efe7d4" stroke="${PEN}" stroke-width="1.6"/>` + ln(32, 4, 32, 44, RED, 2),
+    short: () => ln(20, 8, 20, 18) + battery(20, 24, false) + ln(20, 28, 20, 40) + pl([[20, 8], [50, 8], [50, 40], [20, 40]], PEN, 2.6) + tx(10, 20, "+", { c: RED, s: 14 }) +
+      `<path d="M54 14 q4 -4 0 -8 M60 16 q4 -5 0 -10" fill="none" stroke="${RED}" stroke-width="1.8" stroke-linecap="round"/>`,
+    rail: () => `<rect x="6" y="16" width="52" height="14" rx="7" fill="#efe7d4" stroke="${PEN}" stroke-width="1.4"/>` + ln(8, 10, 56, 10, RED, 2.2) +
+      [14, 26, 38, 50].map((x) => `<circle cx="${x}" cy="23" r="2.2" fill="${PEN}"/>`).join("") + tx(32, 44, "+ rail", { s: 12, c: RED }),
     clock: () => circ(32, 24, 17, "#fffdf6") + ln(32, 24, 32, 12) + ln(32, 24, 41, 28),
     chip: () => `<rect x="16" y="10" width="32" height="28" rx="4" fill="#2b2a26"/>` + [14, 22, 30].map((y) => ln(10, y, 16, y) + ln(48, y, 54, y)).join(""),
   };
@@ -386,5 +396,7 @@
     return `<svg viewBox="0 0 64 48" aria-hidden="true"><defs><filter id="ink${k}" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="${k % 9}"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter></defs><g filter="url(#ink${k})">${body}</g></svg>`;
   }
 
-  BB.NotebookArt = { diagram, symbol, ids: () => Object.keys(D) };
+  // For the blackboard (chalk-art.js): the same pen strokes and part symbols, and a drawing without its wrapper.
+  const kit = { PEN, RED, BLUE, DOT, HL, GREY, ln, pl, tx, circ, current, arrow, battery, resH, resV, ledV, meter, probeTo, term, cross, tick, burst, slot, loopWires, loopPath, X0, X1, Y0, Y1, YM };
+  BB.NotebookArt = { diagram, symbol, ids: () => Object.keys(D), body: (id) => (D[id] ? D[id]() : ""), kit };
 })(window.BB = window.BB || {});

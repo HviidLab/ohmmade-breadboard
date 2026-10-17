@@ -10,6 +10,7 @@
   const fmtR = BB.Parts.fmtR, nameOf = BB.Parts.name, PN = BB.Parts;
   // What a new resistor or LED from the drawer gets: the last value or colour you chose in the Inspector.
   const defaults = { resistor: 330, ledColor: "red" };
+  const E24 = new Set([10, 11, 12, 13, 15, 16, 18, 20, 22, 24, 27, 30, 33, 36, 39, 43, 47, 51, 56, 62, 68, 75, 82, 91]);     // first two digits of the E24 series
   const STATE = ["ok", "stressed", "smoking", "destroyed"];
   const STATE_TXT = { ok: "OK", stressed: "over its rating", smoking: "smoking", destroyed: "destroyed" };
 
@@ -28,12 +29,13 @@
     { type: "uno", label: "Controller board", sub: "5V · GND · pins D2–D13" },
   ];
 
-  function icon(type, color) {
-    const s = {        // small drawings in the bench's style (art style 1)
+  function icon(type, color, value) {
+    const bd = BBShared.bands(Math.round(value || 330));      // the resistor's real colour bands
+    const s = {        // small drawings in the bench's style (art style 1); the LED's + leg is the longer, bent one
       battery: '<rect x="3" y="4" width="38" height="20" rx="6" fill="#1a2433" stroke="#2e3e54"/><rect x="7" y="7" width="6" height="14" rx="3" fill="#ee9a3c"/><rect x="15" y="7" width="6" height="14" rx="3" fill="#2b313a"/><rect x="23" y="7" width="6" height="14" rx="3" fill="#ee9a3c"/><rect x="31" y="9" width="7" height="5" rx="2.5" fill="#22a65a"/>',
-      resistor: '<line x1="2" y1="14" x2="42" y2="14" stroke="#c7ccd1" stroke-width="2"/><rect x="11" y="8" width="22" height="12" rx="6" fill="#ecd3a4" stroke="#a8834c"/><rect x="15" y="8" width="2.6" height="12" fill="#ff7a1a"/><rect x="20" y="8" width="2.6" height="12" fill="#ff7a1a"/><rect x="25" y="8" width="2.6" height="12" fill="#7a4520"/>',
+      resistor: `<line x1="2" y1="14" x2="42" y2="14" stroke="#c7ccd1" stroke-width="2"/><rect x="11" y="8" width="22" height="12" rx="6" fill="#ecd3a4" stroke="#a8834c"/><rect x="14" y="8" width="2.6" height="12" fill="${bd[0]}"/><rect x="18.5" y="8" width="2.6" height="12" fill="${bd[1]}"/><rect x="23" y="8" width="2.6" height="12" fill="${bd[2]}"/><rect x="28.5" y="8" width="2.2" height="12" fill="${bd[3]}"/>`,
       wire: '<path d="M4 22 Q22 0 40 22" stroke="rgba(10,16,24,.55)" stroke-width="5.5" fill="none" stroke-linecap="round"/><path d="M4 22 Q22 0 40 22" stroke="#36c46b" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
-      led: `<line x1="17" y1="26" x2="17" y2="16" stroke="#c7ccd1" stroke-width="2"/><line x1="27" y1="26" x2="27" y2="16" stroke="#c7ccd1" stroke-width="2"/><circle cx="22" cy="12" r="10" fill="${color || "#d81e28"}" stroke="rgba(0,0,0,.35)"/><ellipse cx="18.5" cy="8.5" rx="2.4" ry="3.6" fill="#fff" opacity=".55"/>`,
+      led: `<polyline points="17,16 17,20 14.8,22.4 17,24.8 17,27.6" fill="none" stroke="#c7ccd1" stroke-width="2" stroke-linejoin="round"/><line x1="27" y1="22.5" x2="27" y2="16" stroke="#c7ccd1" stroke-width="2"/><circle cx="22" cy="12" r="10" fill="${color || "#d81e28"}" stroke="rgba(0,0,0,.35)"/><ellipse cx="18.5" cy="8.5" rx="2.4" ry="3.6" fill="#fff" opacity=".55"/>`,
       cap: '<circle cx="22" cy="14" r="11" fill="#3a63d6" stroke="#1c3474"/><circle cx="28" cy="14" r="3.8" fill="#c9d6f6"/>',
       pot: '<rect x="8" y="3" width="28" height="22" rx="6" fill="#2f6fd0" stroke="#173a75"/><circle cx="22" cy="14" r="7.5" fill="#eef1f4"/><line x1="22" y1="14" x2="26" y2="9" stroke="#26303a" stroke-width="2.2" stroke-linecap="round"/>',
       button: '<rect x="10" y="2" width="24" height="24" rx="6" fill="#2b3038"/><circle cx="22" cy="14" r="7" fill="#ff5a5a" stroke="#7a1d1d"/>',
@@ -65,15 +67,15 @@
       if (!li) return;
       let label = d.label, sub = d.sub, color = null;
       if (d.type === "resistor") sub = `${fmtR(defaults.resistor)} · any value`;
-      if (d.type === "led") { label = `${PN.COLOR_NAME[defaults.ledColor]} LED`; sub = `≈ ${vf.toFixed(1)} V · 5 colours`; color = BB.Render.LEDC[defaults.ledColor].icon; }
-      li.innerHTML = `${icon(d.type, color)}<span class="lbl">${label}<span class="sub">${sub}</span></span>`;
+      if (d.type === "led") { label = `${PN.COLOR_NAME[defaults.ledColor]} LED`; sub = `≈ ${vf.toFixed(1)} V${defaults.ledColor === "green" ? " (bright greens ≈ 3 V)" : ""} · 5 colours`; color = BB.Render.LEDC[defaults.ledColor].icon; }
+      li.innerHTML = `${icon(d.type, color, d.type === "resistor" ? defaults.resistor : null)}<span class="lbl">${label}<span class="sub">${sub}</span></span>`;
     });
   }
 
   // ---------- meter ----------
   // Are the probes on two points that no part joins (two separate circuits, or an empty strip)? A voltmeter then has
-  // nothing to compare and shows about 0 V: true, but puzzling, so the meter says why.
-  const APART = "These two points are not joined by any part, so there is nothing to compare: the meter shows about 0 V.";
+  // no loop for its tiny current and shows about 0 V: true, but puzzling, so the meter says why.
+  const APART = "No loop joins these two points, so no current can flow through the meter: it shows about 0 V.";
   function apart(G, m) {
     if (!m || !m.legs[0] || !m.legs[1]) return false;
     const parent = new Map(), find = (x) => { while (parent.has(x) && parent.get(x) !== x) x = parent.get(x); return x; };
@@ -97,10 +99,10 @@
     if (rd.note) notes.push(rd.note);
     if ((m.mode || "V") === "V" && apart(G, m)) notes.push(APART);
     if (m.socket === "mA" && m.mode !== "mA") notes.push("Careful: the red lead is still in the mA socket. The meter is almost a wire now.");
-    if (rd.beep) notes.push("Beep: the probes are connected.");
+    if (rd.beep) notes.push("Beep: almost no resistance between the probes.");
     const at = (pt) => (pt.startsWith("U.") ? `board ${BB.Uno.label(pt.slice(2))}` : `${pt} (${BBShared.netName(BBShared.net(pt)).replace(/ \(.*\)$/, "")})`);
     if (m.legs[0] && m.legs[1]) notes.push(`Red in ${at(m.legs[0])}, black in ${at(m.legs[1])}.`);
-    if (!rd.fuseOK) notes.push("The mA fuse is blown. Select the meter and replace the fuse.");
+    if (!rd.fuseOK) notes.push("The mA fuse is blown. Select the meter and replace the fuse. (A real meter then just reads 0 mA, with no warning.)");
     $("lcd-note").textContent = notes.join(" ");
   }
 
@@ -146,7 +148,7 @@
           if (r === null || r < PN.RMIN || r > PN.RMAX) { note.textContent = `“${inp.value}” is not a value from 10 Ω to 1 MΩ. Try 220, 4.7k or 1M.`; note.classList.add("bad"); return; }
           note.classList.remove("bad");
           inp.value = fmtR(r).replace(" ", "");
-          note.textContent = PN.E12.includes(r) ? "A standard (E12) value." : "Not a standard E12 value, but it exists in other series.";
+          note.textContent = PN.E12.includes(r) ? "A standard (E12) value." : E24.has(Math.round(r / 10 ** Math.floor(Math.log10(r) - 1))) ? "Not in E12, but sold in the E24 series." : "Not a standard value: shops may not sell it. Pick the nearest E12 one.";
           defaults.resistor = r; refreshDrawer();
           G.set(part.id, "value", r, true);
         };

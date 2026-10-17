@@ -88,17 +88,17 @@
       const C = G.coach;
       if (G.mode !== "level" || !C || C.finished) return null;
       const beats = C.tele.concat(C.beat ? [{ id: C.beat.id || String(C.i), t: +C.beatT.toFixed(1), hints: C.hint }] : []);
-      return { id: G.level.id, beat: C.beat ? C.beat.id || String(C.i) : "finish", t: +C.t.toFixed(1), beats };
+      return { id: G.level.id, beat: C.beat ? C.beat.id || String(C.i) : "finish", t: +C.t.toFixed(1), beats, lectures: C.lectures.slice() };
     },
     // After the playtest data was reset: the level being played counts as a new attempt from now on.
     restartAttempt() {
       if (G.mode !== "level" || !G.coach) return;
-      G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0;
+      G.coach.tele = []; G.coach.lectures = []; G.coach.t = 0; G.coach.beatT = 0;
       St.update((s) => { s.telemetry[G.level.id] = { attempts: 1, seed: G.level.seed }; });
     },
     // After Start over: the level behind the title screen leaves no playtest data behind.
     forgetAttempt() {
-      if (G.coach) { G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0; }
+      if (G.coach) { G.coach.tele = []; G.coach.lectures = []; G.coach.t = 0; G.coach.beatT = 0; }
     },
     // An attempt left without finishing (Restart, the map, another level, closing the page) is kept: that is where a player got stuck.
     keepUnfinished() {
@@ -156,7 +156,7 @@
         s.levels[lv.id] = { done: true, stars: Math.max(old.stars || 0, 1 + clean + challenge), clean, challenge };
         for (const c of lv.teaches) if (!s.notebook.includes(c)) s.notebook.push(c);
         const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 1 };
-        t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele };
+        t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele, lectures: G.coach.lectures };
         delete t.unfinished;
       });
       BB.trail(`level ${lv.id} complete, ${res.stars} stars`);
@@ -349,10 +349,11 @@
     G.sim = new BB.Sim(G.doc);
     BB.Input.init(G);
     BB.CoachUI.init(G);
+    BB.Lecture.init(G);
     BB.LevelMap.init(G);
     G.redraw(); G.refreshPanels(true);
     requestAnimationFrame(() => { if (G.mode !== "level") R.fit(); });
-    window.addEventListener("resize", () => (G.mode === "level" ? G.fitLevel() : R.refit()));
+    window.addEventListener("resize", () => (G.mode !== "level" ? R.refit() : BB.Lecture.isOpen() ? BB.Lecture.resized() : G.fitLevel()));
     window.addEventListener("pagehide", () => G.keepUnfinished());
     window.addEventListener("hashchange", () => { try { rerouted(); } catch (err) { BB.reportError(err, "link"); } });
     // Another tab changed the saved sandbox bench: show that one, so neither tab overwrites the other.
@@ -463,6 +464,8 @@
         const meets = (r) => r.left < b[0] && a[0] < r.right && r.top < b[1] && a[1] < r.bottom;
         return ["mentor-avatar", "mentor"].filter((id) => meets(document.getElementById(id).getBoundingClientRect()));
       },
+      view: () => Object.assign({}, R.view),
+      lecture: () => BB.Lecture.state,
       level: () => (G.level ? { id: G.level.id, seed: G.level.seed, layout: G.level.layout, beat: G.coach.beat && G.coach.beat.id, done: G.coach.done, finished: G.coach.finished, stars: G.coach.stars,
         challenge: G.coach.challenge, clean: G.coach.clean, complete: G.run.complete, hint: G.coach.hint } : null),
       // One step of a level's scripted solution, done through the same actions the player's clicks use.

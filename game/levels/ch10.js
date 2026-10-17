@@ -17,7 +17,7 @@
       id: "10-1", title: "Light and resistance", teaches: ["ldr"], uses: ["ohms", "resistor", "strip"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Up", "Down", "It stays the same"], 0, [null, "it works the other way round: light lets current through, so covered, its resistance goes up.",
+        const P = V.predict(["Up", "Down", "It stays the same"], 0, [null, "it works the other way round: more light, less resistance. So covered, its resistance goes up.",
           "this resistor reacts to light: cover it and its resistance climbs."]), seen = {};
         const reading = (S) => { const q = part(S, "s1"); return !!q && S.across(q) && ohms(S) !== null && S.near(ohms(S), q.rd.R, 0.05) ? ohms(S) : null; };
         const light = (S) => { const r = reading(S); if (r !== null && !dark(S, "s1")) seen.light = r; return r !== null && !dark(S, "s1"); };
@@ -33,8 +33,8 @@
               predict: P, waitFor: { predict: true } },
             { id: "light", say: "First measure it in room light. The meter is already on Ω.", hints: [RING(V.hs("b10", "b13"))], waitFor: { when: light } },
             { id: "dark", say: () => `${shownR(seen.light ?? 1850)} in room light. Now cover it, and watch the meter.`, hints: [COVER], waitFor: { when: darkR } },
-            Object.assign(FINISH(() => `${shownR(seen.light ?? 1850)} in the light, ${shownR(seen.dark ?? 75000)} covered. Light lets the current through.`),
-              { reply: "p", note: "a real light sensor reads about 2 kΩ in room light, tens of kΩ under your hand, and up to 1 MΩ in total darkness." }),
+            Object.assign(FINISH(() => `${shownR(seen.light ?? 1850)} in the light, ${shownR(seen.dark ?? 75000)} covered. More light, less resistance: more current gets through.`),
+              { reply: "p", note: "a real light sensor reads about 2 kΩ in room light, tens of kΩ under your hand, and 1 MΩ or more in total darkness." }),
           ],
           goals: [{ text: "Measure it in the dark", when: darkR }],
           challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (reading(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
@@ -90,8 +90,8 @@
             { id: "p", say: "A transistor switch for the LED. A 100 kΩ feeds its base; the light sensor runs from the base to the − rail. Cover it: the LED…",
               highlight: { part: "s1" }, predict: P, waitFor: { predict: true } },
             { id: "cover", say: "Find out: cover the light sensor.", hints: [COVER], waitFor: { when: works, hold: 0.4 } },
-            { id: "name", reply: "p", say: "The 100 kΩ and the sensor make a divider at B. In light, B stays below 0.7 V: no base current. Covered, B rises and current flows in.", waitFor: NEXT },
-            FINISH("Only about 0.04 mA gets into B, × 200 ≈ 9 mA: on, but not fully. A night light: the sensor decides, the transistor switches."),
+            { id: "name", reply: "p", say: "The 100 kΩ and the sensor make a divider at B. In light B stays below 0.7 V: hardly any base current. Covered, B rises and current flows in.", waitFor: NEXT },
+            FINISH("About 0.04 mA gets into B, × about 200 ≈ 9 mA (that varies a lot by part): on, but not fully. The sensor decides, the transistor switches."),
           ],
           goals: [{ text: "The LED on in the dark", pre: "Cover the sensor", when: works }],
           challenge: { text: "And off again in the light", when: (S, m) => { if (works(S)) m.on = true; return !!m.on && !dark(S, "s1") && !lit(part(S, "led1"), 0.0005); } },

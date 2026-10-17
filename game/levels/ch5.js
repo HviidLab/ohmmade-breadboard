@@ -195,7 +195,7 @@
     },
     {
       id: "5-6", title: "Christmas lights", teaches: [], uses: ["seriesR", "seriesShare", "ledCurrent", "ledDrop", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0],
-      card: { name: "Series and parallel", text: "In a row, parts share one current and share out the voltage. Side by side, each has the whole voltage across it and the currents add up." },
+      card: { name: "Series and parallel", text: "In a row, parts share one current and share out the voltage. Side by side, they have the same voltage across them and the currents add up." },
       layouts: [{}],
       make: (V) => {
         const W = V.pick([{ lo: 8, hi: 11, aim: 10, r: 220 }, { lo: 4, hi: 7, aim: 5, r: 390 }, { lo: 12, hi: 16, aim: 14, r: 150 }]);     // the current window, and an answer
@@ -240,7 +240,7 @@
     "questions": [
       "Two resistors in a row: more current, or less?",
       "How do parts in a row share out the voltage?",
-      "Side by side, does each part get the whole voltage?"
+      "Side by side, what voltage does each part have across it?"
     ],
     "words": [
       {
@@ -250,7 +250,7 @@
       },
       {
         "w": "Parallel (side by side)",
-        "d": "Each part from the same + to the same −: each one has the whole voltage across it.",
+        "d": "Parts joined at both ends to the same two points have the same voltage across them. Straight across the battery: its whole voltage.",
         "sym": "battery"
       },
       {
@@ -260,7 +260,7 @@
       },
       {
         "w": "Main line",
-        "d": "The path all the current takes before it splits into branches.",
+        "d": "The path all the current takes before it splits into branches, and after they join again.",
         "sym": "A"
       }
     ]

@@ -500,7 +500,6 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
   .ts-narrow { display: block; }
   .ts-how { grid-template-columns: 1fr; gap: 8px; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 .btn.danger { border-color: var(--warn); color: var(--warn); }
 /* buttons on Notebook paper: ink on paper (the primary one stays amber) */
@@ -596,3 +595,48 @@ button.nb-card:hover, button.nb-card:focus-visible { transform: rotate(0) transl
 @media (max-width: 1000px) { .opener .op-top { grid-template-columns: 1fr; } .op-cover { max-width: 360px; } }
 .op-spark .sp-arm { opacity: 0; }
 .op-cover { margin: 0 14px 0 0; }
+
+/* "I don't get it": Sparky pushes the bench away and explains the idea on a blackboard (lecture.js, chalk-art.js) */
+.topctl .lv-lecture { border-color: rgba(255, 211, 138, .55); color: var(--lamp); }
+.topctl .lv-lecture:hover { border-color: var(--lamp); background: rgba(255, 211, 138, .12); }
+.topctl .lv-lecture:disabled { opacity: .45; cursor: default; }
+#canvas.pushed { transform: translateX(calc(100% + 80px)); transition: transform .7s cubic-bezier(.5, 0, .75, 0); }
+#canvas.returning { transition: transform .6s cubic-bezier(.25, 1, .5, 1); }
+#canvas.away { visibility: hidden; }
+.lv.lecturing > :is(.objective, #mentor, .topctl, .hotbar, .partcard) { opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+.stage.lecturing > :is(.tooltip, .banner, .toast) { display: none; }
+.mentor-avatar.pushing svg { transform: rotate(13deg); transform-origin: 50% 100%; transition: transform .2s; }
+.chalk { --spark-w: clamp(130px, min(16.5vw, 30vh), 240px);
+  position: absolute; top: 14px; left: calc(var(--spark-w) + 34px); right: 24px; bottom: 168px; display: grid; grid-template-rows: minmax(0, 1fr) auto;
+  border: 12px solid #7a5332; border-bottom: 0; border-radius: 12px 12px 4px 4px; overflow: hidden;
+  background: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, .06), transparent 60%), radial-gradient(ellipse at 75% 80%, rgba(255, 255, 255, .04), transparent 55%), #26382f;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, .45), 0 20px 50px rgba(0, 0, 0, .55);
+  transform: translateY(calc(-100% - 60px)); }
+.chalk:focus { outline: none; }
+.chalk.down { transform: none; transition: transform .65s cubic-bezier(.34, 1.32, .64, 1); }
+.chalk.rising { transform: translateY(calc(-100% - 60px)); transition: transform .45s cubic-bezier(.5, 0, .75, 0); }
+.ch-board { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 4px; padding: 10px 24px 6px; min-height: 0; color: #f2efe6; }
+.ch-head { display: flex; align-items: baseline; gap: 14px; }
+.ch-head h2 { margin: 0; font: 600 34px/1.1 Caveat, "Patrick Hand", cursive; color: #f2efe6; letter-spacing: .01em; }
+.ch-count { margin: 0 0 0 auto; font: 600 22px Caveat, cursive; color: rgba(242, 239, 230, .6); }
+.ch-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ch-chips:empty { display: none; }
+.ch-chip { background: transparent; color: #f2efe6; border: 2px dashed rgba(242, 239, 230, .45); border-radius: 999px; padding: 1px 14px; cursor: pointer; font: 600 19px Caveat, cursive; }
+.ch-chip:hover { border-color: #ffd866; color: #ffd866; }
+.ch-chip[aria-pressed="true"] { border-style: solid; border-color: #f2efe6; background: rgba(255, 255, 255, .08); }
+.ch-pic { margin: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.ch-pic svg { width: 100%; height: 100%; max-height: 100%; display: block; }
+.ch-water { stroke-dasharray: .1 9; }
+.ch-water.ch-flow { animation: ch-flow 1.1s linear infinite; }
+.ch-water.ch-fast { stroke-dasharray: .1 7; animation: ch-fast .3s linear infinite; }
+@keyframes ch-flow { to { stroke-dashoffset: -9.1; } }
+@keyframes ch-fast { to { stroke-dashoffset: -7.1; } }
+.ch-spin { transform-box: fill-box; transform-origin: center; animation: ch-spin 3.2s linear infinite; }
+@keyframes ch-spin { to { transform: rotate(360deg); } }
+.ch-ledge { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 8px 14px; background: linear-gradient(#8a5f3a, #6b4a2e); box-shadow: 0 -3px 0 rgba(255, 255, 255, .1) inset; }
+.ch-ledge .btn { padding: 7px 18px; font-size: 15px; }
+.ch-ledge .ch-step:disabled { opacity: .45; cursor: default; }
+.chalk-say { z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.chalk[hidden], .chalk-say[hidden] { display: none; }

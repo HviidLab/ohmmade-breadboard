@@ -27,7 +27,7 @@
       colors: ["red", "yellow", "green"],
       layouts: [{}],
       make: (V) => {
-        const P1 = V.predict(["Drop to a third", "Stay about the same", "Grow"], 1, ["an LED is not like a resistor: it stays at about 2 V whatever the current. The change shows up across the resistor.", null,
+        const P1 = V.predict(["Drop to a third", "Stay about the same", "Grow"], 1, ["an LED is not like a resistor: over the usual currents it stays at about 2 V. The change shows up across the resistor.", null,
           "less current does not give the LED more voltage. It stays at about 2 V; the change shows up across the resistor."]);
         const P2 = V.predict(["About 4 V", "About 2 V", "About 6 V"], 0, [null, "the LED still has 2 V across it, and the rest is across the resistor: 6 − 2 = 4 V.", "the shares add up to 6 V, and 2 V is across the LED: 4 V is across the resistor."]), seen = {};
         const onLed = (S) => across(S, "led1") && volts(S) > 1.5;
@@ -42,14 +42,14 @@
           beats: [
             { id: "led", say: "First, measure the voltage across the LED.", hints: [RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (onLed(S)) seen.v1 = volts(S); return onLed(S); } } },
-            { id: "p1", say: () => `${shownV(seen.v1 ?? 2)} with 330 Ω. With 1 kΩ, only a third of the current flows. The voltage across the LED will…`, highlight: { lcd: "meter" },
+            { id: "p1", say: () => `${shownV(seen.v1 ?? 2)} with 330 Ω. With 1 kΩ, three times the resistance, less current flows. The voltage across the LED will…`, highlight: { lcd: "meter" },
               predict: P1, waitFor: { predict: true } },
             { id: "swap", say: "Find out: swap in the 1 kΩ resistor, and measure across the LED again.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))], allow: allow({ remove: ["res1"], dial: ["V"], socket: ["VO"] }),
               waitFor: { when: (S) => { if (swapped(S)) seen.v2 = volts(S); return swapped(S); } } },
             { id: "p2", reply: "p1", say: () => `${shownV(seen.v1 ?? 2)}, then ${shownV(seen.v2 ?? 1.9)}. The LED stays about the same. How much is across the 1 kΩ?`,
               predict: P2, waitFor: { predict: true } },
             { id: "res", say: "Measure across the resistor.", hints: [RING(V.hs("+T8", "b6"))], waitFor: { when: resShare } },
-            Object.assign(FINISH("The voltage across the LED stays about the same, whatever the current. The rest of the battery's 6 V is across the resistor."), { reply: "p2" }),
+            Object.assign(FINISH("Over the usual currents, the voltage across the LED stays about the same. The rest of the battery's 6 V is across the resistor."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the resistor's share with 1 kΩ", when: resShare }],
           challenge: { text: "Measure the battery too: its 6 V is the two shares added", when: (S) => on(S, "bb:+T", "bb:-T") && Math.abs(volts(S) || 0) > 5.5 },
@@ -91,7 +91,7 @@
       id: "4-3", title: "Choose the resistor", teaches: ["chooseR"], uses: ["ledCurrent", "ledDrop", "ohmsLaw", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["400 Ω", "600 Ω", "200 Ω"], 0, [null, "that uses all 6 V, but 2 V of it is across the LED. That leaves 4 V across the resistor: 4 V ÷ 10 mA = 400 Ω.",
+        const P = V.predict(["400 Ω", "600 Ω", "200 Ω"], 0, [null, "that divides all 6 V by 10 mA, but 2 V of it is across the LED. That leaves 4 V across the resistor: 4 V ÷ 10 mA = 400 Ω.",
           "that is the LED's 2 V. The other 4 V is across the resistor: 4 V ÷ 10 mA = 400 Ω."]);
         const ten = (S) => near(current(S), 0.008, 0.0101);
         return {
@@ -105,7 +105,7 @@
             { id: "build", reply: "p", say: "Resistors come in fixed sizes. Round up to the next one: a little less current is always safe. Put it in.",
               hints: [{ say: "Which size in the tray is the next one above 400 Ω?" }, { say: "470 Ω. One leg on the red + rail, the other in the LED's + strip." }, { show: [V.RES("h", "+T6", "a6", 470)] }],
               waitFor: { when: ten, hold: 0.6 } },
-            FINISH("Work out the resistor, then round up to the next real size. That is how every LED circuit is designed."),
+            FINISH("Work out the resistor, then round up to the next real size. That is how most simple LED circuits are designed."),
           ],
           goals: [{ text: "8 to 10 mA through the LED", when: ten, hold: 0.6 }],
           challenge: { text: "Right on the first try", final: (C) => (C.count.place || 0) <= 1 },
@@ -117,8 +117,8 @@
       id: "4-4", title: "Colours", teaches: ["ledColours"], uses: ["chooseR", "ledCurrent", "ledDrop", "resistor", "polarity", "loop", "strip", "rail"], shifts: [0, 4, 8],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["270 Ω", "330 Ω", "390 Ω"], 1, ["rounding down lets more than 10 mA through. 300 Ω is not a size, so round up: 330 Ω.", null,
-          "that is the red LED's. Blue needs 3 V, so 3 V is left across the resistor: 3 V ÷ 10 mA = 300 Ω, so 330 Ω."]), seen = {};
+        const P = V.predict(["270 Ω", "330 Ω", "390 Ω"], 1, ["rounding down lets more than 10 mA through. There is no 300 Ω in the tray, so round up: 330 Ω.", null,
+          "390 Ω gave red about 10 mA. Blue needs 3 V, so only 3 V is left across the resistor: 3 V ÷ 10 mA = 300 Ω, so 330 Ω."]), seen = {};
         const blue = (S) => { const q = theLed(S); return !!q && q.part.color === "blue" ? q : null; };
         const blueV = (S) => !!blue(S) && S.across(blue(S)) && volts(S) > 2.5;
         const ten = (S) => !!blue(S) && resOf(S, 330) && lit(blue(S), 0.008) && blue(S).rd.I <= 0.0101;
@@ -134,11 +134,12 @@
               waitFor: { when: (S) => across(S, "led1") && volts(S) > 1.5 } },
             { id: "swap", say: "Now swap in the blue LED from the tray, and measure across it.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (blueV(S)) seen.v = volts(S); return blueV(S); } } },
-            { id: "name", say: () => `${shownV(seen.v ?? 2.9)}! Blue needs about 3 V, red about 2 V. So only 3 V is left across the resistor, and less current flows: it is dimmer.`, waitFor: NEXT },
+            { id: "name", say: () => `${shownV(seen.v ?? 2.9)}! Blue needs about 3 V, red about 2 V. So only 3 V is left across the resistor, and less current flows than with red.`, waitFor: NEXT },
             { id: "p", say: "Which resistor gives the blue LED about 10 mA? (6 − 3) V ÷ 10 mA = …", predict: P, waitFor: { predict: true } },
             { id: "fix", reply: "p", say: "300 Ω, rounded up to the next size: 330 Ω. Swap it in for the 390 Ω.", hints: [SWAP_HINT],
               waitFor: { when: ten, hold: 0.6 } },
-            FINISH("Each colour needs its own voltage: red about 2 V, yellow and green a little more, blue and white about 3 V."),
+            Object.assign(FINISH("Each colour needs its own voltage: red about 2 V, yellow and green a little more, blue and white about 3 V."),
+              { note: "some bright green LEDs are made like blue ones and need about 3 V. If in doubt, measure across a new LED first." }),
           ],
           goals: [{ text: "The blue LED at 8 to 10 mA", when: ten }],
           challenge: { text: "Measure the blue LED's current with the meter", when: (S) => !!blue(S) && lit(blue(S), 0.005) && S.readsCurrentOf(blue(S), 0.005, 0.02) },
@@ -167,7 +168,7 @@
             { id: "fix", say: "Pop! About 75 mA, nearly four times too much. Put the 220 Ω in, the next size up from 200 Ω, and a fresh LED.",
               hints: [{ say: "Swap the 47 Ω for the 220 Ω. Then click the burned LED and press Fresh one." }], waitFor: { when: safeNow, hold: 0.6 } },
             Object.assign(FINISH("Keep an LED under 20 mA: the resistor must be at least (battery − LED) ÷ 20 mA. Bigger is always safe."),
-              { note: "an LED far over 20 mA gets hot and can crack. Work out the resistor before you switch on." }),
+              { note: "a real LED at 75 mA may not die at once: it runs hot, fades and fails early. Work out the resistor before you switch on." }),
           ],
           goals: [{ text: "The LED just under 20 mA, safely", when: safeNow }],
           challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
@@ -177,7 +178,7 @@
     },
     {
       id: "4-6", title: "Traffic light", teaches: [], uses: ["ledColours", "chooseR", "ledMax", "ledCurrent", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0],
-      card: { name: "LED maths", text: "Resistor = (battery − LED) ÷ current. Each colour needs its own voltage, so each LED gets its own resistor." },
+      card: { name: "LED maths", text: "Resistor = (battery − LED) ÷ current. Work it out for each colour: each one needs its own voltage." },
       layouts: [{}],
       make: (V) => {
         const COLS = ["red", "yellow", "green"], seen = {};
@@ -200,7 +201,7 @@
               `Build three lights, red, yellow and green, each with ${W.lo} to ${W.hi} mA through it.`), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Each LED needs its own resistor. Ask for a hint if you get stuck.",
               hints: [{ say: `Each LED gets its own loop: + rail, resistor, LED, − rail. Resistor = (6 − LED) V ÷ ${W.aim} mA, rounded up.` },
-                { say: "Red needs about 2 V, yellow 2.1 V, green 2.2 V. Work out each one, then take the next size up in the tray." },
+                { say: "Red needs about 2 V, yellow 2.1 V, green 2.2 V. Work out each one, then pick a size in the tray that lands in the window." },
                 { show: [V.RES("h1", "+T6", "a6", W.sol[0]), V.LED("h2", "c6", "c7", "red"), V.WIRE("h3", "e7", "-T7"), V.RES("h4", "+T12", "a12", W.sol[1]), V.LED("h5", "c12", "c13", "yellow"),
                   V.WIRE("h6", "e13", "-T13"), V.RES("h7", "+T18", "a18", W.sol[2]), V.LED("h8", "c18", "c19", "green"), V.WIRE("h9", "e19", "-T19")] }],
               waitFor: { when: all, hold: 0.8 } },
@@ -249,7 +250,7 @@
       },
       {
         "w": "The 20 mA limit",
-        "d": "The most a small LED is made for. Far above it, it pops.",
+        "d": "The most a small LED is made for. Far above it, it overheats and dies.",
         "sym": "mA"
       }
     ]

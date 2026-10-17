@@ -21,7 +21,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["The LED lights while you hold it", "The LED stays on after one press", "Nothing"], 0, [null,
-          "a push button springs back when you let go, and the loop opens again.", "the button sits in the LED's loop: pressing it closes the gap."]);
+          "a push button springs back when you let go, and the loop opens again.", "the button sits in the LED's loop: pressing it closes the loop."]);
         const led = (S) => part(S, "led1");
         return {
           region: REGION(V),
@@ -72,7 +72,7 @@
               predict: P2, waitFor: { predict: true } },
             { id: "pressed", say: "Find out: probe two legs on the same side of the gap, and press the button. Shift-click keeps it down.",
               hints: [{ say: "Shift-click the red cap: it stays down. Shift-click again to let it up." }, RING(V.hs("a10", "a12"))], waitFor: { when: pressed } },
-            Object.assign(FINISH("Each joined pair sits on its own column, one leg each side of the gap; pressing joins the two columns. So a button sits across the gap."), { reply: "p2" }),
+            Object.assign(FINISH("Each pair sits on one column, across the gap; pressing joins the columns. The legs are spaced to fit the gap, so each gets its own strip."), { reply: "p2" }),
           ],
           goals: [{ text: "Hear the beep through the pressed button", when: pressed }],
           challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
@@ -85,7 +85,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["Only when both are down", "When either one is down", "Never"], 0, [null,
-          "in a row the current must pass both buttons: one still up leaves a gap.", "with both down, the path is complete, so the LED lights."]);
+          "in a row the current must pass both buttons: one still up leaves a break.", "with both down, the path is complete, so the LED lights."]);
         const led = (S) => part(S, "led1");
         const tried = (S, m) => {
           const a = down(S, "b1"), b = down(S, "b2"), on = lit(led(S));

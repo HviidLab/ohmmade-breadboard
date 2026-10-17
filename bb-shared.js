@@ -16,8 +16,8 @@ const BBShared = (() => {
     return ("abcde".includes(p.col) ? "L" : "R") + p.row;
   }
   function netName(n) {
-    if (n === "+T") return "the top + rail (6 V)";
-    if (n === "-T") return "the top − rail (GND)";
+    if (n === "+T") return "the top + rail";
+    if (n === "-T") return "the top − rail";
     if (n === "+B") return "the bottom + rail";
     if (n === "-B") return "the bottom − rail";
     return `row ${n.slice(1)}, holes ${n[0] === "L" ? "a–e" : "f–j"}`;

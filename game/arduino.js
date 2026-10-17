@@ -55,7 +55,7 @@
   function programText(prog) {
     if (!prog) return "";
     if (prog.rule === "copy") return `${prog.out} copies ${prog.from}`;
-    if (prog.rule === "opposite") return `${prog.out} is opposite of ${prog.from}`;
+    if (prog.rule === "opposite") return `${prog.out} is the opposite of ${prog.from}`;
     if (prog.rule === "below") return `${prog.out} on while ${prog.from} < ${prog.n}`;
     return "";
   }

@@ -236,6 +236,15 @@
     el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.leg, "stroke-width": w, "stroke-linecap": "round" }, g);
     el("line", { x1: a[0], y1: a[1] - 0.6, x2: b[0], y2: b[1] - 0.6, stroke: C.legHi, "stroke-width": 0.8, opacity: 0.7, "stroke-linecap": "round" }, g);
   }
+  // A longer leg pushed into its hole: the extra length makes a small bend halfway.
+  function legKink(g, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+    const p = (t, o) => [a[0] + dx * t + nx * o, a[1] + dy * t + ny * o];
+    const pts = [a, p(0.3, 0), p(0.42, 4), p(0.54, -4), p(0.66, 0), b];
+    const d = `M${pts.map((q) => q.map((v) => v.toFixed(1)).join(" ")).join(" L")}`;
+    el("path", { d, stroke: C.leg, "stroke-width": 2.4, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+    el("path", { d, stroke: C.legHi, "stroke-width": 0.8, fill: "none", opacity: 0.7, transform: "translate(0 -.6)" }, g);
+  }
   function curve(a, b, bend) { return BBShared.curve(a, b, bend); }
 
   function bandColors(v) {
@@ -281,7 +290,7 @@
         break;
       }
       case "led": {
-        leg(g, a, mid); leg(g, b, mid);
+        legKink(g, a, mid); leg(g, b, mid);          // the + leg is the longer one: its extra length shows as a bend
         const col = ledc(part), L = LEDC[col];
         r.glowFill = `url(#glow-${col})`;
         r.glow = el("circle", { cx: mid[0], cy: mid[1], r: 34, fill: r.glowFill, opacity: 0 }, fx || g);
@@ -341,17 +350,19 @@
         el("circle", { cx, cy, r: 22, fill: "transparent" }, knob);
         el("circle", { cx, cy, r: 14, fill: "#eef1f4", stroke: "#8f9aa5", "stroke-width": 1.4 }, knob);
         el("circle", { cx: cx - 4, cy: cy - 5, r: 4, fill: "#fff", opacity: 0.7 }, knob);
-        const ang = (135 - 270 * (part.pos ?? 0.5)) * Math.PI / 180;
+        const ang = (-135 + 270 * (part.pos ?? 0.5)) * Math.PI / 180;       // clockwise moves the wiper towards the third leg, as on a real pot
         r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 10, y2: cy - Math.cos(ang) * 10, stroke: "#26303a", "stroke-width": 3, "stroke-linecap": "round" }, knob);
         break;
       }
       case "npn": {
         const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
         const x0 = Math.min(...xs) - 13, x1 = Math.max(...xs) + 13, yc = Math.min(...ys);
-        const d = `M${x0} ${yc - 13}H${x1}V${yc + 2}Q${(x0 + x1) / 2} ${yc + 27} ${x0} ${yc + 2}Z`;
+        // A BC547 reads C, B, E from left to right seen from its flat face: the flat face is on the side the labels read from.
+        const flatDown = pts[0][0] < pts[2][0];
+        const d = flatDown ? `M${x0} ${yc + 13}H${x1}V${yc - 2}Q${(x0 + x1) / 2} ${yc - 27} ${x0} ${yc - 2}Z` : `M${x0} ${yc - 13}H${x1}V${yc + 2}Q${(x0 + x1) / 2} ${yc + 27} ${x0} ${yc + 2}Z`;
         shade(g, d);
         r.body = el("path", { d, fill: dead ? "#3a2a22" : "#2b3038", stroke: "#0c0e11", "stroke-width": 1.4 }, g);
-        el("rect", { x: x0 + 3, y: yc - 10, width: x1 - x0 - 6, height: 4, rx: 2, fill: "#fff", opacity: 0.12 }, g);
+        el("rect", { x: x0 + 3, y: flatDown ? yc + 6 : yc - 10, width: x1 - x0 - 6, height: 4, rx: 2, fill: "#fff", opacity: 0.12 }, g);
         ["C", "B", "E"].forEach((t, k) => el("text", { x: pts[k][0], y: yc + 5, "text-anchor": "middle", fill: "#e9ecef", "font-family": "IBM Plex Mono, monospace", "font-size": 10, "font-weight": 600 }, g).textContent = t);
         if (dead) el("circle", { cx: (x0 + x1) / 2, cy: yc, r: 6, fill: "#5a3a2a", opacity: 0.8 }, g);
         break;
@@ -468,6 +479,7 @@
       const t = el("g", { class: k === "COM" ? "" : "ctl", "data-ctl": k === "COM" ? null : `socket:${k}`, "data-id": part.id }, body);
       el("circle", { cx: sx, cy: sy, r: 14, fill: "#0a0e13", stroke: k === "COM" ? "#5b6672" : k === "mA" ? "#ffc43d" : "#ff5a5a", "stroke-width": 3 }, t);
       el("text", { x: sx, y: sy - 21, "text-anchor": "middle", fill: "#c9d3dd", "font-family": "IBM Plex Mono, monospace", "font-size": 11 }, t).textContent = k === "VO" ? "VΩ" : k;
+      if (k === "mA") el("text", { x: sx, y: sy + 27, "text-anchor": "middle", fill: "#ffc43d", "font-family": "IBM Plex Mono, monospace", "font-size": 8.5, "font-weight": 600 }, t).textContent = "FUSED";
     }
     lockCtls(body, part);
     const from = [sock[part.socket === "mA" ? "mA" : "VO"], sock.COM];
@@ -683,5 +695,5 @@
     }
   }
 
-  BB.Render = { cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, setView: (v) => { Object.assign(view, v); apply(); }, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});
