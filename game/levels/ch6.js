@@ -89,7 +89,9 @@
           "a resistor only holds current back: it makes the LED dimmer, not brighter.", "at one end the knob is almost 0 Ω. Then only the 220 Ω holds the current down."]);
         const led = (S) => part(S, "led1");
         const swept = (S, m) => { const q = led(S); if (q && q.ok) { if (q.rd.I > 0.012) m.hi = true; if (q.rd.I < 0.001) m.lo = true; } return !!m.hi && !!m.lo; };
-        const popped = (S) => S.parts("led").some((q) => !q.ok) || S.parts("pot").some((q) => !q.ok);
+        // what burned at almost 0 Ω: the LED, the knob (its thin track and sliding contact are made for small currents), or both
+        const burned = {};
+        const popped = (S) => { burned.led = S.parts("led").some((q) => !q.ok); burned.pot = S.parts("pot").some((q) => !q.ok); return burned.led || burned.pot; };
         const fixed = (S) => S.parts("resistor").some((q) => q.part.value === 220 && q.ok) && !!led(S) && safe(led(S)) && S.parts("pot").every((q) => q.ok);
         return {
           region: REGION(V),
@@ -104,7 +106,9 @@
               highlight: { part: "r1" }, predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: take the 220 Ω out, bridge its gap with a wire, and turn the knob until the LED is at its brightest.",
               hints: [{ say: "Remove the resistor, draw a wire between its two holes, then drag the knob." }], waitFor: { when: popped, hold: 0.05 } },
-            { id: "fix", reply: "p", say: "Pop! With the knob at almost 0 Ω, almost nothing held the current back. Put the 220 Ω back instead of the wire, with a fresh LED.",
+            { id: "fix", reply: "p", say: () => (burned.pot && burned.led ? "Pop! At almost 0 Ω, almost nothing held the current back: the LED and the knob both burned. Put the 220 Ω back, with fresh ones."
+              : burned.pot ? "Pop! At almost 0 Ω, so much current crowded through the knob's thin track that it burned. Put the 220 Ω back, with a fresh knob."
+              : "Pop! With the knob at almost 0 Ω, almost nothing held the current back. Put the 220 Ω back instead of the wire, with a fresh LED."),
               hints: [{ say: "Take the wire off, put the 220 Ω back in its holes, then click the burned part and press Fresh one." }], waitFor: { when: fixed, hold: 0.6 } },
             FINISH("A knob in the loop makes a dimmer. Keep a fixed resistor in the loop too, for when the knob is at almost 0 Ω."),
           ],

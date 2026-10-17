@@ -353,7 +353,7 @@
         el("circle", { cx, cy, r: 22, fill: "transparent" }, knob);
         el("circle", { cx, cy, r: 14, fill: "#eef1f4", stroke: "#8f9aa5", "stroke-width": 1.4 }, knob);
         el("circle", { cx: cx - 4, cy: cy - 5, r: 4, fill: "#fff", opacity: 0.7 }, knob);
-        const ang = (-135 + 270 * (part.pos ?? 0.5)) * Math.PI / 180;       // clockwise moves the wiper towards the third leg, as on a real pot
+        const ang = (135 - 270 * (part.pos ?? 0.5)) * Math.PI / 180;       // turning up (drag up or right) turns the pointer clockwise, towards the first leg, the one on +
         r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 10, y2: cy - Math.cos(ang) * 10, stroke: "#26303a", "stroke-width": 3, "stroke-linecap": "round" }, knob);
         break;
       }
