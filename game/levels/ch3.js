@@ -84,7 +84,7 @@
             Object.assign(FINISH("More voltage, more current. More resistance, less current. The next level puts both in one rule."), { reply: "p2" }),
           ],
           goals: [{ text: "Measure the current with 6 V and 2 kΩ", when: goal }],
-          challenge: { text: "Then make 1.5 mA with the 2 kΩ: take two cells out", when: (S) => cells(S) === 2 && only(S, 2000) && between(S, 0.0014, 0.0016) },
+          challenge: { text: "Then make 1.5 mA with the 2 kΩ: click the pack to take two cells out", when: (S) => cells(S) === 2 && only(S, 2000) && between(S, 0.0014, 0.0016) },
           solution: [{ choose: "right" }, { cells: "bat" }, { wait: 0.6 }, { choose: "right" }, { remove: "res1" }, PLACE(V, 2000), { wait: 0.8 }, { cells: "bat" }, { wait: 0.6 }, { next: 1 }],
         };
       },
@@ -169,7 +169,7 @@
           ui: { strips: true },
           beats: [
             { id: "p", say: "A resistor turns electrical energy into heat. Which one gets hot, straight across the 6 V rails: the 1 kΩ or the 33 Ω?", predict: P, waitFor: { predict: true } },
-            { id: "try", say: "Find out: put the 33 Ω resistor straight across the rails, one leg on +, one on −.", highlight: { nets: ["bb:+T", "bb:-T"] },
+            { id: "try", say: "Find out: drop the 33 Ω on the red + rail, then drag its free end onto the blue − rail.", highlight: { nets: ["bb:+T", "bb:-T"] },
               hints: [{ say: "Drag it from the tray so one leg lands on the red + rail and the other on the blue − rail." }, { show: [V.RES("h", "+T10", "-T13", 33)] }],
               waitFor: { when: hot, hold: 0.05 } },
             { id: "pull", say: "It's scorching hot! Get it out of the loop, quick! On a real bench: battery off first, and don't touch it.",

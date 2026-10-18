@@ -139,7 +139,7 @@
           beats: [
             { id: "p1", say: "The meter sits in the main line, the path all the current takes, so it counts everything: about 6 mA for one 1 kΩ branch. Add a 2 kΩ?",
               highlight: { lcd: "meter" }, predict: P1, waitFor: { predict: true } },
-            { id: "add", say: "Find out: put the 2 kΩ side by side with the other resistor, from the + rail to the − rail.",
+            { id: "add", say: "Find out: put the 2 kΩ side by side with the other one: drop it on the + rail, then drag its free end to the − rail.",
               hints: [{ say: "One leg on the red + rail, the other on the blue − rail, like the resistor already there." }, { show: [V.RES("h", "+T14", "-T16", 2000)] }],
               waitFor: { when: (S) => { if (nine(S)) seen.i = reads(S); return nine(S); } } },
             { id: "p2", reply: "p1", say: () => `${shownmA(seen.i ?? 0.009)}: about 6 + 3. The branches add up. A third branch, another 1 kΩ?`, predict: P2, waitFor: { predict: true } },
@@ -175,21 +175,22 @@
               hints: [{ say: "Into d6 and d7, say: the same strips as the red LED, which is in c6 and c7." }, { show: [V.LED("h", "d6", "d7", "blue")] }],
               waitFor: { when: shared, hold: 0.6 } },
             { id: "fix", reply: "p", say: "Side by side, they have the same voltage across them, about 2 V: too little for blue. Give blue its own resistor and strips.",
-              hints: [{ say: "Move the blue LED to free strips. Then 270 Ω from the + rail to its + leg, and a wire from its − leg to the − rail." },
-                { show: [V.RES("h1", "+T12", "a12", 270), V.LED("h2", "c12", "c13", "blue"), V.WIRE("h3", "e13", "-T13")] }],
+              hints: [{ say: "Move the blue LED to free strips, with its − leg straight in the − rail. Then 270 Ω from the + rail to its + leg." },
+                { show: [V.RES("h1", "+T12", "a12", 270), V.LED("h2", "c12", "-T14", "blue")] }],
               waitFor: { when: both, hold: 0.6 } },
-            FINISH("Each LED gets its own resistor. Side by side on one, the LED that needs the least voltage draws almost all the current."),
+            { id: "row", say: "In a row, LED voltages add up: red 2 V + blue 3 V = 5 V. That leaves only about 1 V across the resistor.", waitFor: NEXT },
+            FINISH("LEDs side by side each need their own resistor. LEDs in a row carry one current, so one resistor can serve the whole row."),
           ],
           goals: [{ text: "Both LEDs lit, each with its own resistor", when: both, hold: 0.6 }],
           // red and blue in a row also light, dimly: say so, and what this level asks instead
           react: [{ hold: 0.8, when: (S, C) => {
             const ls = S.parts("led").filter((q) => q.ok && q.rd.I > 0.001), b = S.battery(), ib = Math.abs((b && b.rd.I) || 0);
             if (!C.beat || C.beat.id === "p" || ls.length !== 2 || !ls.every((q) => Math.abs(q.rd.I - ib) <= 0.03 * ib)) return null;
-            return `In a row, both light: red 2 V + blue 3 V leaves about 1 V for the resistor, so only ${shownmA(ib)}. That works too (next level!). Here: side by side, each with its own resistor.`;
+            return `In a row, both light: red 2 V + blue 3 V leaves about 1 V for the resistor, so only ${shownmA(ib)}. That works too. Here: side by side, each with its own resistor.`;
           } }],
           challenge: { text: "Both LEDs within 3 mA of each other", when: (S) => { const ls = S.parts("led").filter((q) => lit(q, 0.005)); return both(S) && ls.length === 2 && Math.abs(ls[0].rd.I - ls[1].rd.I) <= 0.003; } },
-          solution: [{ choose: "right" }, { place: { type: "led", color: "blue" }, at: V.hs("d6", "d7") }, { wait: 1 }, { move: "led", to: V.hs("c12", "c13") },
-            { place: { type: "resistor", value: 270 }, at: V.hs("+T12", "a12") }, { wire: V.hs("e13", "-T13") }, { wait: 1 }, { next: 1 }],
+          solution: [{ choose: "right" }, { place: { type: "led", color: "blue" }, at: V.hs("d6", "d7") }, { wait: 1 }, { move: "led", to: V.hs("c12", "-T14") },
+            { place: { type: "resistor", value: 270 }, at: V.hs("+T12", "a12") }, { wait: 1 }, { next: 1 }, { next: 1 }],
         };
       },
     },
@@ -246,13 +247,13 @@
             { id: "build", say: "Light all four, each at 5 to 10 mA, while the battery gives 20 mA at most. The meter can check. Ask for a hint if you get stuck.",
               hints: [{ say: "Side by side, the branches' currents add up at the battery. In a row, one current goes through every part. Which helps here?" },
                 { say: `Two LEDs in a row with 220 Ω: (6 − ${vf.toFixed(1)} − ${vf.toFixed(1)}) V ÷ 220 Ω ≈ ${a} mA through both. Two such rows side by side: about ${a2} mA.` },
-                { show: [V.RES("h1", "+T6", "a6", 220), V.LED("h2", "c6", "c7", c), V.LED("h3", "d7", "d8", c), V.WIRE("h4", "e8", "-T8"),
-                  V.RES("h5", "+T12", "a12", 220), V.LED("h6", "c12", "c13", c), V.LED("h7", "d13", "d14", c), V.WIRE("h8", "e14", "-T14")] }],
+                { show: [V.RES("h1", "+T6", "a6", 220), V.LED("h2", "c6", "c7", c), V.LED("h3", "b7", "-T9", c),
+                  V.RES("h5", "+T12", "a12", 220), V.LED("h6", "c12", "c13", c), V.LED("h7", "b13", "-T15", c)] }],
               waitFor: { when: built, hold: 0.8 } },
             Object.assign(FINISH("In a row, two LEDs share one current, so one resistor serves both: half the battery current of two side by side. Chapter 5 done!"),
               { note: "in a row, if one LED fails and opens the loop, every LED in that row goes dark; side by side, the rest stay lit." }),
           ],
-          goals: [{ text: `All four ${c} LEDs at 5 to 10 mA each, and the battery at most 20 mA`, when: built, hold: 0.8 }],
+          goals: [{ text: `All four ${c} LEDs at 5 to 10 mA each, every path with its own resistor, and the battery at most 20 mA in all`, when: built, hold: 0.8 }],
           react: [{ hold: 1, when: (S, C) => (C.beat && C.beat.id === "build" ? darkLed(S) : null) }, { hold: 1, when: (S, C) => {
             if (!C.beat || C.beat.id !== "build" || built(S)) return null;
             const ls = leds(S);

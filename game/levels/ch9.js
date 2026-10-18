@@ -5,7 +5,7 @@
 // Data only, built with the kit from ch1.js.
 (function (BB) {
   "use strict";
-  const K = BB.Levels.kit, { start, lit, safe, part, FINISH } = K;
+  const K = BB.Levels.kit, { start, lit, safe, part, darkLed, FINISH } = K;
   const { allow, REGION, NEXT, shownmA } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 1 ? m.toFixed(2) : m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
@@ -34,17 +34,21 @@
               hints: [{ say: "The 10 kΩ runs from the B strip to strip 17. Join strip 17 to the + rail." }, { show: [V.WIRE("h", "+T17", "a17")] }], waitFor: { when: on, hold: 0.5 } },
             { id: "name", reply: "p", say: () => `${fmtI(seen.ib ?? 0.0005)} into B switches ${fmtI(seen.ic ?? 0.012)} through the LED. A small current controls a big one.`,
               waitFor: NEXT },
-            Object.assign(FINISH("It can pass about 200 × the base current (that varies a lot by part). So it is fully on, almost a closed switch: the 330 Ω sets the current."),
+            { id: "loops", say: "Two loops share E. The big one: + rail, 330 Ω, LED, in at C, out at E, − rail. The small one: + rail, 10 kΩ, in at B, out at E too.",
+              highlight: { part: "q1" }, waitFor: NEXT },
+            { id: "off", say: "Now take that wire away. No current into B, so the LED goes dark: switching B's tiny current switches the LED's big one.",
+              waitFor: { event: "remove" } },
+            Object.assign(FINISH("Both currents leave by E, so E always goes to the − rail. Switch B's tiny current on and off, and the LED's big one follows."),
               { note: "leg order differs by part: a BC547 is C, B, E (flat side to you); 2N2222s come as E, B, C or C, B, E. Check the datasheet." }),
           ],
           goals: [{ text: "Light the LED through the transistor", when: on }],
-          challenge: { text: "Switch it off again by taking the wire away", when: (S, m) => { if (lit(part(S, "led1"))) m.on = true; return !!m.on && !S.parts("wire").some((q) => !["w1", "w2"].includes(q.id)); } },
-          solution: [{ choose: "right" }, { wire: V.hs("+T17", "a17") }, { wait: 0.8 }, { next: 1 }, { remove: "wire" }, { wait: 0.5 }, { next: 1 }],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
+          solution: [{ choose: "right" }, { wire: V.hs("+T17", "a17") }, { wait: 0.8 }, { next: 1 }, { next: 1 }, { remove: "wire" }, { wait: 0.5 }, { next: 1 }],
         };
       },
     },
     {
-      id: "9-2", title: "The base resistor", teaches: ["baseR"], uses: ["npnSwitch", "short", "resistor", "loop", "strip", "rail"], shifts: [0, 4],
+      id: "9-2", meter: "mA", title: "The base resistor", teaches: ["baseR"], uses: ["npnSwitch", "short", "resistor", "loop", "strip", "rail"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["The LED gets brighter", "The transistor burns out", "Nothing happens"], 1, ["the LED's current is set by its 330 Ω, not by the base. And far too much rushes into B.", null,
@@ -65,7 +69,7 @@
             { id: "fix", reply: "p", say: "Pop! Hundreds of mA rushed into B. Take the wire out, put the 10 kΩ in from the + rail to B, and a fresh transistor.",
               hints: [{ say: "Remove the wire. 10 kΩ from the + rail into the B strip. Then click the transistor and press Fresh one." }, { show: [V.RES("h", "+T13", "a13", 10000)] }],
               waitFor: { when: fixed, hold: 0.6 } },
-            Object.assign(FINISH("From B to E is a one-way junction needing about 0.7 V. A 10 kΩ lets in (6 − 0.7) V ÷ 10 kΩ ≈ 0.5 mA: plenty to switch."),
+            Object.assign(FINISH("Base current flows in at B and out at E, through a junction that needs about 0.7 V. 10 kΩ lets in (6 − 0.7) V ÷ 10 kΩ ≈ 0.5 mA."),
               { note: "a burned transistor gets hot enough to burn you. Always give the base its own resistor." }),
           ],
           goals: [{ text: "Light the LED with a 10 kΩ on the base", when: fixed, hold: 0.6 }],
@@ -76,7 +80,7 @@
       },
     },
     {
-      id: "9-3", title: "The weak button", teaches: [], uses: ["npnSwitch", "baseR", "buttonLoop", "buttonLegs", "current", "loop", "resistor", "polarity", "strip", "rail", "gap"],
+      id: "9-3", meter: "mA", title: "The weak button", teaches: [], uses: ["npnSwitch", "baseR", "buttonLoop", "buttonLegs", "current", "loop", "resistor", "polarity", "strip", "rail", "gap"],
       shifts: [0],
       card: { name: "The transistor switch", text: "A tiny current into B, through a resistor, lets a big current flow from C to E. A small switch can control a big load." },
       layouts: [{}],
@@ -96,6 +100,9 @@
       // ≤ 2 mA cannot change the LED's current by 4.5 mA. Only the transistor can pass this goal.
       make: (V) => {
         const LIMIT = 0.002, seen = {};
+        const P = V.predict(["About 11 mA, like the LED", "About 2 mA", "Almost none"], 0, [null,
+          "in one loop every part carries the same current, so the LED's 11 mA flows through the button too.",
+          "pressed, the button is almost a wire in the loop: the LED's whole 11 mA flows through it."]);
         const WORD = ["", "", "twice", "three times", "four times", "five times", "six times", "seven times", "eight times", "nine times", "ten times"];
         // the current through a button: through its contacts (pressed) or along a joined pair, whichever is biggest
         const btnI = (b) => {
@@ -122,34 +129,45 @@
           rules: { tray: [{ type: "npn", n: 1 }, { type: "button", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 330, n: 1 },
             { type: "led", color: "green", n: 1 }, { type: "wire", n: 4 }], latchButtons: true, banner: true },
           ui: { strips: true },
-          goalsFrom: 1,
+          goalsFrom: 4,
           beats: [
-            { id: "brief", say: V.say("The keys of a thin keypad are tiny buttons, made for small currents. This one is made for at most 2 mA. The LED needs about 11 mA.",
-              "This tiny button is like a key on a thin keypad: it is made for at most 2 mA. The green LED needs about 11 mA."), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Make the button light the LED anyway: off with it up, on with it down. It stays down when clicked; click again to let it up.",
-              hints: [{ say: "The LED's 11 mA must not flow through the button. Which part lets a tiny current control a big one?" },
-                { say: "Let the LED's loop run through the transistor, C to E. The button only sends a tiny current into B, through the 10 kΩ.",
-                  highlight: { holes: V.hs("c12", "c13", "c14") } },
-                { show: [V.RES("h1", "+T11", "a11", 330), V.LED("h2", "b11", "b12", "green"), { id: "h3", type: "npn", legs: V.hs("c12", "c13", "c14") },
-                  V.WIRE("h4", "a14", "-T14"), V.WIRE("h5", "+T17", "a17"), { id: "h6", type: "button", legs: V.hs("e17", "f17", "e19", "f19"), pairs: "across" },
-                  V.RES("h7", "a19", "b13", 10000)] }],
+            { id: "brief", say: V.say("The keys of a thin keypad are tiny buttons. This one is made for at most 2 mA. More, and its contacts wear out. The LED needs about 11 mA.",
+              "This tiny button is like a key on a thin keypad: made for at most 2 mA. More, and its contacts wear out. The LED needs about 11 mA."), waitFor: NEXT },
+            { id: "p", say: "If the button sat in the LED's own loop, how much current would flow through it when pressed?", predict: P, waitFor: { predict: true } },
+            { id: "recall", reply: "p", say: "Too much for this button. Remember 9-1: a wire let a tiny current into B, and the LED lit. Take the wire away: dark.",
+              waitFor: NEXT },
+            { id: "place", say: "Your first transistor to place: drop it on three free strips. Its legs read C, B, E, as in 9-1 and 9-2.",
+              waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Make the button light the LED: off with it up, on with it down. Click the button to hold it down; click again to let it up.",
+              hints: [{ say: "The LED's loop: + rail, 330 Ω, the LED, then the transistor in at C, out at E, and on to the − rail." },
+                { say: "The button's loop: + rail, the 10 kΩ, the button, then into B. Its tiny current leaves by E too.",
+                  highlight: { holes: V.hs("c14", "c15", "c16") } },
+                { show: [V.RES("h1", "+T12", "a12", 330), V.LED("h2", "b12", "b14", "green"), { id: "h3", type: "npn", legs: V.hs("c14", "c15", "c16") },
+                  V.WIRE("h4", "a16", "-T16"), { id: "h6", type: "button", legs: V.hs("e15", "f15", "e17", "f17"), pairs: "across" }, V.RES("h7", "+T20", "a17", 10000)] }],
               waitFor: { when: tested } },
             Object.assign(FINISH(() => `Just ${shownmA(seen.ib ?? 0.00053)} through the button switched ${shownmA(seen.il ?? 0.0113)} through the LED, by way of the transistor. Chapter 9 done!`),
               { note: "a real key or small switch has a current rating on its datasheet. Above it, its contacts wear out or burn." }),
           ],
           goals: [{ text: "Off with the button up, on with it down, and at most 2 mA through the button", when: tested }],
-          react: [{ hold: 1, when: (S) => {
+          react: [{ hold: 1, when: (S, C) => (C.beat && C.beat.id === "build" ? darkLed(S) : null) }, { hold: 1.5, when: (S, C) => {
+            // the button down and the LED dark: say which loop is missing
+            const q = S.parts("npn").find((x) => x.ok), down = S.parts("button").some((b) => b.part.pressed);
+            if (!C.beat || C.beat.id !== "build" || !q || !down || ledI(S) > 0.003 || q.legs.some((l) => !l)) return null;
+            if (!S.same(q.nets[2], "bb:-T")) return "Nothing joins E to the − rail, so neither loop is closed. Both currents leave the transistor by E.";
+            if (Math.abs(q.rd.Ib || 0) < 1e-5) return "The button is down, but no current flows into B. B's loop needs a path: + rail, 10 kΩ, button, B, then out by E to the − rail.";
+            return null;
+          } }, { hold: 1, when: (S) => {
             if (!S.parts("button").some((b) => b.part.pressed) || S.destroyed()) return null;
             const ib = btnMax(S); if (ib <= LIMIT) return null;
             const n = Math.round(ib / LIMIT);
             if (ledI(S) < 0.003) return `${shownmA(ib)} flows through the button, but it is made for at most 2 mA.`;
             return `The LED lights, but ${shownmA(ib)} flows through the button: ${n >= 2 ? `${WORD[n] || `${n} times`} what it is made for` : "more than it is made for"}.`;
           } }],
-          challenge: { text: "Use at most two wires", when: (S, m) => S.parts("wire").length <= 2 && tested(S, m) },
-          solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: V.hs("+T11", "a11") }, { place: { type: "led", color: "green" }, at: V.hs("b11", "b12") },
-            { place: { type: "npn" }, at: V.hs("c12", "c13", "c14") }, { wire: V.hs("a14", "-T14") }, { wire: V.hs("+T17", "a17") },
-            { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: V.hs("e17", "f17", "e19", "f19") },
-            { place: { type: "resistor", value: 10000 }, at: V.hs("a19", "b13") }, { wait: 0.5 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.3 }, { next: 1 }],
+          challenge: { text: "Use only one wire", when: (S, m) => S.parts("wire").length <= 1 && tested(S, m) },
+          solution: [{ next: 1 }, { choose: "right" }, { next: 1 }, { next: 1 }, { place: { type: "resistor", value: 330 }, at: V.hs("+T12", "a12") },
+            { place: { type: "led", color: "green" }, at: V.hs("b12", "b14") }, { place: { type: "npn" }, at: V.hs("c14", "c15", "c16") }, { wire: V.hs("a16", "-T16") },
+            { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: V.hs("e15", "f15", "e17", "f17") },
+            { place: { type: "resistor", value: 10000 }, at: V.hs("+T20", "a17") }, { wait: 0.5 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.3 }, { next: 1 }],
         };
       },
     },

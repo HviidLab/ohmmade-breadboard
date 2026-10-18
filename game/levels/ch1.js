@@ -167,8 +167,8 @@
             { id: "look", say: V.say("Look closely: each group of 5 holes sits in one slot. A metal strip inside joins them, so whatever is plugged in there is connected.",
               "See the slots? Each group of 5 holes has one metal strip inside, so everything plugged into it is connected."), highlight: { nets: [V.n(`bb:L${t1}`)] }, waitFor: { next: true } },
             { id: "p", say: "If the LED's legs went into these two holes, would it be part of the loop?", highlight: { holes: V.hs(`c${V.L.ask[0]}`, `c${V.L.ask[1]}`) }, predict: P, waitFor: { predict: true } },
-            { id: "plug", reply: "p", say: V.L.yes ? "Both strips are in the loop. Plug the LED in there, or anywhere else in the same strips."
-              : "Those strips are not in the loop. Plug the LED in where it closes the loop.",
+            { id: "plug", reply: "p", say: V.L.yes ? "Both strips are in the loop. Drag the LED from the parts tray into those holes, or anywhere else in the same strips."
+              : "Those strips are not in the loop. Drag the LED from the parts tray and plug it in where it closes the loop.",
               highlight: { nets: [V.n(`bb:L${t1}`), V.n(`bb:L${t2}`)] },
               hints: [{ say: "Which strips does the loop already reach? Look for strips with a part's leg in them." }, { say: `One leg in strip ${V.r(t1)}, the other in strip ${V.r(t2)}.`, highlight: { holes: V.hs(`c${t1}`, `c${t2}`) } }, { show: [V.LED("h", `c${t1}`, `c${t2}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
@@ -205,7 +205,7 @@
               highlight: { nets: [V.n(`bb:L${Lt.need}`), `bb:${Lt.rail}`] },
               hints: [{ say: `Drag from a free hole in strip ${V.r(Lt.need)} to any hole on the ${Lt.word}.` }, { highlight: { holes: V.hs(`e${Lt.need}`, `${Lt.rail}${Lt.need}`) } }, { show: [V.WIRE("h", `e${Lt.need}`, `${Lt.rail}${Lt.need}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
-            FINISH("The rails bring + and − to wherever you need them along the board."),
+            FINISH("The rails bring + and − all along the board. Any number of loops can start at the + rail and end at the − rail."),
           ],
           goals: [LIT],
           challenge: { text: "Use a rail hole 20 or more columns from the battery", when: (S) => anyLit(S) && wireHoles(S, `bb:${Lt.rail}`).some((h) => BBShared.parse(h).row >= V.r(near + 20)) },
@@ -312,7 +312,7 @@
               highlight: { holes: V.hs(...Lt.bridge) },
               hints: [{ say: "Draw a wire between the two holes where the resistor's legs were." }, { show: [V.WIRE("h", ...Lt.bridge)] }],
               waitFor: { when: (S) => S.destroyed("led") } },
-            { id: "fix", reply: "p", say: "Pop! Nothing held the current back. Fix it: wire out, resistor back, and a fresh LED.",
+            { id: "fix", reply: "p", say: "Pop! Nothing held the current back. Fix it: wire out, resistor back, then click the burned LED and press Fresh one.",
               allow: { place: true, remove: ["res1", "wire1"], move: ["wire1"], legs: ["wire1"] },
               hints: [{ say: "Take the new wire off. Drop the resistor on the rail where it was. Then click the LED and press Fresh one." }, { show: [V.RES("h", ...Lt.back, 330)] }],
               waitFor: { when: (S) => lit(part(S, "led1")) && S.parts("resistor").length > 0 } },
@@ -374,18 +374,18 @@
         rules: { tray: [{ type: "resistor", value: V.ohms, n: 1 }, { type: "led", color: V.c1, n: 1 }, { type: "wire", n: 3 }], guardShorts: false, banner: true },
         ui: { strips: true },
         beats: [
-          { id: "brief", say: V.say("Your turn. Light the LED safely from the rails. You have a resistor, an LED and three wires.",
-            "Now you build it. Light the LED safely from the rails, with a resistor, an LED and up to three wires."), waitFor: { next: true, label: "Start" } },
+          { id: "brief", say: V.say("Your turn. Light the LED safely from the rails. You have a resistor, an LED, and wires if you need them.",
+            "Now you build it. Light the LED safely from the rails, with a resistor, an LED, and wires if you need them."), waitFor: { next: true, label: "Start" } },
           { id: "build", say: V.say("Build it. Ask for a hint any time.", "Over to you. Ask for a hint if you get stuck."),
             hints: [{ say: "The path: + rail, resistor, LED (+ leg first), then back to the − rail. Drop the resistor on the red rail." }, { highlight: { nets: ["bb:+T", "bb:-T"] } },
-              { show: [V.RES("h1", "+T10", "a10"), V.LED("h2", "c10", "c11"), V.WIRE("h3", "e11", "-T11")] }],
+              { show: [V.RES("h1", "+T10", "a10"), V.LED("h2", "c10", "-T12")] }],
             waitFor: { when: (S) => S.parts("led").some(safe) } },
           FINISH("You built it from nothing. That is the circuit behind most little indicator lights."),
         ],
         goals: [{ text: "Light the LED safely", when: (S) => S.parts("led").some(safe), hold: 0.6 }],
-        challenge: { text: "Use at most one wire", when: (S) => S.parts("led").some(safe) && wires(S).length <= 1 },
-        solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T10", "a10"] }, { place: { type: "led", color: V.c1 }, at: ["c10", "c11"] },
-          { wire: ["e11", "-T11"] }, { wait: 1 }, { next: 1 }],
+        challenge: { text: "Use no wires: legs can go straight into a rail", when: (S) => S.parts("led").some(safe) && wires(S).length === 0 },
+        solution: [{ next: 1 }, { place: { type: "resistor", value: V.ohms }, at: ["+T10", "a10"] }, { place: { type: "led", color: V.c1 }, at: ["c10", "-T12"] },
+          { wait: 1 }, { next: 1 }],
       }),
     },
     {
@@ -442,7 +442,7 @@
             "One light may break; the other must still shine. Build them, then test: take one LED out, then put it back."),
             hints: [{ say: "Taking an LED out opens any loop it is part of. Can each light have a loop that the other LED is not in?" },
               { say: "Every loop can start at the red + rail and end at the blue − rail.", highlight: { nets: ["bb:+T", "bb:-T"] } },
-              { show: [V.RES("h1", "+T8", "a8", 330), V.LED("h2", "c8", "c9", "red"), V.WIRE("h3", "e9", "-T9"), V.RES("h4", "+T16", "a16", 330), V.LED("h5", "c16", "-T16", "white")] }],
+              { show: [V.RES("h1", "+T8", "a8", 330), V.LED("h2", "c8", "-T10", "red"), V.RES("h4", "+T16", "a16", 330), V.LED("h5", "c16", "-T18", "white")] }],
             waitFor: { when: (S, m) => stage(S, m) >= 3 } },
           FINISH("Each light has its own loop from + to −, so one can go out and the other keeps shining. Chapter 1 done!"),
         ],
@@ -462,10 +462,10 @@
             return "Side by side on one resistor, the red LED lets current through far more easily, so almost none goes through the white one.";
           return null;
         } }],
-        challenge: { text: "Use at most one wire", when: (S, m) => stage(S, m) >= 3 && bothOn(S) && wires(S).length <= 1 },
-        solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T8", "a8"] }, { place: { type: "led", color: "red" }, at: ["c8", "c9"] },
-          { place: { type: "led", color: "white" }, at: ["c16", "-T16"] }, { place: { type: "resistor", value: 330 }, at: ["+T16", "a16"] }, { wire: ["e9", "-T9"] },
-          { wait: 1 }, { remove: "led" }, { wait: 1 }, { place: { type: "led", color: "white" }, at: ["c16", "-T16"] }, { wait: 1 }, { next: 1 }],
+        challenge: { text: "Use no wires", when: (S, m) => stage(S, m) >= 3 && bothOn(S) && wires(S).length === 0 },
+        solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T8", "a8"] }, { place: { type: "led", color: "red" }, at: ["c8", "-T10"] },
+          { place: { type: "led", color: "white" }, at: ["c16", "-T18"] }, { place: { type: "resistor", value: 330 }, at: ["+T16", "a16"] },
+          { wait: 1 }, { remove: "led" }, { wait: 1 }, { place: { type: "led", color: "white" }, at: ["c16", "-T18"] }, { wait: 1 }, { next: 1 }],
         };
       },
     },
@@ -478,6 +478,13 @@
     // the battery pack sits centred above the open part of the board, clear of the objective card
     const bats = lv.start.parts.filter((p) => p.type === "battery"), [r0, r1] = lv.region.rows;
     bats.forEach((bat, k) => { bat.bx = Math.round((xr(r0) + xr(r1)) / 2 - 115); bat.by = k ? BBShared.Y["-B"] + 60 : -150; });   // a second pack below the board
+    // from Chapter 2 on (where the meter is met), every level has the meter at hand, free to use: on V, or on mA where the
+    // level asks for a current (fam.meter = "mA")
+    if (fam.chapter >= 2 && !lv.start.parts.some((p) => p.type === "meter")) {
+      const mA = fam.meter === "mA", a = (lv.rules.allow = Object.assign({}, lv.rules.allow));
+      for (const k of ["probe", "ctl"]) if (a[k] !== "*") a[k] = [...(a[k] || []), "meter"];
+      lv.start.parts.push({ id: "meter", type: "meter", mode: mA ? "mA" : "V", socket: mA ? "mA" : "VO", legs: [null, null] });
+    }
     // the meter stands to the right of the open part of the board, level with the battery, its probes resting below it
     const m = lv.start.parts.find((p) => p.type === "meter");
     if (m) { const h = BB.Render ? BB.Render.meterSize()[1] : 330; m.bx = xr(r1) + 70; m.by = -60; m.loose = [[m.bx + 95, m.by + h + 40], [m.bx + 165, m.by + h + 40]]; }
