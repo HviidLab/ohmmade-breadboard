@@ -5,7 +5,7 @@
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
   "use strict";
-  const K = BB.Levels.kit, { start, lit, part, FINISH } = K;
+  const K = BB.Levels.kit, { start, lit, part, darkLed, FINISH } = K;
   const { M, volts, fmtV, shownV, shownmA, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
@@ -253,7 +253,7 @@
               { note: "in a row, if one LED fails and opens the loop, every LED in that row goes dark; side by side, the rest stay lit." }),
           ],
           goals: [{ text: `All four ${c} LEDs at 5 to 10 mA each, and the battery at most 20 mA`, when: built, hold: 0.8 }],
-          react: [{ hold: 1, when: (S, C) => {
+          react: [{ hold: 1, when: (S, C) => (C.beat && C.beat.id === "build" ? darkLed(S) : null) }, { hold: 1, when: (S, C) => {
             if (!C.beat || C.beat.id !== "build" || built(S)) return null;
             const ls = leds(S);
             if (ls.length !== 4) return null;

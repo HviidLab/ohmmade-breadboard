@@ -20,6 +20,28 @@
   const wires = (S) => S.parts("wire");
   const wireHoles = (S, net) => wires(S).flatMap((q) => q.legs.filter((l, k) => q.nets[k] === net));
   const onOff = (S) => S.battery() && S.battery().part.on !== false;
+  // Why an LED stays dark while current flows elsewhere, for open puzzles (where the design is not given): both legs in
+  // one strip, in backwards, or the current goes past it (two other parts carry it through one of the LED's strips, and
+  // the LED's other strip leads nowhere). A line for Sparky, or null. An LED's legs are [+, −].
+  const where = (h) => (/^[a-j]\d+$/.test(h || "") ? `strip ${h.slice(1)}` : /^\+/.test(h || "") ? "the + rail" : /^-/.test(h || "") ? "the − rail" : null);
+  const PART_WORD = { wire: "wire", resistor: "resistor", led: "LED", meter: "meter", button: "button", switch: "switch" };
+  function darkLed(S) {
+    const flows = (o) => o.ok && (o.type === "meter" ? !!S.meter && S.meter.mode === "mA" && Math.abs(S.meter.value || 0) > 1e-3 : Math.abs(o.rd.I || 0) > 1e-3);
+    for (const q of S.parts("led")) {
+      const at = q.legs.map(where);
+      if (!q.ok || Math.abs(q.rd.I || 0) > 1e-4 || !at[0] || !at[1]) continue;
+      if (q.nets[0] === q.nets[1]) return `Both legs of the LED are in ${at[0]}, so the strip joins them and the current goes past the LED. Put its legs in two strips.`;
+      const n = q.legs.map((h) => (/^[a-j]\d+$/.test(h) ? +h.slice(1) : null)), both = n[0] !== null && n[1] !== null ? `strips ${Math.min(...n)} and ${Math.max(...n)}` : `${at[0]} and ${at[1]}`;
+      if ((q.rd.V ?? 0) < -1) return `The LED in ${both} is in backwards, so it blocks the current. Its + leg must face the + side: click it and choose Flip.`;
+      const by = q.nets.map((n) => S.all.filter((o) => o !== q && o.nets.includes(n) && flows(o)));
+      const k = [0, 1].find((j) => by[j].length >= 2 && !by[1 - j].length);
+      if (k === undefined) continue;
+      const names = by[k].map((o) => PART_WORD[o.type] || "part");
+      const list = new Set(names).size === names.length && names.length <= 3 ? names.map((w) => `the ${w}`).join(", ").replace(/, ([^,]*)$/, " and $1") : "other parts";
+      return `The current goes past the LED: in ${at[k]} it runs between ${list}. It must go in by the LED's + leg (${at[0]}) and out by its − leg (${at[1]}).`;
+    }
+    return null;
+  }
   const LIT = { text: "Light the LED", when: (S) => anyLit(S), hold: 0.6 };
   const FINISH = (say) => ({ id: "end", say, waitFor: { next: true, label: "Finish level" } });
 
@@ -520,7 +542,7 @@
     ]
   });
   // What later chapters build their levels with.
-  BB.Levels.kit = { variant, chapter, start, xr, WIRE_COLORS, COLOR_WORD, lit, safe, part, anyLit, wires, wireHoles, onOff, FINISH };
+  BB.Levels.kit = { variant, chapter, start, xr, WIRE_COLORS, COLOR_WORD, lit, safe, part, anyLit, wires, wireHoles, onOff, darkLed, FINISH };
   BB.Levels.all = () => BB.Levels.chapters.flatMap((c) => c.levels);
   BB.Levels.get = (id) => BB.Levels.all().find((l) => l.id === id) || null;
   // A seed for the next play of a level: 0 the first time, then a different variant from the last one.
