@@ -149,28 +149,104 @@
     else src.start(t);
     return src;
   }
-  // The tune of the title screen and the chapter screens: on repeat while one is open, faded in and out. A stop waits
-  // a moment, so going from one of these screens to another keeps the tune going instead of starting it again.
-  let tune = null, tuneWant = false, tuneStop = 0;
-  function music(on) {
-    tuneWant = !!on;
+  // The tunes: the title screen has its theme (sounds.js), the chapter screens take turns among six (music.js, loaded
+  // the first time one is wanted). A tune plays once through and fades out, then a quiet gap of 12 to 25 s, then the
+  // next: the theme again on the title, on the chapter screens the next of the six in a shuffled round. A stop waits a
+  // moment, so going from one of these screens to another of the same kind keeps the tune (or the gap) going; going
+  // to the other kind fades one tune into the other.
+  let tune = null, tuneWant = null, tuneStop = 0, tuneNext = 0, gapKind = null;
+  const tunes = {}, round = [];          // tunes: decoded chapter tunes by letter (only the playing one is kept)
+  let tunesLoading = false, lastTune = null;
+  const GAP = () => 12000 + Math.random() * 13000, END_FADE = 3;
+  function loadTunes() {
+    if (tunesLoading) return;
+    tunesLoading = true;
+    const s = document.querySelector('script[src$="sounds.js"]');
+    if (!s || BB.MusicData) return;
+    const el = document.createElement("script");
+    el.src = s.src.replace(/sounds\.js$/, "music.js"); el.async = true;
+    document.head.appendChild(el);
+  }
+  const decoding = {};
+  function decodeTune(a, k) {
+    if (!decoding[k]) decoding[k] = fetch(BB.MusicData[k].src).then((r) => r.arrayBuffer()).then((b) => a.decodeAudioData(b))
+      .then((buf) => { tunes[k] = buf; return buf; }, () => null);
+    return decoding[k];
+  }
+  // The next chapter tune: a shuffled round of all six, never the same one twice in a row.
+  function nextTune() {
+    const all = Object.keys(BB.MusicData || {});
+    if (!all.length) return null;
+    if (!round.length) {
+      const bag = all.slice();
+      for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+      if (bag.length > 1 && bag[0] === lastTune) bag.push(bag.shift());
+      round.push(...bag);
+    }
+    return round.shift();
+  }
+  function music(on, kind = "title") {
     clearTimeout(tuneStop);
-    if (!on) { tuneStop = setTimeout(stopTune, 80); return; }
+    if (!on) { tuneWant = null; tuneStop = setTimeout(stopTune, 80); return; }
     const a = ctx();
     if (!a) return;
-    if (on && !tune) {
-      if (!rec.music) { setTimeout(() => { if (tuneWant && !tune) music(true); }, 400); return; }     // still decoding
-      const g = a.createGain(); g.gain.value = 0; g.connect(out("music"));
-      const src = playRec(a, "music", { loop: true, into: g });
-      g.gain.setTargetAtTime(1, a.currentTime, 0.5);
-      tune = { src, g };
+    tuneWant = kind;
+    if (kind === "chapter") loadTunes();
+    if ((tune && tune.kind === kind) || (!tune && tuneNext && gapKind === kind)) return;      // already playing, or in its quiet gap
+    clearTimeout(tuneNext); tuneNext = 0; waited = 0;
+    if (tune) fadeOut(tune, 0.6);
+    tune = null;
+    playNext(a);
+  }
+  let waited = 0;                        // ms spent waiting for music.js on a chapter screen
+  function playNext(a) {
+    tuneNext = 0;
+    if (!tuneWant || muted) return;
+    const kind = tuneWant;
+    const retry = () => { waited += 400; gapKind = kind; tuneNext = setTimeout(() => { tuneNext = 0; if (tuneWant === kind && !tune) playNext(a); }, 400); };
+    if (kind === "chapter" && !BB.MusicData && waited < 3000) { retry(); return; }      // music.js still loading; after 3 s the theme stands in
+    const k = "music", buf = rec.music;
+    if (kind === "chapter" && BB.MusicData) {
+      const k = nextTune();
+      const me = { kind, pending: true };
+      tune = me;
+      decodeTune(a, k).then((b) => {
+        if (tune !== me) return;
+        tune = null;
+        if (!b) { retry(); return; }
+        start(a, kind, k, b);
+      });
+      return;
     }
+    if (!buf) { retry(); return; }          // still decoding
+    start(a, kind, k, buf);
+  }
+  function start(a, kind, k, buf) {
+    const g = a.createGain(), t = a.currentTime, src = a.createBufferSource();
+    src.buffer = buf; src.connect(g); g.connect(out("music"));
+    g.gain.setValueAtTime(0, t); g.gain.setTargetAtTime(1, t, 0.5);
+    const end = t + buf.duration;
+    g.gain.setValueAtTime(1, Math.max(t + 1, end - END_FADE)); g.gain.linearRampToValueAtTime(0, end);
+    src.start(t);
+    const me = tune = { src, g, kind, k };
+    if (kind === "chapter") { lastTune = k; for (const x of Object.keys(tunes)) if (x !== k) delete tunes[x], delete decoding[x]; }
+    src.onended = () => {
+      if (tune !== me) return;
+      tune = null;
+      if (tuneWant) { gapKind = tuneWant; tuneNext = setTimeout(() => playNext(ctx() || a), GAP()); }
+    };
+  }
+  function fadeOut(t, s) {
+    if (!t.src) return;                      // still decoding: nothing sounds yet
+    const now = audio.currentTime;
+    t.g.gain.cancelScheduledValues(now); t.g.gain.setValueAtTime(t.g.gain.value, now); t.g.gain.setTargetAtTime(0, now, s / 3);
+    setTimeout(() => { try { t.src.stop(); } catch (e) { /* stopped */ } }, 1500);
   }
   function stopTune() {
-    if (!tune || tuneWant) return;
-    const t = tune; tune = null;
-    t.g.gain.setTargetAtTime(0, audio.currentTime, 0.25);
-    setTimeout(() => { try { t.src.stop(); } catch (e) { /* stopped */ } }, 1500);
+    if (tuneWant) return;
+    clearTimeout(tuneNext); tuneNext = 0; gapKind = null;
+    if (tune) fadeOut(tune, 0.75);
+    tune = null;
   }
   // A sample to hear a new volume: Sparky saying a few syllables, or a chime.
   function sample(kind) {
@@ -386,8 +462,8 @@
   }
   const hazard = { hum: false, sizzle: false, heat: 0 };
 
-  function setMuted(m) { muted = m; if (m) { beep(false); tuneWant = false; stopTune(); } }
+  function setMuted(m) { muted = m; if (m) { beep(false); tuneWant = null; stopTune(); } }
   function unlock() { ctx(); }
 
-  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, music, get playing() { return !!tune; }, get recorded() { return Object.keys(rec).sort(); }, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
+  BB.Effects = { reset, hush, hazard, MAT, insert, extract, setVolume, sample, music, get playing() { return !!tune; }, get tune() { return tune && { kind: tune.kind, k: tune.k || null, gap: false } || (tuneNext ? { kind: gapKind, gap: true } : null); }, get recorded() { return Object.keys(rec).sort(); }, get volume() { return Object.assign({}, VOL); }, get placed() { return Object.assign({}, played); }, voice, get voiced() { return voiced; }, init, frame, burst, chime, setMuted, unlock, fmtLcd, midOf, get muted() { return muted; } };
 })(window.BB = window.BB || {});

@@ -81,7 +81,7 @@
       <div class="scr-row">${open_ ? `<button type="button" class="btn primary" id="op-go">Start ${first.id} · ${esc(first.title)} →</button>` : ""}<button type="button" class="btn" id="op-map">Level map</button></div></div>`,
       open_ ? "#op-go" : "#op-map");
     on(host, "#op-go", () => play(first, true));
-    BB.Effects.music(true);
+    BB.Effects.music(true, "chapter");
     on(host, "#op-map", () => showMap(n));
   }
 
