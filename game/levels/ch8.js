@@ -30,15 +30,21 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "The blue can is a capacitor. It stores energy: + charge on one plate, − on the other. Its ring shows how full it is. Switch off: the LED…",
-              highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
-            { id: "off", say: "Find out: switch the battery off, and watch the LED and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
+            { id: "meet", say: "New part: the blue can is a capacitor. Like a little bucket, it fills up from the battery and can let its energy out again later.",
+              highlight: { part: "c1" }, waitFor: NEXT },
+            { id: "farad", say: "How much charge it holds per volt is its capacitance, in farads (F). A farad is huge, so most are in µF: millionths of a farad.",
+              highlight: { part: "c1" }, waitFor: NEXT },
+            { id: "here", say: "This one is 1000 µF. The battery fills it and lights the LED beside it. The ring round the can shows how full it is: full now.",
+              highlight: { parts: ["c1", "led1"] }, waitFor: NEXT },
+            { id: "p", say: "The slider on the battery box is its switch, now ON. If you slide it to OFF, what does the LED do?",
+              highlight: { ctl: "switch", id: "bat" }, predict: P, waitFor: { predict: true } },
+            { id: "off", say: "Find out: slide the battery box's switch to OFF, and watch the LED and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: faded } },
             Object.assign(FINISH("The capacitor filled up while the battery was on, then let its energy out through the LED: a short glow."), { reply: "p" }),
           ],
           goals: [{ text: "Watch the LED fade with the battery off", when: faded }],
           challenge: { text: "Fill it and let it glow out twice", when: (S, m) => { const on = onOff(S); if (m.prev === true && !on) m.n = (m.n || 0) + 1; m.prev = on; return (m.n || 0) >= 2; } },
-          solution: [{ choose: "right" }, { ctl: "bat" }, { wait: 2.5 }, { ctl: "bat" }, { wait: 1.2 }, { ctl: "bat" }, { wait: 2.5 }, { next: 1 }],
+          solution: [{ next: 1 }, { next: 1 }, { next: 1 }, { choose: "right" }, { ctl: "bat" }, { wait: 2.5 }, { ctl: "bat" }, { wait: 1.2 }, { ctl: "bat" }, { wait: 2.5 }, { next: 1 }],
         };
       },
     },
@@ -58,7 +64,7 @@
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its voltage. Switch on: will it be full at once?",
+            { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its voltage. When you switch on, will it fill at once?",
               highlight: { part: "c1" }, predict: P1, waitFor: { predict: true } },
             { id: "fill", say: "Find out: switch the battery on, and watch the meter and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: full } },
@@ -95,7 +101,7 @@
           beats: [
             { id: "p", say: "Left: 1 kΩ and 1000 µF. Middle: 10 kΩ and 100 µF. Right: 10 kΩ and 1000 µF. Which two will fill equally fast?",
               highlight: { parts: ["cA", "cB", "cC"] }, predict: P, waitFor: { predict: true } },
-            { id: "race", say: "Find out: switch on, and watch the three rings.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: race } },
+            { id: "race", say: "Find out: switch the battery on, and watch the three rings.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: race } },
             { id: "name", reply: "p", say: "Multiply: kΩ × µF gives milliseconds. 1 kΩ × 1000 µF = 1000 ms = 1 s; 10 kΩ × 100 µF = 1 s too. The right one: 10 s.", waitFor: NEXT },
             FINISH("R × C is the time constant of the resistor and capacitor: in that time the capacitor fills about two thirds. Bigger R or C, slower."),
           ],
@@ -190,8 +196,8 @@
         "sym": "cap"
       },
       {
-        "w": "Microfarad (µF)",
-        "d": "A unit of capacitance: a millionth of a farad. More µF stores more.",
+        "w": "Capacitance (F, µF)",
+        "d": "How much charge a capacitor holds per volt, in farads (F). A farad is huge, so most are in microfarads (µF): millionths of a farad.",
         "sym": "cap"
       },
       {
