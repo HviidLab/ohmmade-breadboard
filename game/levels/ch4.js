@@ -30,7 +30,7 @@
         const P1 = V.predict(["Drop to a third", "Stay about the same", "Grow"], 1, ["an LED is not like a resistor: over the usual currents it stays at about 2 V. The change shows up across the resistor.", null,
           "less current does not give the LED more voltage. It stays at about 2 V; the change shows up across the resistor."]);
         const P2 = V.predict(["About 4 V", "About 2 V", "About 6 V"], 0, [null, "the LED still has 2 V across it, and the rest is across the resistor: 6 − 2 = 4 V.", "the shares add up to 6 V, and 2 V is across the LED: 4 V is across the resistor."]), seen = {};
-        const onLed = (S) => across(S, "led1") && volts(S) > 1.5;
+        const onLed = (S) => across(S, "led1") && Math.abs(volts(S)) > 1.5;
         const swapped = (S) => resOf(S, 1000) && !resOf(S, 330) && onLed(S);
         const resShare = (S) => resOf(S, 1000) && S.parts("resistor").some((q) => S.across(q)) && volts(S) !== null && Math.abs(volts(S)) > 3.5;
         return {
@@ -102,7 +102,7 @@
           ui: { strips: true },
           beats: [
             { id: "p", say: "This red LED needs a resistor, and we want 10 mA. Resistor = (6 − 2) V ÷ 10 mA = …", highlight: { part: "led1" }, predict: P, waitFor: { predict: true } },
-            { id: "build", reply: "p", say: "Resistors come in fixed sizes. Round up to the next one: a little less current is always safe. Put it in.",
+            { id: "build", reply: "p", say: "Resistors come in fixed sizes: round up to the next one. Put it in from the + rail to the LED's + strip.",
               hints: [{ say: "Which size in the tray is the next one above 400 Ω?" }, { say: "470 Ω. One leg on the red + rail, the other in the LED's + strip." }, { show: [V.RES("h", "+T6", "a6", 470)] }],
               waitFor: { when: ten, hold: 0.6 } },
             FINISH("Work out the resistor, then round up to the next real size. That is how most simple LED circuits are designed."),
@@ -120,7 +120,7 @@
         const P = V.predict(["270 Ω", "330 Ω", "390 Ω"], 1, ["rounding down lets more than 10 mA through. There is no 300 Ω in the tray, so round up: 330 Ω.", null,
           "390 Ω gave red about 10 mA. Blue needs 3 V, so only 3 V is left across the resistor: 3 V ÷ 10 mA = 300 Ω, so 330 Ω."]), seen = {};
         const blue = (S) => { const q = theLed(S); return !!q && q.part.color === "blue" ? q : null; };
-        const blueV = (S) => !!blue(S) && S.across(blue(S)) && volts(S) > 2.5;
+        const blueV = (S) => !!blue(S) && S.across(blue(S)) && Math.abs(volts(S)) > 2.5;
         const ten = (S) => !!blue(S) && resOf(S, 330) && lit(blue(S), 0.008) && blue(S).rd.I <= 0.0101;
         return {
           region: REGION(V),
@@ -131,7 +131,7 @@
           goalsFrom: 4,
           beats: [
             { id: "red", say: "A red LED with 390 Ω: about 10 mA. Measure the voltage across the LED.", hints: [RING(V.hs("d6", "d7"))],
-              waitFor: { when: (S) => across(S, "led1") && volts(S) > 1.5 } },
+              waitFor: { when: (S) => across(S, "led1") && Math.abs(volts(S)) > 1.5 } },
             { id: "swap", say: "Now swap in the blue LED from the tray, and measure across it.", hints: [SWAP_HINT, RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { if (blueV(S)) seen.v = volts(S); return blueV(S); } } },
             { id: "name", say: () => `${shownV(seen.v ?? 2.9)}! Blue needs about 3 V, red about 2 V. So only 3 V is left across the resistor, and less current flows than with red.`, waitFor: NEXT },
@@ -165,7 +165,7 @@
             { id: "p", say: "A small LED is made for 20 mA at most. The smallest safe resistor for this red one: (6 − 2) V ÷ 20 mA = …", predict: P, waitFor: { predict: true } },
             { id: "try", reply: "p", say: "What if you go far below 200 Ω? Swap in the 47 Ω and watch the meter.", hints: [SWAP_HINT],
               waitFor: { when: popped, hold: 0.05 } },
-            { id: "fix", say: "Pop! About 75 mA, nearly four times too much. Put the 220 Ω in, the next size up from 200 Ω, and a fresh LED.",
+            { id: "fix", say: "Pop! About 75 mA. Swap the 47 Ω for the 220 Ω, then click the burned LED and press Fresh one.",
               hints: [{ say: "Swap the 47 Ω for the 220 Ω. Then click the burned LED and press Fresh one." }], waitFor: { when: safeNow, hold: 0.6 } },
             Object.assign(FINISH("Keep an LED under 20 mA: the resistor must be at least (battery − LED) ÷ 20 mA. Bigger is always safe."),
               { note: "a real LED at 75 mA may not die at once: it runs hot, fades and fails early. Work out the resistor before you switch on." }),

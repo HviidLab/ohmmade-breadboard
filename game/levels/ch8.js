@@ -66,7 +66,7 @@
           beats: [
             { id: "p1", say: "An empty 1000 µF capacitor, filled through a 4.7 kΩ resistor. The meter watches its voltage. When you switch on, will it fill at once?",
               highlight: { part: "c1" }, predict: P1, waitFor: { predict: true } },
-            { id: "fill", say: "Find out: switch the battery on, and watch the meter and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
+            { id: "fill", say: "Find out: switch the battery on, and watch the meter and the ring until it is almost full.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: full } },
             { id: "p2", reply: "p1", say: "Several seconds. When did it fill fastest?", predict: P2, waitFor: { predict: true } },
             Object.assign(FINISH("Fast at first, slower as it fills: its own voltage grows, so less is left across the resistor, and less current flows in."), { reply: "p2" }),
@@ -130,7 +130,7 @@
             { id: "p", say: "This capacitor is in backwards: its + leg is on the − rail. On this can, the stripe marks the − leg. What happens when you switch on?",
               highlight: { part: "c1" }, predict: P, waitFor: { predict: true } },
             { id: "on", say: "Find out: switch the battery on, and watch.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: vented, hold: 0.05 } },
-            { id: "fix", reply: "p", say: "It swelled and vented. Turn it the right way round, + leg to the + rail, and take a fresh one.",
+            { id: "fix", reply: "p", say: "It vented. Click the can: Flip, then Fresh one. Then switch the battery on (if it is off) and let it charge.",
               hints: [{ say: "Switch the battery off first. Then click the capacitor: Flip (or the R key), then Fresh one." }], waitFor: { when: right, hold: 0.5 } },
             Object.assign(FINISH("An electrolytic capacitor has a right way round, like an LED: + leg to the + side, stripe to the − side."),
               { note: "a backwards electrolytic capacitor can burst. Cans mark the − leg; small tantalum beads mark + instead. Check, and keep your face away." }),

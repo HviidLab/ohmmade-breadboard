@@ -136,7 +136,7 @@
             { id: "p", say: "What happens if you pull the wire out?", predict: P, highlight: { part: "wire1" }, waitFor: { predict: true } },
             { id: "pull", say: "Find out: drag the wire onto the parts tray, or click it and press Remove.", allow: { remove: ["wire1"] }, highlight: [{ part: "wire1" }, { ui: "#hotbar" }],
               hints: [{ say: "Click the wire. A small card appears next to it with a Remove button." }], waitFor: { event: "remove", id: "wire1" } },
-            { id: "close", reply: "p", say: "Everything stopped. A loop open anywhere stops all the current. Now close it again.",
+            { id: "close", reply: "p", say: "Everything stopped: a loop open anywhere stops all the current. Put the wire back from the tray to close it.",
               hints: [{ say: "The wire is back in your tray. Drag it onto the board, or draw one from hole to hole." }, { show: [V.WIRE("h", `e${w1}`, `e${w2}`)] }],
               waitFor: { when: (S) => anyLit(S) } },
             FINISH("That is all a switch does: it opens and closes the loop."),
@@ -351,7 +351,7 @@
               waitFor: { when: (S) => S.shortNow(), hold: 0.05 } },
             { id: "pull", say: "Short circuit! The LED went dark, and the wire and the batteries are heating up. Pull the wire out, quick!",
               waitFor: { when: (S) => !S.shortNow(), hold: 0.05 } },
-            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. A huge current poured through, and the voltage between the rails collapsed to near 0 V."
+            Object.assign(FINISH((C) => (C.broken.has("battery") ? "Too late: the batteries overheated. Pull the wire out, click the battery pack and press Fresh batteries, then finish."
               : "Phew! A huge current poured through the wire, the voltage between the rails collapsed to near 0 V, and the LED went dark.")),
             { reply: "p", note: "never short a battery. Wires and cells get hot enough to burn you, and a cell can leak, burst or catch fire." }),
           ],

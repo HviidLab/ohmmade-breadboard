@@ -65,7 +65,7 @@
           goalsFrom: 3,
           beats: [
             { id: "p1", say: "A push button has four legs. Which of them are joined, even without pressing?", highlight: { part: "b1" }, predict: P1, waitFor: { predict: true } },
-            { id: "across", say: "Find out with the beep: probe two of its legs' strips, without pressing.",
+            { id: "across", say: "Find out with the beep: probe the strips of two of its legs, without pressing. Try pairs until one beeps.",
               hints: [{ say: "Each leg sits in a strip. Put one probe in the strip of one leg and the other probe in the strip of another." }, RING(V.hs("a10", "j10"))],
               waitFor: { when: across } },
             { id: "p2", reply: "p1", say: "Legs on one numbered column, across the gap, are always joined. Will two legs on the same side beep while you press?",
@@ -134,7 +134,7 @@
           beats: [
             { id: "p", say: "Now the two buttons sit side by side. When will the LED light?", highlight: { parts: ["b1", "b2"] },
               predict: P, waitFor: { predict: true } },
-            { id: "try", say: "Find out: try each button on its own.", hints: [LATCH_HINT], waitFor: { when: tried } },
+            { id: "try", say: "Find out: click one button down, then up again, then the other one down. Watch the LED each time.", hints: [LATCH_HINT], waitFor: { when: tried } },
             Object.assign(FINISH("Side by side, each button has its own path, and either will do. This one OR that one. A doorbell with two buttons works like this."),
               { reply: "p", allow: { remove: ["w1", "w2", "w3"], move: ["w1", "w2", "w3"], legs: ["w1", "w2", "w3"] } }),
           ],

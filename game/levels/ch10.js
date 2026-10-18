@@ -33,7 +33,7 @@
             { id: "p", say: "This is a light sensor: a resistor that reacts to light. Cover it with your hand: will its resistance go up or down?", highlight: { part: "s1" },
               predict: P, waitFor: { predict: true } },
             { id: "light", say: "First measure it in room light. The meter is already on Ω.", hints: [RING(V.hs("b10", "b13"))], waitFor: { when: light } },
-            { id: "dark", say: () => `${shownR(seen.light ?? 1850)} in room light. Now cover it, and watch the meter.`, hints: [COVER], waitFor: { when: darkR } },
+            { id: "dark", say: () => `${shownR(seen.light ?? 1850)} in room light. Now cover it: press and hold on the sensor (Shift-click keeps it covered). Watch the meter.`, hints: [COVER], waitFor: { when: darkR } },
             Object.assign(FINISH(() => `${shownR(seen.light ?? 1850)} in the light, ${shownR(seen.dark ?? 75000)} covered. More light, less resistance: more current gets through.`),
               { reply: "p", note: "a real light sensor reads about 2 kΩ in room light, tens of kΩ under your hand, and 1 MΩ (M means million) or more in total darkness." }),
           ],
@@ -91,7 +91,7 @@
           beats: [
             { id: "p", say: "A transistor switch for the LED. A 100 kΩ feeds its base; the light sensor runs from the base to the − rail. Cover it: the LED…",
               highlight: { part: "s1" }, predict: P, waitFor: { predict: true } },
-            { id: "cover", say: "Find out: cover the light sensor.", hints: [COVER], waitFor: { when: works, hold: 0.4 } },
+            { id: "cover", say: "Find out: cover the light sensor (press and hold it), and watch the LED.", hints: [COVER], waitFor: { when: works, hold: 0.4 } },
             { id: "name", reply: "p", say: "The 100 kΩ and the sensor make a divider at B. In light B stays below 0.7 V: hardly any base current. Covered, B rises and current flows in.", waitFor: NEXT },
             FINISH("About 0.04 mA gets into B, × about 200 ≈ 9 mA (that varies a lot by part): on, but not fully. The sensor decides, the transistor switches."),
           ],

@@ -101,15 +101,15 @@
           demo: { led: 1, pot: 1 }, simText: { led: null, pot: null },
           ui: { strips: true },
           beats: [
-            { id: "turn", say: "Here only one end and the wiper are used: the knob is a resistor you can turn, 0 to 10 kΩ. Turn it both ways; watch the LED.", highlight: { ctl: "knob", id: "pot" },
+            { id: "turn", say: "Here the knob is a resistor you turn, 0 to 10 kΩ. Turn it all the way one way, then all the way the other. Watch the LED.", highlight: { ctl: "knob", id: "pot" },
               hints: [{ say: "Press on the white knob and drag the mouse up or down." }], waitFor: { when: swept } },
             { id: "p", say: "Turned one way, the knob adds up to 10 kΩ: dim. The other way, almost nothing: bright. So why is the 220 Ω there too?",
               highlight: { part: "r1" }, predict: P, waitFor: { predict: true } },
             { id: "try", say: "Find out: take the 220 Ω out, bridge its gap with a wire, and turn the knob until the LED is at its brightest.",
               hints: [{ say: "Remove the resistor, draw a wire between its two holes, then drag the knob." }], waitFor: { when: popped, hold: 0.05 } },
-            { id: "fix", reply: "p", say: () => (burned.pot && burned.led ? "Pop! At almost 0 Ω, almost nothing held the current back: the LED and the knob both burned. Put the 220 Ω back, with fresh ones."
-              : burned.pot ? "Pop! At almost 0 Ω, so much current crowded through the knob's thin track that it burned. Put the 220 Ω back, with a fresh knob."
-              : "Pop! With the knob at almost 0 Ω, almost nothing held the current back. Put the 220 Ω back instead of the wire, with a fresh LED."),
+            { id: "fix", reply: "p", say: () => (burned.pot && burned.led ? "Pop! At almost 0 Ω, almost nothing held the current back: the LED and the knob both burned. Wire out, 220 Ω back, then click each: Fresh one."
+              : burned.pot ? "Pop! At almost 0 Ω, so much current crowded through the knob's thin track that it burned. Wire out, 220 Ω back, then click the knob: Fresh one."
+              : "Pop! Almost nothing held the current back. Take the wire out, put the 220 Ω back, then click the LED: Fresh one."),
               hints: [{ say: "Take the wire off, put the 220 Ω back in its holes, then click the burned part and press Fresh one." }], waitFor: { when: fixed, hold: 0.6 } },
             FINISH("A knob in the loop makes a dimmer. Keep a fixed resistor in the loop too, for when the knob is at almost 0 Ω."),
           ],
