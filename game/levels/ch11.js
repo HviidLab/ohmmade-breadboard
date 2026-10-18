@@ -1,6 +1,7 @@
 // Chapter 11: The controller board. A pin is a switch you set (HIGH is 5 V, LOW is 0 V) that gives only about 20 mA;
 // an analog pin reads a voltage as a number from 0 to 1023; a pin set to IN reads HIGH or LOW, floats without a pull-down,
-// and a program joins what the board reads to what it sets. Then a challenge: a night light run by a program.
+// and a program joins what the board reads to what it sets. Then you wire a light sensor into A0 yourself, and a
+// challenge: a night light run by a program.
 // The board is generic (no trademarks). It sits above the breadboard; its pins are set by clicking their badges.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
@@ -22,6 +23,7 @@
     V.RES("pd", "-T7", "a7", 10000), V.WIRE("wd", "b7", "U.D2")];
   const COPY = { out: "D13", rule: "copy", from: "D2" }, OPP = { out: "D13", rule: "opposite", from: "D2" }, BELOW = { out: "D13", rule: "below", from: "A0", n: 500 };
   const PIN = { say: "Each pin's badge sits just above its socket. Click it to switch: L is LOW, H is HIGH.", highlight: { ctl: "pin:D13", id: "board" } };
+  const COVER = { say: "Press and hold on the light sensor to cover it. Shift-click keeps it covered; Shift-click again uncovers it." };
   const PRESS = { say: "Press and hold the button. Shift-click keeps it down; Shift-click again lets it go." };
 
   const mode = (S, n) => S.uno.mode(n);
@@ -223,7 +225,50 @@
       },
     },
     {
-      id: "11-7", title: "Night light, by program", teaches: [], uses: ["program", "analogRead", "pinOut", "pinLimit", "ldrDivider", "ldr", "divider", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
+      id: "11-7", title: "Reading the light", teaches: [], uses: ["analogRead", "ldrDivider", "ldr", "divider", "resistor", "strip", "rail"], shifts: [0],
+      card: { name: "The board reads the light", text: "A light-sensor divider wired to A0: the board reads the light as a number, high in the light, low in the dark." },
+      layouts: [{}],
+      make: (V) => {
+        const P = V.predict(["Lower", "Higher", "The same"], 0, [null, "covered, the sensor's resistance rises: its share of the 5 V grows, so less is left at A0.",
+          "change one resistor of a divider and its middle point moves: the sensor's resistance rises in the dark."]), seen = {};
+        const sensor = (S) => S.parts("ldr")[0];
+        const covered = (S) => { const s = sensor(S); return !!s && (s.part.lux ?? 200) <= 5; };
+        const a0 = (S) => (S.parts("wire").some((w) => w.legs.includes("U.A0")) && sensor(S) ? S.uno.analog("A0") : null);
+        const light = (S) => { const v = a0(S); const ok = v !== null && !covered(S) && v > 700 && v < 1000; if (ok) seen.light = v; return ok; };
+        const darkR = (S) => { const v = a0(S); const ok = v !== null && covered(S) && v < 400; if (ok) seen.dark = v; return ok; };
+        return {
+          region: REGION(V),
+          start: start(BOARD({ watch: ["A0"] }), ...POWER(V)),
+          rules: { tray: [{ type: "ldr", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "wire", n: 2 }], banner: true },
+          ui: { strips: true },
+          goalsFrom: 2,
+          beats: [
+            { id: "brief", say: V.say("Your turn: let the board read the light. Build a divider with the light sensor, and wire its middle point to A0.",
+              "Now the board reads the light. You build a divider with the light sensor, and wire its middle point to A0."), waitFor: { next: true, label: "Start" } },
+            { id: "p", say: "Sensor from the + rail to a strip, 10 kΩ from that strip to the − rail, the strip to A0. Cover the sensor, and A0 will read…",
+              predict: P, waitFor: { predict: true } },
+            { id: "build", say: "Find out: build it, and see what A0 reads in room light. The board's screen shows it.",
+              hints: [{ say: "The light sensor from the + rail into a strip, the 10 kΩ from that strip to the − rail, and a wire from the strip to A0." },
+                { show: [{ id: "h1", type: "ldr", legs: V.hs("+T17", "a17") }, V.RES("h2", "c17", "-T19", 10000), V.WIRE("h3", "b17", "U.A0")] }],
+              waitFor: { when: light, hold: 0.4 } },
+            { id: "dark", say: () => `A0 reads ${seen.light ?? 864} in the light. Now cover the sensor, and watch A0.`, hints: [COVER], waitFor: { when: darkR, hold: 0.4 } },
+            Object.assign(FINISH(() => `${seen.light ?? 864} in the light, ${seen.dark ?? 120} covered: the darker, the lower A0 reads. Next: the board acts on it.`), { reply: "p" }),
+          ],
+          goals: [{ text: "Read the light on A0", when: light }, { text: "A0 lower with the sensor covered", when: darkR }],
+          react: [{ hold: 1, when: (S, C) => {
+            const v = a0(S);
+            if (!C.beat || C.beat.id !== "build" || v === null || covered(S) || v >= 400 || !S.parts("resistor").length) return null;
+            return `A0 reads ${v} in the light, but it should read high in the light. Is the sensor on the + side, from the + rail to A0's strip?`;
+          } }],
+          challenge: { text: "Use only one wire of your own", when: (S, m) => { m.max = Math.max(m.max || 0, S.parts("wire").filter((q) => !["p5", "pg"].includes(q.id)).length); return false; },
+            final: (C, m) => (m.max || 0) <= 1 },
+          solution: [{ next: 1 }, { choose: "right" }, { place: { type: "ldr", lux: 200 }, at: V.hs("+T17", "a17") }, { place: { type: "resistor", value: 10000 }, at: V.hs("c17", "-T19") },
+            { wire: [V.h("b17"), "U.A0"] }, { wait: 0.8 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "11-8", title: "Night light, by program", teaches: [], uses: ["program", "analogRead", "pinOut", "pinLimit", "ldrDivider", "ldr", "divider", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
       card: { name: "The controller board", text: "A board's pins set a voltage (HIGH or LOW) or read one (IN, or a number on A0). Its program joins what it reads to what it sets." },
       layouts: [{}],
       make: (V) => {
@@ -247,7 +292,7 @@
               "Your turn: a porch light, run by the board's program. Read the program on its screen first."), waitFor: NEXT },
             { id: "read", say: "D13 on while A0 < 500 means: D13 is HIGH while A0 reads less than 500. Work out what A0 must do in the dark.", waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build what the program needs, then test it: in the light, and covered (that is dusk).",
-              hints: [{ say: "The program sets D13 HIGH while A0 reads under 500. So A0 needs a voltage that falls in the dark: a divider with the light sensor." },
+              hints: [{ say: "The program sets D13 HIGH while A0 reads under 500. So A0 needs a voltage that falls in the dark: your divider from 11-7." },
                 { say: "The divider: the light sensor from the + rail to a strip, the 10 kΩ from that strip to the − rail. Wire the strip to A0." },
                 { say: "The LED: a wire from D13, the 330 Ω, the LED, then the − rail." },
                 { show: [{ id: "h1", type: "ldr", legs: V.hs("+T17", "a17") }, V.RES("h2", "c17", "-T19", 10000), V.WIRE("h4", "b17", "U.A0"),

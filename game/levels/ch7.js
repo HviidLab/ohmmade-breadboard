@@ -1,12 +1,12 @@
 // Chapter 7: Buttons. A push button closes the loop only while it is pressed; its four legs come in two joined pairs,
 // which is why it sits across the centre gap; two buttons in a row need both pressed, two side by side need either.
-// Then a challenge: a light that either of two buttons switches on. In 7-3 to 7-5 the buttons latch (click down,
-// click up), because a mouse cannot hold two at once.
+// Then you build a button light yourself, and a challenge: a light that either of two buttons switches on. In 7-3 to
+// 7-6 the buttons latch (click down, click up), because a mouse cannot hold two at once.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
   "use strict";
-  const K = BB.Levels.kit, { start, lit, safe, part, anyLit, FINISH } = K;
+  const K = BB.Levels.kit, { start, lit, safe, part, anyLit, wires, darkLed, FINISH } = K;
   const { M, mode, net, RING, METER, allow, REGION, NEXT } = K.meter;
 
   // a push button across the centre gap: legs in rows r and r + 2 (e and f), so each row's two legs are joined
@@ -152,7 +152,57 @@
       },
     },
     {
-      id: "7-5", title: "Two doors", teaches: [], uses: ["buttonsOr", "buttonsAnd", "buttonLegs", "buttonLoop", "loop", "resistor", "polarity", "strip", "rail", "gap"], shifts: [0],
+      id: "7-5", title: "Your own button", teaches: [], uses: ["buttonLegs", "buttonLoop", "loop", "resistor", "polarity", "strip", "rail", "gap"], shifts: [0],
+      card: { name: "Your own button", text: "A button across the gap, in the LED's loop: the loop goes in at a leg on one number and out at a leg on the other." },
+      layouts: [{}], colors: ["red", "green", "blue"],
+      make: (V) => {
+        const P = V.predict(["Two with different numbers", "Two on one numbered column, across the gap", "Any two"], 0, [null,
+          "those two are always joined inside: the loop would skip the button, and the LED would stay on.",
+          "two pairs of legs are always joined. Only legs with different numbers are joined by pressing."]);
+        // the circuit as built (not the button's state): a change means testing the new circuit again
+        const built = (S) => S.all.filter((q) => q.type !== "meter").map((q) => `${q.id}:${q.legs.join(",")}`).join("|");
+        const tested = (S, m) => {
+          const b = S.parts("button")[0];
+          if (!b || b.legs.some((l) => !l) || S.destroyed()) return false;
+          const key = built(S);
+          if (m.key !== key) { m.key = key; m.off = m.on = false; }
+          if (!b.part.pressed && !anyLit(S)) m.off = true;
+          if (b.part.pressed && S.parts("led").some(safe)) m.on = true;
+          return !!m.off && !!m.on;
+        };
+        return {
+          region: { rows: [1, 24], cols: "a-j", rails: "top" },
+          start: start(V.BAT("+T3", "-T4")),
+          rules: { tray: [{ type: "button", n: 1 }, { type: "led", color: V.c1, n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "wire", n: 3 }], latchButtons: true, banner: true },
+          goalsFrom: 1,
+          ui: { strips: true },
+          beats: [
+            { id: "brief", say: V.say("Your turn: an LED with its own button, from an empty board. This button stays down when clicked, and pops up when clicked again.",
+              "Now you build one: an LED and its button, on an empty board. Click this button and it stays down; click again and it pops up."), waitFor: { next: true, label: "Start" } },
+            { id: "p", say: "The loop must go in at one of the button's four legs and out at another. Which two, so that pressing switches the LED?",
+              predict: P, waitFor: { predict: true } },
+            { id: "build", reply: "p", say: "Different numbers: pressing joins them. Build it: + rail, 330 Ω, LED, button, − rail. Then test it: button up, then down.",
+              hints: [{ say: "Sit the button across the centre gap. The loop comes in at a leg on one number and goes out from a leg on the other." },
+                { show: [V.RES("h1", "+T6", "a6", 330), BUTTON(V, "h3", 6), V.LED("h2", "a8", "-T10", V.c1)] }],
+              waitFor: { when: tested } },
+            FINISH("One loop, and one break in it that you control: the button. Next: two buttons, one light."),
+          ],
+          goals: [{ text: "Off with the button up, on with it down", when: tested }],
+          react: [{ hold: 1, when: (S, C) => {
+            if (!C.beat || C.beat.id !== "build") return null;
+            const b = S.parts("button")[0];
+            if (b && b.legs.every(Boolean) && !b.part.pressed && anyLit(S)) return "The LED is on with the button up, so its loop skips the button. Does the current go in at one number and out at the other?";
+            return b && b.part.pressed ? darkLed(S) : null;
+          } }],
+          challenge: { text: "Use no wires: legs can go straight into a rail", when: (S, m) => wires(S).length === 0 && tested(S, m) },
+          solution: [{ next: 1 }, { choose: "right" }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] },
+            { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: ["e6", "f6", "e8", "f8"] },
+            { place: { type: "led", color: V.c1 }, at: ["a8", "-T10"] }, { wait: 0.6 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.4 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "7-6", title: "Two doors", teaches: [], uses: ["buttonsOr", "buttonsAnd", "buttonLegs", "buttonLoop", "loop", "resistor", "polarity", "strip", "rail", "gap"], shifts: [0],
       card: { name: "Buttons", text: "A button closes a loop while it is down. In a row, buttons need all to be down (AND); side by side, any one will do (OR)." },
       layouts: [{}],
       make: (V) => {

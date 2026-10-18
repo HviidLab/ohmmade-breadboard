@@ -1,6 +1,7 @@
 // Saved progress (localStorage "bbgame.v2"). No DOM.
 // {levels: {"1-1": {done, stars, clean, challenge}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook],
-//  introSeen: [chapter numbers], variants, settings: {sound, voice, certName, openAll}, sandbox, telemetry}
+//  introSeen: [chapter numbers], variants, settings: {sound, voice, certName, openAll}, sandbox, telemetry, ids}
+// ids: the level numbering the save uses (2: since the "build it yourself" levels of Chapters 6–11, 2026-10-18).
 // The first time, the sandbox from the old "bbgame.v1" save is carried over.
 // Start over keeps the old save in "bbgame.v2.backup" until the next start over, so it can be brought back.
 (function (BB) {
@@ -9,7 +10,18 @@
   let mem = null, failed = false;      // mem: the save in memory; failed: the last write to storage did not work
   let memBackup;                       // the backup, when storage can't hold it (undefined: look in storage)
 
-  const fresh = () => ({ v: 2, levels: {}, notebook: [], settings: {}, sandbox: null, telemetry: {} });
+  const fresh = () => ({ v: 2, ids: 2, levels: {}, notebook: [], settings: {}, sandbox: null, telemetry: {} });
+  // A "build it yourself" level came in before each puzzle of Chapters 6–11, so those puzzles moved up one number.
+  const MOVED = { "6-4": "6-5", "7-5": "7-6", "8-5": "8-6", "9-3": "9-4", "10-4": "10-5", "11-7": "11-8" };
+  function renumber(s) {
+    for (const k of ["levels", "telemetry", "variants"]) {
+      if (!obj(s[k])) continue;
+      const out = {};
+      for (const [id, v] of Object.entries(s[k])) out[MOVED[id] || id] = v;
+      s[k] = out;
+    }
+    s.ids = 2;
+  }
   function fromV1(old) {
     const s = fresh();
     if (old && typeof old.sandbox === "string") s.sandbox = old.sandbox;
@@ -27,6 +39,7 @@
     for (const [id, l] of Object.entries(s.levels)) { if (!obj(l)) delete s.levels[id]; else delete l.bonus; }    // bonus: the old bonus objectives, now replaced
     for (const [id, t] of Object.entries(s.telemetry)) if (!obj(t)) delete s.telemetry[id];
     if (s.sandbox != null) { try { if (!obj(JSON.parse(s.sandbox))) s.sandbox = null; } catch (e) { s.sandbox = null; } }
+    if (!(raw.ids >= 2)) renumber(s);
     return s;
   }
   const copy = (s) => JSON.parse(JSON.stringify(s));

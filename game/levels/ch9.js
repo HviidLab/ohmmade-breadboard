@@ -1,16 +1,18 @@
 // Chapter 9: The transistor. A tiny current into the base lets a big current flow from collector to emitter, so a
-// transistor is a switch worked by a small current; the base needs its own resistor or it burns. Then an open puzzle:
-// a tiny button, made for at most 2 mA, must switch an LED that needs about 11 mA.
+// transistor is a switch worked by a small current; the base needs its own resistor or it burns. Then you build a
+// transistor switch yourself, and an open puzzle: a tiny button, made for at most 2 mA, must switch an LED that needs
+// about 11 mA.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js.
 (function (BB) {
   "use strict";
-  const K = BB.Levels.kit, { start, lit, safe, part, darkLed, FINISH } = K;
+  const K = BB.Levels.kit, { start, lit, safe, part, wires, darkLed, FINISH } = K;
   const { allow, REGION, NEXT, shownmA } = K.meter;
 
   const fmtI = (a) => { const m = Math.abs(a) * 1000; return `${m < 1 ? m.toFixed(2) : m < 10 ? m.toFixed(1) : Math.round(m)} mA`; };
   // the transistor in strips 12 (C), 13 (B) and 14 (E); the LED's loop from the + rail through it to the − rail
   const NPN = (V) => ({ id: "q1", type: "npn", legs: V.hs("c12", "c13", "c14") });
+  const NPN_AT = (legs, id) => ({ id, type: "npn", legs });
   const LOOP = (V) => [V.RES("r1", "+T8", "a8", 330), V.LED("led1", "c8", "c9"), V.WIRE("w1", "e9", "e12"), NPN(V), V.WIRE("w2", "a14", "-T14")];
 
   const L = [
@@ -80,7 +82,53 @@
       },
     },
     {
-      id: "9-3", meter: "mA", title: "The weak button", teaches: [], uses: ["npnSwitch", "baseR", "buttonLoop", "buttonLegs", "current", "loop", "resistor", "polarity", "strip", "rail", "gap"],
+      id: "9-3", title: "Your own switch", teaches: [], uses: ["npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
+      card: { name: "Your own transistor switch", text: "The LED's loop in at C, B's loop through a resistor into B, and E, where both leave, to the − rail." },
+      layouts: [{}],
+      make: (V) => {
+        const P = V.predict(["E", "C", "B"], 0, [null, "C is where the LED's current goes in. Both currents leave by E, so E goes to the − rail.",
+          "B is the control leg: its tiny current comes in from the 10 kΩ, then leaves by E."]);
+        const npn = (S) => S.parts("npn").find((q) => q.ok && q.legs.every(Boolean));
+        const on = (S) => { const q = npn(S); return !!q && Math.abs(q.rd.Ib || 0) > 1e-5 && Math.abs(q.rd.Ic || 0) > 0.003 && S.parts("led").some(safe); };
+        const offB = (S, m) => { if (on(S)) m.on = true; return !!m.on && !!npn(S) && S.parts("led").length > 0 && !S.parts("led").some((q) => lit(q, 0.0005)) && !S.parts("resistor").some((q) => q.part.value === 10000); };
+        return {
+          region: { rows: [1, 24], cols: "a-j", rails: "top" },
+          start: start(V.BAT("+T3", "-T4")),
+          rules: { tray: [{ type: "npn", n: 1 }, { type: "resistor", value: 330, n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "led", color: "red", n: 1 },
+            { type: "wire", n: 3 }], banner: true },
+          ui: { strips: true },
+          goalsFrom: 1,
+          beats: [
+            { id: "brief", say: V.say("Your turn: a transistor switch on an empty board. Drop the transistor on three free strips: its legs read C, B, E.",
+              "Now you build a transistor switch yourself. Drop the transistor on three free strips; its legs read C, B and E."), waitFor: { next: true, label: "Start" } },
+            { id: "p", say: "Before you build: which of the transistor's three legs must go to the − rail?", predict: P, waitFor: { predict: true } },
+            { id: "build", reply: "p", say: "E, where both currents leave. Build both loops: + rail, 330 Ω, the LED, into C. And + rail, 10 kΩ, into B.",
+              hints: [{ say: "The LED's − leg goes in C's strip, the 10 kΩ's end in B's strip, and a wire joins E's strip to the − rail." },
+                { show: [V.RES("h1", "+T12", "a12", 330), V.LED("h2", "b12", "b14"), NPN_AT(["c14", "c15", "c16"], "h3"), V.WIRE("h4", "a16", "-T16"), V.RES("h5", "+T15", "a15", 10000)] }],
+              waitFor: { when: on, hold: 0.5 } },
+            { id: "off", say: "Now switch the LED off at B: take the 10 kΩ out, and watch the LED.", hints: [{ say: "Click the 10 kΩ and press Remove." }],
+              waitFor: { when: offB, hold: 0.3 } },
+            FINISH("B's tiny current switched the LED's big one: your own transistor switch. Next: a button does the switching."),
+          ],
+          goals: [{ text: "Light the LED through the transistor", when: on }, { text: "Switch it off at B", when: offB }],
+          react: [{ hold: 1.5, when: (S, C) => {
+            const q = npn(S);
+            if (!C.beat || C.beat.id !== "build" || !q) return null;
+            if (S.parts("led").some((l) => lit(l)) && Math.abs(q.rd.Ic || 0) < 0.002) return "The LED lights, but its current doesn't pass the transistor. The LED's loop must go in at C and out at E.";
+            if (S.parts("led").some((l) => lit(l, 0.003))) return null;
+            if (!S.same(q.nets[2], "bb:-T")) return "Nothing joins E to the − rail, so neither loop is closed. Both currents leave the transistor by E.";
+            if (Math.abs(q.rd.Ib || 0) < 1e-5) return "No current flows into B yet. B's loop: + rail, 10 kΩ, into B's strip, then out by E to the − rail.";
+            return darkLed(S);
+          } }],
+          challenge: { text: "Use only one wire", when: (S) => wires(S).length <= 1 && on(S) },
+          solution: [{ next: 1 }, { choose: "right" }, { place: { type: "resistor", value: 330 }, at: ["+T12", "a12"] }, { place: { type: "led", color: "red" }, at: ["b12", "b14"] },
+            { place: { type: "npn" }, at: ["c14", "c15", "c16"] }, { wire: ["a16", "-T16"] }, { place: { type: "resistor", value: 10000 }, at: ["+T15", "a15"] }, { wait: 1 },
+            { remove: "resistor" }, { wait: 0.8 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "9-4", meter: "mA", title: "The weak button", teaches: [], uses: ["npnSwitch", "baseR", "buttonLoop", "buttonLegs", "current", "loop", "resistor", "polarity", "strip", "rail", "gap"],
       shifts: [0],
       card: { name: "The transistor switch", text: "A tiny current into B, through a resistor, lets a big current flow from C to E. A small switch can control a big load." },
       layouts: [{}],
@@ -129,14 +177,12 @@
           rules: { tray: [{ type: "npn", n: 1 }, { type: "button", n: 1 }, { type: "resistor", value: 10000, n: 1 }, { type: "resistor", value: 330, n: 1 },
             { type: "led", color: "green", n: 1 }, { type: "wire", n: 4 }], latchButtons: true, banner: true },
           ui: { strips: true },
-          goalsFrom: 4,
+          goalsFrom: 3,
           beats: [
             { id: "brief", say: V.say("The keys of a thin keypad are tiny buttons. This one is made for at most 2 mA. More, and its contacts wear out. The LED needs about 11 mA.",
               "This tiny button is like a key on a thin keypad: made for at most 2 mA. More, and its contacts wear out. The LED needs about 11 mA."), waitFor: NEXT },
             { id: "p", say: "If the button sat in the LED's own loop, how much current would flow through it when pressed?", predict: P, waitFor: { predict: true } },
-            { id: "recall", reply: "p", say: "Too much for this button. Remember 9-1: a wire let a tiny current into B, and the LED lit. Take the wire away: dark.",
-              waitFor: NEXT },
-            { id: "place", say: "Your first transistor: in the next step, drop it on three free strips. Its legs read C, B, E, as in 9-1 and 9-2.",
+            { id: "recall", reply: "p", say: "Too much for this button. But in 9-3, B's tiny current through the 10 kΩ switched the LED's big one.",
               waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Make the button light the LED: off with it up, on with it down. Click the button to hold it down; click again to let it up.",
               hints: [{ say: "The LED's loop: + rail, 330 Ω, the LED, then the transistor in at C, out at E, and on to the − rail." },
@@ -164,7 +210,7 @@
             return `The LED lights, but ${shownmA(ib)} flows through the button: ${n >= 2 ? `${WORD[n] || `${n} times`} what it is made for` : "more than it is made for"}.`;
           } }],
           challenge: { text: "Use only one wire", when: (S, m) => S.parts("wire").length <= 1 && tested(S, m) },
-          solution: [{ next: 1 }, { choose: "right" }, { next: 1 }, { next: 1 }, { place: { type: "resistor", value: 330 }, at: V.hs("+T12", "a12") },
+          solution: [{ next: 1 }, { choose: "right" }, { next: 1 }, { place: { type: "resistor", value: 330 }, at: V.hs("+T12", "a12") },
             { place: { type: "led", color: "green" }, at: V.hs("b12", "b14") }, { place: { type: "npn" }, at: V.hs("c14", "c15", "c16") }, { wire: V.hs("a16", "-T16") },
             { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: V.hs("e15", "f15", "e17", "f17") },
             { place: { type: "resistor", value: 10000 }, at: V.hs("+T20", "a17") }, { wait: 0.5 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.3 }, { next: 1 }],

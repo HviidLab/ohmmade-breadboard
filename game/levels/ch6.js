@@ -1,15 +1,19 @@
 // Chapter 6: Dividers and the knob. Two resistors in a row make a middle point at part of the voltage; a potentiometer
 // is a middle point you can move with a knob; a knob in an LED's loop makes a dimmer, which needs a fixed resistor too.
-// Then a challenge: make 2 V, with resistors or with the knob.
+// Then you build a divider yourself (3 V from two equal resistors, and the same 3 V from two bigger ones), and a
+// challenge: make 2 V, with resistors or with the knob.
 // Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
   "use strict";
   const K = BB.Levels.kit, { start, lit, safe, part, FINISH } = K;
   const { M, net, on, volts, fmtV, shownV, RING, METER, allow, REGION, NEXT } = K.meter;
+  const { wires } = K;
 
   const vAt = (S, n) => (on(S, n, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);   // a strip's voltage, against the − rail
   const between = (x, lo, hi) => x !== null && x >= lo && x <= hi;
+  // the meter's red probe on a strip (not a rail), its black probe on the − rail, reading lo to hi volts
+  const strip = (S, lo, hi) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), lo, hi); };
   const POT = (V, pos = 0.5) => ({ id: "pot", type: "pot", legs: V.hs("c12", "c13", "c14"), pos });
 
   const L = [
@@ -121,7 +125,44 @@
       },
     },
     {
-      id: "6-4", title: "Make 2 V", teaches: [], uses: ["divider", "potKnob", "seriesShare", "volts", "resistor", "strip", "rail"], shifts: [0],
+      id: "6-4", title: "Your own divider", teaches: [], uses: ["divider", "seriesShare", "volts", "resistor", "strip", "rail"], shifts: [0],
+      card: { name: "Your own divider", text: "Two resistors in a row from + to −. Equal ones, of any size, put the middle point at half: what counts is how they compare." },
+      layouts: [{}],
+      make: (V) => {
+        const P = V.predict(["Stay at 3 V", "Rise", "Drop"], 0, [null, "both grow by the same amount, so their shares stay equal: half of the 6 V each.",
+          "the shares depend on how the two resistors compare, and both grew alike: still half each."]), seen = {};
+        const half = (S) => { const ok = strip(S, 2.85, 3.15); if (ok) seen.v = vAt(S, net(M(S).red)); return ok; };
+        const rs = (S) => S.parts("resistor").filter((q) => q.legs.every(Boolean));
+        const big = (S) => rs(S).length === 2 && rs(S).every((q) => q.part.value === 22000) && half(S);
+        return {
+          region: { rows: [1, 24], cols: "a-j", rails: "top" },
+          start: start(V.BAT("+T3", "-T4"), METER("V")),
+          rules: { tray: [{ type: "resistor", value: 10000, n: 2 }, { type: "resistor", value: 22000, n: 2 }, { type: "wire", n: 2 }], allow: allow({}), banner: true },
+          ui: { strips: true },
+          goalsFrom: 1,
+          beats: [
+            { id: "brief", say: V.say("Your turn: build a middle point at 3 V from the two 10 kΩ resistors, in a row from the + rail to the − rail.",
+              "Now you build one: a middle point at 3 V, from two 10 kΩ resistors in a row between the + rail and the − rail."), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Build it: + rail, 10 kΩ, a strip, 10 kΩ, − rail. Then measure that strip, the middle point, against the − rail.",
+              hints: [{ say: "Drop one 10 kΩ from the + rail into a strip. Then the other from that same strip to the − rail." },
+                { show: [V.RES("h1", "+T6", "a6", 10000), V.RES("h2", "c6", "-T9", 10000)] }, RING(["d6", "-T12"])],
+              waitFor: { when: half, hold: 0.6 } },
+            { id: "p", say: () => `${shownV(seen.v ?? 3)}: equal resistors, equal shares. Swap both for the 22 kΩ ones, over twice as big. The middle point will…`,
+              predict: P, waitFor: { predict: true } },
+            { id: "swap", say: "Find out: swap both 10 kΩ for the 22 kΩ ones, and measure the middle point again.",
+              hints: [{ say: "Click a resistor and press Remove, then drag a 22 kΩ into its two holes. Then the same with the other one." }], waitFor: { when: big, hold: 0.6 } },
+            Object.assign(FINISH("Still 3 V. The middle point is set by how the two resistors compare, not by how big they are. Next: any voltage you like."), { reply: "p" }),
+          ],
+          goals: [{ text: "A middle point at 3 V", when: half }, { text: "3 V again, from two 22 kΩ", when: big, hold: 0.6 }],
+          challenge: { text: "Use no wires: a resistor's legs reach the rails", when: (S) => big(S) && wires(S).length === 0 },
+          solution: [{ next: 1 }, { place: { type: "resistor", value: 10000 }, at: ["+T6", "a6"] }, { place: { type: "resistor", value: 10000 }, at: ["c6", "-T9"] },
+            { probe: ["d6", "-T12"] }, { wait: 1 }, { choose: "right" }, { remove: "resistor" }, { remove: "resistor" },
+            { place: { type: "resistor", value: 22000 }, at: ["+T6", "a6"] }, { place: { type: "resistor", value: 22000 }, at: ["c6", "-T9"] }, { wait: 1 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "6-5", title: "Make 2 V", teaches: [], uses: ["divider", "potKnob", "seriesShare", "volts", "resistor", "strip", "rail"], shifts: [0],
       card: { name: "Dividers", text: "Two resistors, or a knob, make a middle point at any part of the battery's voltage: 6 V × the − side resistor ÷ both together. Draw current from the middle and it drops." },
       layouts: [{}],
       make: (V) => {
@@ -129,7 +170,7 @@
         // the target voltage, and the resistor pair that makes it (+ side, − side)
         const T = V.pick([{ v: 2, up: 22000, lo: 10000 }, { v: 4, up: 10000, lo: 22000 }, { v: 1.5, up: 22000, lo: 6800 }]);
         const k = (r) => `${r / 1000} kΩ`;
-        const two = (S) => { const m = M(S); return !!m && !!m.red && !!m.com && BBShared.parse(m.red).kind === "strip" && between(vAt(S, net(m.red)), T.v - 0.15, T.v + 0.15); };
+        const two = (S) => strip(S, T.v - 0.15, T.v + 0.15);
         const byKnob = (S) => two(S) && S.parts("pot").some((q) => S.same(q.nets[1], net(M(S).red)));      // the probe on the wiper's node
         return {
           title: `Make ${T.v} V`,

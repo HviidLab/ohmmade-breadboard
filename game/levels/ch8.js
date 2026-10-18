@@ -1,11 +1,12 @@
 // Chapter 8: Capacitors and time. A capacitor stores energy (an LED keeps glowing after the battery goes off), filling
 // it through a resistor takes time (fast at first, then slower), R × C sets how long, and an electrolytic capacitor is
-// has a right way round (backwards it can vent). Then a challenge: keep an LED glowing after a button is let go.
+// has a right way round (backwards it can vent). Then you build 8-1's glow yourself, and a challenge: keep an LED
+// glowing after a button is let go.
 // Each capacitor shows a charge ring that fills with amber. Same rules as before: a question in every level, predict
 // first, the goal and not the holes, hints only on request. Data only, built with the kit from ch1.js.
 (function (BB) {
   "use strict";
-  const K = BB.Levels.kit, { start, lit, part, onOff, FINISH } = K;
+  const K = BB.Levels.kit, { start, lit, safe, part, onOff, wires, FINISH } = K;
   const { METER, allow, REGION, NEXT } = K.meter;
 
   const CAP = (V, id, a, b, value) => ({ id, type: "cap", value, legs: V.hs(a, b) });
@@ -142,7 +143,49 @@
       },
     },
     {
-      id: "8-5", title: "Fading light", teaches: [], uses: ["capStore", "capTime", "tau", "capPolarity", "buttonLoop", "buttonLegs", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0],
+      id: "8-5", title: "Your own glow", teaches: [], uses: ["capStore", "capPolarity", "switch", "parallelV", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
+      card: { name: "Your own glow", text: "A capacitor filled through a resistor, and an LED beside it. Battery off, the LED's loop is its only way out." },
+      layouts: [{}],
+      make: (V) => {
+        const P = V.predict(["Through the 470 Ω and the LED", "Back into the battery", "Back through the 100 Ω"], 0, [null,
+          "the battery's switch is off: no path leads back into it.", "the 100 Ω leads only to the + rail, and with the battery off that is a dead end."]);
+        const full = (S) => onOff(S) && S.parts("led").some(safe) && S.parts("cap").some((q) => q.ok && Math.abs(q.rd.Vc || 0) > 4);
+        const faded = (S, m) => {
+          const ls = S.parts("led");
+          if (full(S)) m.on = true;
+          if (m.on && !onOff(S) && ls.some((q) => lit(q, 0.001))) m.glow = true;
+          return !!m.glow && !onOff(S) && !ls.some((q) => lit(q, 0.0003));
+        };
+        return {
+          region: { rows: [1, 24], cols: "a-j", rails: "top" },
+          start: start(V.BAT("+T3", "-T4")),
+          rules: { tray: [{ type: "cap", value: 1e-3, n: 1 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "led", color: "red", n: 1 },
+            { type: "wire", n: 2 }], allow: allow({ ctl: ["bat"] }), banner: true },
+          ui: { strips: true },
+          goalsFrom: 1,
+          beats: [
+            { id: "brief", say: V.say("Your turn: build 8-1's glow on an empty board. Light the LED with the battery on, then switch off: it should glow on a moment.",
+              "Now you build 8-1's glow yourself: the LED lit while the battery is on, and glowing on a moment after you switch it off."), waitFor: { next: true, label: "Start" } },
+            { id: "build", say: "Filling: + rail, 100 Ω, the capacitor, its striped leg to the − rail. From its + leg: 470 Ω, the LED, the − rail.",
+              hints: [{ say: "The capacitor's + leg and the 470 Ω both go in the strip at the 100 Ω's free end." },
+                { show: [V.RES("h1", "+T6", "a6", 100), CAP(V, "h2", "c6", "-T8", 1e-3), V.RES("h3", "d6", "d10", 470), V.LED("h4", "c10", "-T12")] }],
+              waitFor: { when: full, hold: 0.5 } },
+            { id: "p", say: "The LED is lit and the capacitor is full. Switch the battery off: which way will the capacitor's stored current go?",
+              highlight: { ctl: "switch", id: "bat" }, predict: P, waitFor: { predict: true } },
+            { id: "off", say: "Find out: slide the battery box's switch to OFF, and watch the LED and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
+              waitFor: { when: faded } },
+            Object.assign(FINISH("The only loop left ran through the LED, so that's where the stored energy went. Next: a button instead of the switch."), { reply: "p" }),
+          ],
+          goals: [{ text: "The LED lit, the capacitor full", when: full }, { text: "The LED glows on with the battery off", when: faded }],
+          challenge: { text: "Use no wires: legs can go straight into a rail", when: (S, m) => wires(S).length === 0 && faded(S, m) },
+          solution: [{ next: 1 }, { place: { type: "resistor", value: 100 }, at: ["+T6", "a6"] }, { place: { type: "cap", value: 1e-3 }, at: ["c6", "-T8"] },
+            { place: { type: "resistor", value: 470 }, at: ["d6", "d10"] }, { place: { type: "led", color: "red" }, at: ["c10", "-T12"] }, { wait: 1.2 },
+            { choose: "right" }, { ctl: "bat" }, { wait: 3 }, { next: 1 }],
+        };
+      },
+    },
+    {
+      id: "8-6", title: "Fading light", teaches: [], uses: ["capStore", "capTime", "tau", "capPolarity", "buttonLoop", "buttonLegs", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0],
       card: { name: "Capacitors and time", text: "A capacitor stores energy and lets it out again over time. R × C sets how long: bigger R or C, slower." },
       layouts: [{}],
       make: (V) => {
@@ -165,7 +208,7 @@
             { id: "brief", say: V.say("Make the LED keep glowing for a second after you let go of the button. The button feeds strip 8 while you hold it.",
               "When you let go of the button, the LED should glow on for at least a second. The button feeds strip 8 while pressed."), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it, then hold the button for a couple of seconds and let go. Ask for a hint if you need one.",
-              hints: [{ say: "From strip 8: a small resistor to the capacitor's + leg (its − leg to the − rail). From that strip: a resistor and the LED to the − rail." },
+              hints: [{ say: "Your glow from 8-5, fed from strip 8 instead of the + rail: the 100 Ω into the capacitor, then the 470 Ω and the LED beside it." },
                 { say: "The 100 µF empties ten times faster than the 1000 µF." },
                 { show: [V.RES("h1", "a8", "a10", 100), CAP(V, "h2", "c10", "-T12", 1e-3), V.RES("h4", "d10", "d14", 470), V.LED("h5", "c14", "-T16")] }],
               waitFor: { when: glow, hold: 0.05 } },
