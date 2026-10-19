@@ -161,10 +161,10 @@
   function loadTunes() {
     if (tunesLoading) return;
     tunesLoading = true;
-    const s = document.querySelector('script[src$="sounds.js"]');
+    const s = document.querySelector("script[data-music]");      // the site build adds ?v=<hash> to both names
     if (!s || BB.MusicData) return;
     const el = document.createElement("script");
-    el.src = s.src.replace(/sounds\.js$/, "music.js"); el.async = true;
+    el.src = s.dataset.music; el.async = true;
     document.head.appendChild(el);
   }
   const decoding = {};
