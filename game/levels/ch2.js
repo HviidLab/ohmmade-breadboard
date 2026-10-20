@@ -102,7 +102,7 @@
         const P1 = V.predict(["The resistor", "The LED", "The wire"], 0, [null, "the LED looks busiest, but it needs only about 2 V. The rest is across the resistor.", "there is almost no voltage across a wire: it is just metal."]);
         const P2 = V.predict(["About 3 V", "About 4 V", "About 6 V"], 0, [null, "the resistor doesn't always have 4 V across it. The shares add up to 6 V, and blue needs 3 V.", "the shares add up to 6 V, so the resistor's share is 6 − 3 = 3 V."]), seen = {};
         const blue = (S) => S.parts("led").some((q) => q.part.color === "blue" && lit(q));
-        const blueRes = (S) => blue(S) && across(S, "res1") && Math.abs(volts(S)) > 2.6 && Math.abs(volts(S)) < 3.4;
+        const blueRes = (S) => { const ok = blue(S) && across(S, "res1") && Math.abs(volts(S)) > 2.6 && Math.abs(volts(S)) < 3.4; if (ok) seen.b = volts(S); return ok; };
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("V")),
@@ -123,14 +123,19 @@
               } } },
             { id: "p2", say: () => `Resistor ${shownV(seen.r ?? 4)}, LED ${shownV(seen.l ?? 2)}, wire ${shownV(seen.w ?? 0)}: together the battery's voltage. A blue LED needs about 3 V. How much across the resistor?`,
               highlight: { lcd: "meter" }, predict: P2, waitFor: { predict: true } },
-            { id: "blue", say: `Find out: take the ${K.COLOR_WORD[V.c1]} LED out (click it, Remove), then put the blue one in its holes and measure the resistor again.`, allow: { remove: ["led1"] },
-              hints: [{ say: "Click the LED and press Remove. Drag the blue LED into the same holes, its longer leg where the old longer leg was." },
+            { id: "blue", say: `Find out: swap the ${K.COLOR_WORD[V.c1]} LED for the blue one from the tray. Then measure the voltage across the resistor again.`,
+              allow: { remove: ["led1"] },
+              hints: [{ say: `Click the ${K.COLOR_WORD[V.c1]} LED, press Remove, then drag the blue one into its holes, its longer leg where the old longer leg was.` },
                 RING(V.hs(...V.L.res))],
               waitFor: { when: blueRes } },
-            Object.assign(FINISH("The voltages across the parts always add up to the battery's voltage: the LED's share, and the rest across the resistor."), { reply: "p2" }),
+            Object.assign(FINISH(() => `${shownV(seen.b ?? 3)} across the resistor, so about 3 V across the blue LED. The voltages across the parts of a loop add up to the battery's voltage.`),
+              { reply: "p2" }),
           ],
-          goals: [{ text: "Measure the resistor's share with the blue LED", when: blueRes }],
-          challenge: { text: "Measure the blue LED's share too", when: (S) => { const q = S.parts("led").find((x) => x.part.color === "blue" && lit(x)); return !!q && S.across(q) && volts(S) !== null && Math.abs(volts(S)) > 2.5; } },
+          goals: [{ text: "Measure the voltage across the resistor, with the blue LED in", when: blueRes }],
+          // the swap is done: Sparky says what is left to do in this step
+          react: [{ hold: 1, when: (S, c) => (c.beat && c.beat.id === "blue" && blue(S) && !blueRes(S)
+            ? "The blue LED is lit. Now measure the voltage across the resistor: one probe on each side of it." : null) }],
+          challenge: { text: "Measure the voltage across the blue LED too", when: (S) => { const q = S.parts("led").find((x) => x.part.color === "blue" && lit(x)); return !!q && S.across(q) && volts(S) !== null && Math.abs(volts(S)) > 2.5; } },
           solution: [{ choose: "right" }, { probe: V.hs(...V.L.res) }, { probe: V.hs(...V.L.led) }, { probe: V.hs(...V.L.wire) }, { choose: "right" },
             { remove: "led1" }, { place: { type: "led", color: "blue" }, at: V.hs("c6", "c7") }, { probe: V.hs(...V.L.res) }, { wait: 0.6 }, { probe: V.hs(...V.L.led) }, { wait: 0.5 }, { next: 1 }],
         };
@@ -351,54 +356,63 @@
     {
       id: "2-8", title: "Find the break", teaches: ["break"], uses: ["across", "volts", "loop", "strip", "rail", "gap", "resistor", "polarity"], shifts: [0, 3, 6],
       colors: ["red", "yellow", "green"],
-      // the hidden break in the second circuit: the wire one strip off, the wire below the centre gap, or the LED one strip off.
-      // find: probes that show the break; fix: one wire that mends it
-      layouts: [
-        { parts: (V) => [V.RES("res2", "+T13", "a13"), V.LED("led2", "c13", "c14", V.c2), V.WIRE("wire2", "e15", "-T15")], find: ["b14", "-T17"], fix: ["d14", "d15"],
-          hint: "The LED's − leg and the wire to the − rail are in different strips." },
-        { parts: (V) => [V.RES("res2", "+T13", "a13"), V.LED("led2", "c13", "c14", V.c2), V.WIRE("wire2", "g14", "-T14")], find: ["b14", "-T17"], fix: ["e14", "f14"],
-          hint: "The wire to the − rail starts below the centre gap." },
-        { parts: (V) => [V.RES("res2", "+T13", "a13"), V.LED("led2", "c14", "c15", V.c2), V.WIRE("wire2", "e15", "-T15")], find: ["b13", "b14"], fix: ["d13", "d14"],
-          hint: "The resistor and the LED's + leg are in different strips." },
-      ],
+      // which wire of the second LED's loop is broken inside: the one to the − rail, or the one from the + rail
+      layouts: [{ broken: "wire2b" }, { broken: "wire2a" }],
       make: (V) => {
         const P = V.predict(["Across the LED", "Across the break", "Nowhere: nothing flows"], 1,
           ["with no current, no voltage drops across the LED. It shows up across the break.", null, "even with nothing flowing, the battery still pushes. Its voltage shows up across the break."]), seen = {};
         const gap = [V.n("bb:L7"), "bb:-T"], brk = V.hs("e7", "-T7");          // the break: the two holes the wire's ends were in
+        const c1 = K.COLOR_WORD[V.c1], c2 = K.COLOR_WORD[V.c2], BRK = V.L.broken;
+        // the second LED's loop: + rail, wire, resistor, LED, wire, − rail. Its ends, and holes for a probe at each end of a wire.
+        const ENDS = { wire2a: ["+T12", "a12"], wire2b: ["e16", "-T16"] }, PROBE = { wire2a: ["+T11", "d12"], wire2b: ["d16", "-T18"] };
+        const LOOP = ["wire2a", "res2", "led2", "wire2b"];
+        const wire = (id) => Object.assign(V.WIRE(id, ...ENDS[id]), id === BRK ? { broken: true } : {});
         const lit2 = (S) => lit(part(S, "led2"));
+        const found = (S) => { const q = part(S, BRK), ok = !!q && S.across(q) && Math.abs(volts(S) || 0) > 2.5; if (ok) seen.found = volts(S); return ok; };
         return {
           region: REGION(V),
-          start: start(V.BAT("+T3", "-T4"), V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"), V.WIRE("wire1", "e7", "-T7"), ...V.L.parts(V), METER("V")),
-          rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ dial: ["V", "mA", "ohm"], move: ["wire2", "led2"], legs: ["wire2", "led2"] }) },
+          start: start(V.BAT("+T3", "-T4"), V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"),
+            wire("wire2a"), V.RES("res2", "b12", "b15"), V.LED("led2", "c15", "c16", V.c2), wire("wire2b"), METER("V")),
+          rules: { tray: [{ type: "wire", n: 1 }], allow: allow({ dial: ["V"], socket: ["VO"], remove: ["wire2a", "wire2b"], move: ["wire2a", "wire2b"], legs: ["wire2a", "wire2b"] }) },
           ui: { strips: true },
           beats: [
-            { id: "make", say: "A break is a place where the loop is cut, so current can't get through. A missing wire is one. Make one: take this wire out.",
-              highlight: { part: "wire1" }, allow: { remove: ["wire1"] },
-              hints: [{ say: "Click the wire and press Remove, or drag it onto the parts tray." }], waitFor: { event: "remove", id: "wire1" } },
-            { id: "p", say: "The dots stopped: the break is where the wire was. With the meter on V, where will you read most of the voltage (the push)?",
+            { id: "p", say: `A break is where the loop is cut. The ${c1} LED's wire is missing: a break. On V, where will the meter read most of the voltage?`,
               highlight: { holes: brk }, predict: P, waitFor: { predict: true } },
-            { id: "led", say: "Find out. First measure across the LED: one probe on each side of it.",
+            { id: "led", say: `Find out. First measure across the ${c1} LED: one probe on each side of it.`, highlight: { part: "led1" },
               hints: [RING(V.hs("d6", "d7"))],
               waitFor: { when: (S) => { const ok = across(S, "led1") && Math.abs(volts(S)) < 0.3; if (ok) seen.led = volts(S); return ok; } } },
-            { id: "brk", say: () => `${shownV(seen.led ?? 0)} across the LED. Now measure across the break: one probe in each hole where the wire's ends were.`,
+            { id: "brk", say: () => `${shownV(seen.led ?? 0)} across the ${c1} LED. Now measure across the break: one probe in each hole where the wire's ends belong.`,
               highlight: { holes: brk }, hints: [RING(brk)],
               waitFor: { when: (S) => { const ok = on(S, ...gap) && Math.abs(volts(S) || 0) > 2.5; if (ok) seen.gap = volts(S); return ok; } } },
-            { id: "find", reply: "p", say: () => `${shownV(seen.gap ?? 4.6)} across the break: most of the 6 V. The ${K.COLOR_WORD[V.c2]} LED has a hidden break: find it and close it.`,
-              highlight: { part: "led2" },
-              hints: [{ say: "Follow its loop from + to −. Measure across each place where one part should join the next. Most of the voltage there: the break." },
-                RING(V.hs(...V.L.find), "Try here: probes in the rings."),
-                { say: `${V.L.hint} One wire there closes the loop.`, show: [V.WIRE("h", ...V.hs(...V.L.fix))] }],
-              waitFor: { when: lit2 } },
+            { id: "rule", reply: "p", say: () => `${shownV(seen.gap ?? 4.6)} across the break, about 0 V across the LED: with no current, a part that works has no voltage across it.`,
+              waitFor: NEXT },
+            { id: "find", say: `The ${c2} LED's loop has a break you can't see: a wire broken inside. Find it by measuring across each part, then swap it.`,
+              highlight: { parts: LOOP },
+              hints: [{ say: "Across a part: one probe at each end of it. Try the parts one by one. The broken one has most of the voltage.", highlight: { parts: LOOP } },
+                RING(V.hs(...PROBE[BRK]), "Try this wire: probes in the rings."),
+                { say: "Click the broken wire, press Remove, then put a new wire from the tray in the same two holes.", show: [V.WIRE("h", ...ENDS[BRK])] }],
+              waitFor: { when: lit2, hold: 0.6 } },
             FINISH("Break hunting: look for most of the voltage. Not all 6 V: the meter's tiny current flows through the LED, so it has about 1.4 V across it."),
           ],
-          goals: [{ text: `Light the ${K.COLOR_WORD[V.c2]} LED`, when: lit2, hold: 0.6 }],
-          challenge: { text: "Find the break with the meter before you fix it", when: (S, m) => {
-              const row = (h) => BBShared.parse(h).row;
-              if (!lit2(S) && Math.abs(volts(S) || 0) > 2.5 && !on(S, "bb:+T", "bb:-T") && probes(S) && [M(S).red, M(S).com].some((h) => row(h) >= V.r(12))) m.found = true;
-              return !!m.found && lit2(S);
+          goals: [{ text: `Light the ${c2} LED`, when: lit2, hold: 0.6 }],
+          // Sparky reads the meter with the player: the other LED; a part of the loop that works, or the broken wire
+          react: [{ hold: 0.8, when: (S, c) => {
+            const id = c.beat && c.beat.id, v = volts(S);
+            if (v === null) return null;
+            if (id === "led" && S.across(part(S, "led2"))) return `That's the ${c2} LED. Measure across the ${c1} one, whose wire you took out.`;
+            if (id !== "find") return null;
+            if (found(S)) return `${shownV(v)} across this wire: most of the voltage, so it's the broken one. Swap it for a new wire from the tray, in the same holes.`;
+            const q = LOOP.filter((x) => x !== BRK).map((x) => part(S, x)).find((x) => x && S.across(x));
+            return q && Math.abs(v) < 0.3 ? `About 0 V across this ${q.type === "led" ? "LED" : q.type}: it works, so the break is not here. Try another part.` : null;
+          } }],
+          challenge: { text: "Find the broken wire with the meter before you take any wire out", when: (S, m) => {
+              if (!m.found && LOOP.some((x) => x.startsWith("wire") && !part(S, x))) m.pulled = true;
+              if (found(S)) m.found = true;
+              return !!m.found && !m.pulled && lit2(S);
             } },
-          solution: [{ remove: "wire1" }, { choose: "right" }, { probe: V.hs("d6", "d7") }, { probe: brk }, { wait: 0.4 },
-            { probe: V.hs(...V.L.find) }, { wait: 0.6 }, { wire: V.hs(...V.L.fix) }, { wait: 1 }, { next: 1 }],
+          solution: [{ choose: "right" }, { probe: V.hs("d6", "d7") }, { probe: brk }, { wait: 0.4 }, { next: 1 },
+            { probe: V.hs("d12", "d15") }, { wait: 0.6 }, { probe: V.hs(...PROBE[BRK]) }, { wait: 0.6 },
+            { remove: BRK }, { wire: V.hs(...ENDS[BRK]) }, { wait: 1 }, { next: 1 }],
         };
       },
     },
