@@ -60,12 +60,12 @@
       const t = typeof b.say === "function" ? b.say(this) : b.say, star = this.starNote(b);
       return star ? `${t}\n${star}` : t;
     }
-    // Sparky tells the player about stars still to win. On the first step: a challenge that has to be planned from the
-    // start (it is judged at the end: a first try, no hints, few wires). On the last step: the challenge, if it can
-    // still be done now or was missed, and a lost clean build.
+    // Sparky tells the player about stars still to win. On the first step (or the level's `starAt` step): a challenge
+    // that has to be planned from the start (it is judged at the end: a first try, no hints, few wires). On the last
+    // step: the challenge, if it can still be done now or was missed, and a lost clean build.
     starNote(b) {
       const ch = this.lv.challenge, beats = this.lv.beats, low = (s) => s.charAt(0).toLowerCase() + s.slice(1);
-      if (ch && ch.final && b === beats[0] && beats.length > 1) return `★ For a third star, plan ahead: ${low(ch.text)}.`;
+      if (ch && ch.final && b === (beats.find((x) => x.id === this.lv.starAt) || beats[0]) && beats.length > 1) return `★ For a third star, plan ahead: ${low(ch.text)}.`;
       if (b !== beats[beats.length - 1] || this.finished) return "";
       const out = [];
       if (ch && !this.challenge) {

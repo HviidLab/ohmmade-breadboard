@@ -84,7 +84,7 @@
     led: {
       label: "LED", legs: ["anode", "cathode"], kind: "bend",
       build(c, [a, k], part, rt) {
-        if (rt.destroyed) return { read: () => ({ I: 0, V: 0, P: 0 }) };
+        if (rt.destroyed || part.broken) return { read: () => ({ I: 0, V: 0, P: 0 }) };     // broken inside: looks fine, joins nothing
         const d = D.led(c, a, k, D.ledParams(part.color));
         return { read: (S) => { const I = d.current(S.v), V = d.voltage(S.v); return { I, V, P: I * V, reverse: V < -5 }; } };
       },

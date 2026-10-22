@@ -461,52 +461,73 @@
       },
     },
     {
-      id: "2-10", title: "Detective", teaches: [], uses: ["volts", "across", "break", "continuity", "loop", "strip", "rail", "polarity", "resistor"], shifts: [0, 4, 8],
-      card: { name: "Measure first", text: "Before you change anything, measure. Where most of the voltage shows up, or, with the battery off, a wire stays quiet, there is your fault." },
-      colors: ["red", "yellow", "green"],
-      // the fault: the LED one strip off (seed 0: it needs the meter most), a wire broken inside, or the LED the wrong way round. Probes that show it; the one-change fix.
-      layouts: [
-        { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c8"), V.WIRE("wire1", "e8", "-T8")],
-          show: ["b6", "b7"], fix: { wire: ["d6", "d7"] }, hint: "Follow the loop strip by strip. Is each part's leg in the same strip as the next part?" },
-        { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c6", "c7"), Object.assign(V.WIRE("wire1", "e7", "-T7"), { broken: true })],
-          show: ["b7", "-T9"], fix: { wire: ["d7", "-T12"] }, hint: "Switch the battery off, then put a probe at each end of each wire. The broken one stays quiet. Switch it on again after." },
-        { parts: (V) => [V.RES("res1", "+T6", "a6"), V.LED("led1", "c7", "c6"), V.WIRE("wire1", "e7", "-T7")],
-          show: ["b6", "b7"], fix: { flip: "led1" }, hint: "Look at each LED leg. Which way should the longer + leg face?" },
-      ],
+      id: "2-10", title: "The traffic light", teaches: [], uses: ["volts", "across", "break", "continuity", "loop", "strip", "rail", "polarity", "resistor"], shifts: [0, 4, 8],
+      card: { name: "Measure first", text: "A part can look fine and be broken inside. Measure across each part: where most of the voltage shows up, there is your fault." },
+      // a toy traffic light, one loop per lamp: red, yellow, green from the top. Which loop's wire and which loop's LED are broken inside.
+      layouts: [{ wire: 0, led: 2 }, { wire: 2, led: 1 }, { wire: 1, led: 0 }],
       make: (V) => {
-        const show = V.hs(...V.L.show).map(net), changes = (C) => ["place", "remove", "flip", "move"].reduce((n, k) => n + (C.count[k] || 0), 0);
-        const fix = V.L.fix.wire ? { wire: V.hs(...V.L.fix.wire) } : V.L.fix;
-        const ok = (S) => S.parts("led").some(safe);
+        const COLS = ["red", "yellow", "green"], ROW = [6, 10, 14];
+        const W = V.L.wire, D = V.L.led, OK = [0, 1, 2].find((k) => k !== W && k !== D), w = K.COLOR_WORD[COLS[OK]];
+        // loop k: + rail, resistor, LED, wire, − rail. Its parts' holes, and holes for a probe across the wire and across the LED.
+        const ends = (k) => { const r = ROW[k]; return { res: [`+T${r}`, `a${r}`], led: [`c${r}`, `c${r + 1}`], wire: [`e${r + 1}`, `-T${r + 1}`] }; };
+        const probeWire = (k) => [`d${ROW[k] + 1}`, `-T${ROW[k] + 2}`], probeLed = (k) => [`d${ROW[k]}`, `d${ROW[k] + 1}`];
+        const loop = (k) => [V.RES(`res${k + 1}`, ...ends(k).res), Object.assign(V.LED(`led${k + 1}`, ...ends(k).led, COLS[k]), k === D ? { broken: true } : {}),
+          Object.assign(V.WIRE(`wire${k + 1}`, ...ends(k).wire), k === W ? { broken: true } : {})];
+        const BROKEN = [`wire${W + 1}`, `led${D + 1}`], PARTS = [1, 2, 3].flatMap((n) => [`res${n}`, `led${n}`, `wire${n}`]);
+        const GOOD = PARTS.filter((id) => !BROKEN.includes(id));
+        const allLit = (S) => COLS.every((c) => S.parts("led").some((q) => q.part.color === c && lit(q)));
+        const P = V.predict(["The battery is flat", "A wire is missing", "A part is broken inside"], 2,
+          [`the ${w} LED lights from the same battery, so the battery still pushes.`, "follow each loop: + rail, resistor, LED, wire, − rail. Nothing is missing.", null]);
+        // the part whose two strips the probes are in: exactly, or through strips joined by wires
+        const probed = (S) => {
+          const p = probes(S);
+          if (!p || p[0] === p[1]) return null;
+          const qs = S.all.filter((q) => ["led", "resistor", "wire"].includes(q.type));
+          return qs.find((q) => (q.nets[0] === p[0] && q.nets[1] === p[1]) || (q.nets[0] === p[1] && q.nets[1] === p[0])) || qs.find((q) => S.across(q)) || null;
+        };
+        const name = (q) => (q.type === "led" ? "LED" : q.type);
         return {
           region: REGION(V),
-          start: start(V.BAT("+T3", "-T4"), ...V.L.parts(V), METER("V")),
-          rules: { tray: [{ type: "wire", n: 1 }, { type: "led", color: V.c1, n: 1 }],
-            allow: allow({ ctl: ["meter", "bat"], move: ["led1", "wire1"], legs: ["led1", "wire1"], flip: ["led1"], remove: ["led1", "wire1"], replace: ["led1", "meter"] }), banner: true },
+          start: start(V.BAT("+T3", "-T4"), ...loop(0), ...loop(1), ...loop(2), METER("V")),
+          rules: { tray: [{ type: "wire", n: 1 }, ...COLS.map((color) => ({ type: "led", color, n: 1 }))],
+            allow: allow({ ctl: ["meter", "bat"], dial: ["V", "cont", "ohm"], socket: ["VO"], move: PARTS, legs: PARTS, flip: PARTS.filter((id) => id.startsWith("led")), remove: PARTS }), banner: true },
+          ui: { strips: true },
+          starAt: "find",              // the third star's note goes with the step where the player hunts for the broken parts
           beats: [
-            { id: "case", say: V.say("This one should light, but it doesn't. Use the meter to find out why, then fix it.",
-              "A dark LED, and no idea why. Find the fault with the meter, then fix it."),
-              hints: [{ say: "Measure the voltage across each part and each join. Where most of it shows up, look closely." }, { say: V.L.hint }],
-              waitFor: { when: ok } },
-            FINISH("Case closed. Measure first, then change things: that is how you fix any circuit."),
+            { id: "p", say: `A toy traffic light: three LEDs for its lamps, each in its own loop. Only the ${w} one lights, and nothing looks wrong. Why?`,
+              predict: P, waitFor: { predict: true } },
+            { id: "find", reply: "p", say: "A part can break inside and still look fine, even an LED. Two parts here are broken. Find them with the meter, and swap only those.",
+              hints: [{ say: "Measure across each part of a dark loop, one probe at each end. A part that works has about 0 V. The broken one has most of it." },
+                RING(V.hs(...probeWire(W)), "Try this wire: probes in the rings."), RING(V.hs(...probeLed(D)), "And this LED: probes in the rings."),
+                { say: "Swap each one: click it, press Remove, then drag a new one from the tray into the same holes.",
+                  show: [V.WIRE("h1", ...ends(W).wire), V.LED("h2", ...ends(D).led, COLS[D])] }],
+              waitFor: { when: allLit, hold: 0.6 } },
+            FINISH("Case closed. A part can look fine and be broken inside. Measure first: the broken one has most of the voltage."),
           ],
-          goals: [{ text: "Light the LED", when: ok, hold: 0.6 }],
-          // Sparky reads the meter with the player (the method from 2-8): 0 V across a good part, the battery's voltage at the fault
+          goals: [{ text: "Light all three LEDs", when: allLit, hold: 0.6 }],
+          // Sparky reads the meter with the player (the method from 2-8): 0 V across a good part with no current, most of the voltage across the broken one
           react: [{ hold: 0.8, when: (S) => {
+            if (GOOD.some((id) => !part(S, id))) return "That part works, so the third star is gone this time. Put it back, and measure before you swap.";
+            const q = probed(S);
+            if (!q || allLit(S) || on(S, "bb:+T", "bb:-T")) return null;
+            const b = S.battery(), off = b && b.part.on === false;
+            if (mode(S, "cont")) {
+              if (!off || q.type !== "wire" || M(S).display) return null;
+              return M(S).beep ? "Beep: this wire joins its two ends. It works." : "No beep: this wire is broken inside. Swap it for a new one from the tray, in the same holes.";
+            }
             const v = volts(S);
-            if (v === null || ok(S) || on(S, "bb:+T", "bb:-T")) return null;
-            const b = S.battery();
-            if (b && b.part.on === false) return "The battery is off, so there is no voltage to find. Switch it on to measure voltage, or use the beep.";
-            if (Math.abs(v) > 2.5 && on(S, ...show)) return `${shownV(v)} here: most of the battery's voltage shows up across this spot. This is where the loop is broken.`;
-            const q = S.parts("led").concat(S.parts("resistor"), S.parts("wire")).find((x) => S.across(x));
-            if (q && Math.abs(v) < 0.3) return `About 0 V across this ${q.type === "led" ? "LED" : q.type}: with no current, a part that works has no voltage across it. Where does the battery's voltage show up?`;
+            if (v === null) return null;
+            if (off) return "The battery is off, so there is no voltage to find. Switch it on to measure voltage, or use the beep.";
+            if (BROKEN.includes(q.id) && Math.abs(v) > 2.5) return `${shownV(v)} across this ${name(q)}: most of the voltage, so it's broken inside. Swap it for a new one from the tray, in the same holes.`;
+            if (Math.abs(q.rd.I || 0) > 1e-3) return `Current flows through this ${name(q)}, so its loop works. Look in a dark loop.`;
+            if (Math.abs(v) < 0.3) return `About 0 V across this ${name(q)}: with no current, a part that works has no voltage across it. Try another part.`;
             return null;
           } }],
-          challenge: { text: "Find the fault with the meter, then fix it with one change", when: (S, m, C) => {
-              const quiet = mode(S, "cont") && !M(S).beep && on(S, ...show);
-              if (!changes(C) && ((on(S, ...show) && Math.abs(volts(S) || 0) > 2.5) || quiet)) m.found = true;
-              return !!m.found && ok(S) && changes(C) <= 1;
-            } },
-          solution: [{ probe: V.hs(...V.L.show) }, { wait: 0.6 }, fix, { wait: 1 }, { next: 1 }],
+          challenge: { text: "Take out only the two broken parts, none that work",
+            when: (S, m) => { if (GOOD.some((id) => !part(S, id))) m.pulled = true; return false; }, final: (C, m) => !m.pulled },
+          solution: [{ choose: "right" }, { probe: V.hs(...probeWire(W)) }, { wait: 0.6 }, { remove: `wire${W + 1}` }, { wire: V.hs(...ends(W).wire) },
+            { probe: V.hs(...probeLed(D)) }, { wait: 0.6 }, { remove: `led${D + 1}` }, { place: { type: "led", color: COLS[D] }, at: V.hs(...ends(D).led) },
+            { wait: 1 }, { next: 1 }],
         };
       },
     },
