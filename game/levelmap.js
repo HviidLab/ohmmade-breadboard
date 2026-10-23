@@ -154,7 +154,7 @@
         : lastOfChapter ? `<button type="button" class="btn primary" id="cc-next">Start chapter ${next.chapter} →</button><button type="button" class="btn" id="cc-nb">Notebook</button>`
         : '<button type="button" class="btn primary" id="cc-next">Next level →</button>'}
       <button type="button" class="btn" id="cc-again">Play again</button><button type="button" class="btn" id="cc-map">Level map</button></div></div>`, "#cc-next, #cc-finale, #cc-map");
-    on(host, "#cc-next", () => play(next));
+    on(host, "#cc-next", () => (lastOfChapter ? opener(next.chapter) : play(next)));      // a new chapter always opens with its screen
     on(host, "#cc-finale", finale);
     on(host, "#cc-nb", () => notebook("map", lv.chapter));
     on(host, "#cc-again", () => play(BB.Levels.get(lv.id)));      // a new variant of the same level

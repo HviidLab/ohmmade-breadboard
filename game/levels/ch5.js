@@ -107,14 +107,17 @@
               } } },
             { id: "p2", reply: "p1", say: "6 V across both: side by side, called parallel, each has the whole voltage across it. So the 1 kΩ draws about 6 mA. And the 2 kΩ?",
               predict: P2, waitFor: { predict: true } },
-            Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch has the same voltage across it and draws its own current."), { reply: "p2" }),
+            Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch has the same voltage across it and draws its own current."), { reply: "p2",
+              hints: [{ say: "On mA the meter goes in the path, never across. So open the 2 kΩ's branch: drag its − leg off the rail into a free strip." },
+                { show: [V.RES("h", "+T14", "a16", 2000)] },
+                RING(V.hs("b16", "-T18"), "Lift the probes off the rails before you set mA. Then close the gap: red probe in the 2 kΩ's strip, black on the − rail.")] }),
           ],
           goals: [{ text: "Measure across both resistors", when: (S, m) => {
             if (acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 5.5) m.a = true;
             if (acrossQ(S, part(S, "r2")) && Math.abs(volts(S)) > 5.5) m.b = true;
             return m.a && m.b;
           } }],
-          challenge: { text: "Then measure the 2 kΩ branch's current: 3 mA", when: (S) => { const q = part(S, "r2"); return !!q && S.readsCurrentOf(q, 0.0027, 0.0033); } },
+          challenge: { text: "Then measure the 2 kΩ's own 3 mA: move its − leg into a free strip, and close that gap with the meter", when: (S) => { const q = part(S, "r2"); return !!q && S.readsCurrentOf(q, 0.0027, 0.0033); } },
           solution: [{ choose: "right" }, { probe: V.hs("+T9", "-T9") }, { probe: V.hs("+T15", "-T15") }, { wait: 0.5 }, { choose: "right" },
             { move: "r2", to: V.hs("+T14", "a16") }, { probe: V.hs("b16", "-T18") }, { dial: "mA" }, { socket: "mA" }, { wait: 0.5 }, { next: 1 }],
         };
