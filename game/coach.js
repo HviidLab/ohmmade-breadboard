@@ -156,6 +156,7 @@
     emit(type, data = {}) {
       this.count[type] = (this.count[type] || 0) + 1;
       if (type !== "destroyed") this.idle = 0;
+      if (type === "undo") this.probeStep = null;     // an undone probe move: the next one starts a fresh measurement again
       const w = this.beat && this.beat.waitFor;
       if (w && w.event === type && (!w.id || w.id === data.id)) this.advance();
     }

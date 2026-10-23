@@ -89,7 +89,9 @@
         const P = V.predict(["E", "C", "B"], 0, [null, "C is where the LED's current goes in. Both currents leave by E, so E goes to the − rail.",
           "B is the control leg: its tiny current comes in from the 10 kΩ, then leaves by E."]);
         const npn = (S) => S.parts("npn").find((q) => q.ok && q.legs.every(Boolean));
-        const on = (S) => { const q = npn(S); return !!q && Math.abs(q.rd.Ib || 0) > 1e-5 && Math.abs(q.rd.Ic || 0) > 0.003 && S.parts("led").some(safe); };
+        // B's current comes through the 10 kΩ, not from C's strip (a B leg moved in next to C lights the LED with no switch at all)
+        const viaR = (S, q) => !S.same(q.nets[0], q.nets[1]) && S.parts("resistor").some((r) => r.ok && r.part.value === 10000 && r.nets.some((n) => S.same(n, q.nets[1])));
+        const on = (S) => { const q = npn(S); return !!q && viaR(S, q) && Math.abs(q.rd.Ib || 0) > 1e-5 && Math.abs(q.rd.Ic || 0) > 0.003 && S.parts("led").some(safe); };
         const offB = (S, m) => { if (on(S)) m.on = true; return !!m.on && !!npn(S) && S.parts("led").length > 0 && !S.parts("led").some((q) => lit(q, 0.0005)) && !S.parts("resistor").some((q) => q.part.value === 10000); };
         return {
           region: { rows: [1, 24], cols: "a-j", rails: "top" },

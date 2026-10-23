@@ -259,6 +259,7 @@
         break;
       }
       case "probe": {
+        if (!st.dragged) freshProbes(st.id, st.k);
         st.dragged = true;
         const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         let hole = holeUnder(e.clientX, e.clientY);
@@ -469,6 +470,17 @@
     const label = cur.startsWith("U.") ? `board socket ${BB.Uno.label(cur.slice(2))}` : `hole ${cur}`;
     say(`${label}${what}${kb ? `. Carrying ${kb.kind === "new" ? BB.Parts.name(Object.assign({ value: 330 }, kb.d)) : kb.kind === "probe" ? (kb.k ? "the black probe" : "the red probe") : kb.kind === "wire" ? "a wire" : "one end"}: Enter puts it here.` : ""}`);
   }
+  // A new measurement starts with both probes off the board: the first probe moved in a step takes the other one off too,
+  // so a tip left in from an earlier step cannot pair with the moved one into a reading the player never meant.
+  function freshProbes(id, k) {
+    const m = G.doc.get(id), c = G.mode === "level" && G.coach;
+    if (!m || !c || c.probeStep === c.i) return;
+    c.probeStep = c.i;
+    if (!m.legs[1 - k]) return;
+    m.legs[1 - k] = null; m.loose = m.loose || [null, null]; m.loose[1 - k] = G.probeRest(m, 1 - k);
+    G.recompile(); G.sound.out(m, 1);
+    if (!c.toldFresh) { c.toldFresh = true; BB.CoachUI.aside("A new measurement: the other probe comes off too, so both start fresh.", 5000); }
+  }
   function pickUp() {
     const m = G.doc.parts.find((p) => p.type === "meter"), pk = m ? m.legs.indexOf(cur) : -1;
     if (pk >= 0) { if (G.check({ kind: "probe", id: m.id })) kb = { kind: "probe", id: m.id, k: pk }; return; }
@@ -502,7 +514,7 @@
       if (!G.check({ kind: "hole", hole: cur })) return;
       kb = null;
       const m = G.doc.get(c.id), was = m.legs[c.k];
-      G.doc.snapshot(); m.legs[c.k] = cur; m.loose = m.loose || [null, null]; m.loose[c.k] = null;
+      G.doc.snapshot(); freshProbes(c.id, c.k); m.legs[c.k] = cur; m.loose = m.loose || [null, null]; m.loose[c.k] = null;
       G.recompile(); G.commitSoft();
       if (m.legs[c.k] !== was) G.emit("probe", { id: c.id });
     } else if (c.kind === "new") {
@@ -569,5 +581,5 @@
   }
 
   function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level, the sandbox)
-  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, get carrying() { return !!kb; } };
+  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, dropLegs, get carrying() { return !!kb; }, get probing() { return !!st && st.kind === "probe" && !!st.dragged; } };
 })(window.BB = window.BB || {});

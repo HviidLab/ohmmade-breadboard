@@ -179,6 +179,11 @@
     // ---------- editing ----------
     commit() { G.recompile(); G.guard(); G.refreshPanels(true); G.save(); },
     commitSoft() { G.guard(); G.refreshPanels(true); G.save(); },
+    // Where probe tip k rests when it is off the board: under the meter in a level, above it on the free bench.
+    probeRest(m, k) {
+      const bx = m.bx ?? 0, by = m.by ?? 0, h = R.meterSize()[1];
+      return G.mode === "level" ? [bx + 95 + 70 * k, by + h + 40] : [bx + 135 + 50 * k, by - 55];
+    },
     edit(fn) { G.doc.snapshot(); fn(); G.commit(); },
 
     select(id) { G.sel = id; G.redraw(); G.refreshPanels(true); },
@@ -261,9 +266,8 @@
         return;
       }
       if (part && part.type === "meter") {      // to change a fuse you take the probes off, so a new fuse does not blow at once
-        const bx = part.bx ?? 0, by = part.by ?? 0, h = R.meterSize()[1];
         part.legs = [null, null];
-        part.loose = G.mode === "level" ? [[bx + 95, by + h + 40], [bx + 165, by + h + 40]] : [[bx + 135, by - 55], [bx + 185, by - 55]];
+        part.loose = [G.probeRest(part, 0), G.probeRest(part, 1)];
         if (G.mode === "level") BB.CoachUI.aside("New fuse in. The probes are off the board now.", 5000);
         else H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
       }
@@ -406,7 +410,7 @@
         }
         G.redraw(); G.refreshPanels(true);
       }
-      if (G.mode === "level" && G.run && G.coach) {
+      if (G.mode === "level" && G.run && G.coach && !BB.Input.probing) {      // a probe tip in hand is not a measurement yet
         G.run.goalsOn = G.coach.goalsOn;
         const S = G.run.step(G, dt);
         G.coach.step(S, dt);
@@ -484,6 +488,12 @@
         else if (st.pin) { const id = G.doc.parts.find((p) => p.type === "uno").id; for (let k = 0; k < 3 && ((G.doc.get(id).pins || {})[st.pin] || "INPUT") !== st.mode; k++) G.cyclePin(id, st.pin); }
         else if (st.press) { const id = own(st.press), b = G.doc.get(id); G.set(id, "pressed", st.on ?? !b.pressed, true); }
         else if (st.replace) G.replace(st.replace);
+        else if (st.leg) {                       // one leg of a part to a new hole, as dragging that leg's end does
+          const id = own(st.leg), p = G.doc.get(id), legs = p.legs.slice(); legs[st.k] = st.to;
+          const v = G.doc.validate(p.type, legs, id);
+          if (!v.ok) return v.why || "It does not fit there.";
+          if (G.check({ kind: "legs", id })) { G.edit(() => { p.legs = legs; }); G.emit("move", { id }); }
+        }
         else if (st.move) { const id = own(st.move); if (G.check({ kind: "move", id })) { G.edit(() => { G.doc.get(id).legs = st.to.slice(); }); G.emit("move", { id }); } }
         else if (st.dial) G.set(meter(), "mode", st.dial, true);
         else if (st.socket) G.set(meter(), "socket", st.socket, true);
