@@ -259,7 +259,7 @@
         break;
       }
       case "probe": {
-        if (!st.dragged) freshProbes(st.id, st.k);
+        if (!st.dragged) st.lifted = freshProbes(st.id, st.k);
         st.dragged = true;
         const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         let hole = holeUnder(e.clientX, e.clientY);
@@ -335,6 +335,7 @@
         if (m && now === s.was && !s.dragged) { G.doc.unsnapshot(); break; }      // a click on a probe: nothing to undo
         G.commitSoft();
         if (m && now !== s.was) G.emit("probe", { id: s.id });
+        if (s.lifted) tellFresh();          // after the drop: Sparky's line re-fits the view, which must not shift under a held probe
         break; }
       case "body": if (s.moved) G.commitSoft(); else G.doc.unsnapshot(); break;
     }
@@ -474,12 +475,16 @@
   // so a tip left in from an earlier step cannot pair with the moved one into a reading the player never meant.
   function freshProbes(id, k) {
     const m = G.doc.get(id), c = G.mode === "level" && G.coach;
-    if (!m || !c || c.probeStep === c.i) return;
+    if (!m || !c || c.probeStep === c.i) return false;
     c.probeStep = c.i;
-    if (!m.legs[1 - k]) return;
+    if (!m.legs[1 - k]) return false;
     m.legs[1 - k] = null; m.loose = m.loose || [null, null]; m.loose[1 - k] = G.probeRest(m, 1 - k);
     G.recompile(); G.sound.out(m, 1);
-    if (!c.toldFresh) { c.toldFresh = true; BB.CoachUI.aside("A new measurement: the other probe comes off too, so both start fresh.", 5000); }
+    return true;
+  }
+  function tellFresh() {               // once a level
+    const c = G.coach;
+    if (c && !c.toldFresh) { c.toldFresh = true; BB.CoachUI.aside("A new measurement: the other probe comes off too, so both start fresh.", 5000); }
   }
   function pickUp() {
     const m = G.doc.parts.find((p) => p.type === "meter"), pk = m ? m.legs.indexOf(cur) : -1;
@@ -514,9 +519,10 @@
       if (!G.check({ kind: "hole", hole: cur })) return;
       kb = null;
       const m = G.doc.get(c.id), was = m.legs[c.k];
-      G.doc.snapshot(); freshProbes(c.id, c.k); m.legs[c.k] = cur; m.loose = m.loose || [null, null]; m.loose[c.k] = null;
+      G.doc.snapshot(); const lifted = freshProbes(c.id, c.k); m.legs[c.k] = cur; m.loose = m.loose || [null, null]; m.loose[c.k] = null;
       G.recompile(); G.commitSoft();
       if (m.legs[c.k] !== was) G.emit("probe", { id: c.id });
+      if (lifted) tellFresh();
     } else if (c.kind === "new") {
       const [x, y] = R.toScreen(...(cur.startsWith("U.") ? BB.Uno.socketXY(cur) : R.xy(cur)));
       const legs = c.d.type === "battery" ? [`+T${Gr.grid(cur).row}`, `-T${Math.min(Gr.grid(cur).row + 1, Gr.ROWS)}`] : dropLegs(c.d.type, cur);
@@ -581,5 +587,5 @@
   }
 
   function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level, the sandbox)
-  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, dropLegs, get carrying() { return !!kb; }, get probing() { return !!st && st.kind === "probe" && !!st.dragged; } };
+  BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, dropLegs, get carrying() { return !!kb; }, get holding() { return !!st; }, get probing() { return !!st && st.kind === "probe" && !!st.dragged; } };
 })(window.BB = window.BB || {});

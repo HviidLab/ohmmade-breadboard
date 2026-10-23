@@ -90,6 +90,7 @@
       make: (V) => {
         const P1 = V.predict(["6 V each", "3 V each", "2 V and 4 V"], 0, [null, "side by side they don't share: each goes straight from + to −, so each has all 6 V across it.", "that was for a row. Side by side, each one has the whole 6 V across it."]);
         const P2 = V.predict(["3 mA", "6 mA", "9 mA"], 0, [null, "the 2 kΩ has 6 V across it too, but holds back twice as much: 6 V ÷ 2 kΩ = 3 mA.", "9 mA is what the battery sends to both. The 2 kΩ alone draws 6 ÷ 2 = 3 mA."]);
+        const seen = {}, one = (S) => { const ok = acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 5.5; if (ok) seen.v = volts(S); return ok; };
         return {
           region: REGION(V),
           start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "-T10", 1000), V.RES("r2", "+T14", "-T16", 2000), METER("V")),
@@ -99,26 +100,20 @@
           beats: [
             { id: "p1", say: "Now side by side: the 1 kΩ and the 2 kΩ each go straight from + to −. How much voltage is across each one?",
               highlight: { parts: ["r1", "r2"] }, predict: P1, waitFor: { predict: true } },
-            { id: "both", say: "Measure across each of them.", hints: [RING(V.hs("+T9", "-T9")), RING(V.hs("+T15", "-T15"), "Any + hole and any − hole will do: each resistor sits between the rails.")],
-              waitFor: { when: (S, m) => {
-                if (acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 5.5) m.a = true;
-                if (acrossQ(S, part(S, "r2")) && Math.abs(volts(S)) > 5.5) m.b = true;
-                return m.a && m.b;
-              } } },
-            { id: "p2", reply: "p1", say: "6 V across both: side by side, called parallel, each has the whole voltage across it. So the 1 kΩ draws about 6 mA. And the 2 kΩ?",
+            { id: "both", say: "Measure across the 1 kΩ.", hints: [{ say: "Its legs are in the + rail and the − rail, so any + hole and any − hole will do." }, RING(V.hs("+T9", "-T9"))],
+              waitFor: { when: one } },
+            { id: "same", reply: "p1", say: () => `${shownV(seen.v ?? 6)}. That one reading is across both resistors: they sit between the same two rails, joined at both ends.`,
+              highlight: { parts: ["r1", "r2"] }, waitFor: NEXT },
+            { id: "p2", say: "Side by side, called parallel, each has the whole voltage across it. So the 1 kΩ draws about 6 mA. And the 2 kΩ?",
               predict: P2, waitFor: { predict: true } },
             Object.assign(FINISH("6 V ÷ 2 kΩ = 3 mA. In parallel, every branch has the same voltage across it and draws its own current."), { reply: "p2",
               hints: [{ say: "On mA the meter goes in the path, never across. So open the 2 kΩ's branch: drag its − leg off the rail into a free strip." },
                 { show: [V.RES("h", "+T14", "a16", 2000)] },
                 RING(V.hs("b16", "-T18"), "Lift the probes off the rails before you set mA. Then close the gap: red probe in the 2 kΩ's strip, black on the − rail.")] }),
           ],
-          goals: [{ text: "Measure across both resistors", when: (S, m) => {
-            if (acrossQ(S, part(S, "r1")) && Math.abs(volts(S)) > 5.5) m.a = true;
-            if (acrossQ(S, part(S, "r2")) && Math.abs(volts(S)) > 5.5) m.b = true;
-            return m.a && m.b;
-          } }],
+          goals: [{ text: "Measure across the 1 kΩ", when: one }],
           challenge: { text: "Then measure the 2 kΩ's own 3 mA: move its − leg into a free strip, and close that gap with the meter", when: (S) => { const q = part(S, "r2"); return !!q && S.readsCurrentOf(q, 0.0027, 0.0033); } },
-          solution: [{ choose: "right" }, { probe: V.hs("+T9", "-T9") }, { probe: V.hs("+T15", "-T15") }, { wait: 0.5 }, { choose: "right" },
+          solution: [{ choose: "right" }, { probe: V.hs("+T9", "-T9") }, { wait: 0.5 }, { next: 1 }, { choose: "right" },
             { move: "r2", to: V.hs("+T14", "a16") }, { probe: V.hs("b16", "-T18") }, { dial: "mA" }, { socket: "mA" }, { wait: 0.5 }, { next: 1 }],
         };
       },

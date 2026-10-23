@@ -294,6 +294,7 @@
   // around, so it would cover the bench: fit the bench again (called on every change of the bubble's size too).
   function outgrown() {
     if (!lv || !atHome) return;
+    if (BB.Input.holding) { setTimeout(() => requestAnimationFrame(outgrown), 150); return; }     // never move the bench under a held part or probe
     const st = $("stage").getBoundingClientRect(), bub = $("mentor"), b = rel(bub.getBoundingClientRect(), st);
     const bench = benchBox(st), seen = { left: Math.max(bench.left, 0), top: Math.max(bench.top, 0), right: Math.min(bench.right, st.width), bottom: Math.min(bench.bottom, st.height) };
     if (meets(b, seen) && bub.offsetHeight > fittedFor + 4) { fittedFor = bub.offsetHeight; G.fitLevel(); }
