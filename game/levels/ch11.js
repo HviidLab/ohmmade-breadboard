@@ -230,7 +230,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["Lower", "Higher", "The same"], 0, [null, "covered, the sensor's resistance rises: its share of the 5 V grows, so less is left at A0.",
-          "change one resistor of a divider and its middle point moves: the sensor's resistance rises in the dark."]), seen = {};
+          "change one resistor of a divider and its meeting point moves: the sensor's resistance rises in the dark."]), seen = {};
         const sensor = (S) => S.parts("ldr")[0];
         const covered = (S) => { const s = sensor(S); return !!s && (s.part.lux ?? 200) <= 5; };
         const a0 = (S) => (S.parts("wire").some((w) => w.legs.includes("U.A0")) && sensor(S) ? S.uno.analog("A0") : null);
@@ -243,8 +243,8 @@
           ui: { strips: true },
           goalsFrom: 2,
           beats: [
-            { id: "brief", say: V.say("Your turn: let the board read the light. Build a divider with the light sensor, and wire its middle point to A0.",
-              "Now the board reads the light. You build a divider with the light sensor, and wire its middle point to A0."), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say("Your turn: let the board read the light. Build a divider with the light sensor, and wire its meeting point to A0.",
+              "Now the board reads the light. You build a divider with the light sensor, and wire its meeting point to A0."), waitFor: { next: true, label: "Start" } },
             { id: "p", say: "Sensor from the + rail to a strip, 10 kΩ from that strip to the − rail, the strip to A0. Cover the sensor, and A0 will read…",
               predict: P, waitFor: { predict: true } },
             { id: "build", say: "Find out: build it, and see what A0 reads in room light. The board's screen shows it.",

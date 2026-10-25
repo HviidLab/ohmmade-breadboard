@@ -27,7 +27,7 @@
     svg.addEventListener("wheel", (e) => {
       e.preventDefault();
       const k = e.target.closest && e.target.closest('[data-ctl="knob"]');          // over a knob, the wheel turns it
-      if (k) { const p = G.doc.get(k.dataset.id); if (p) { G.set(p.id, "pos", Math.max(0, Math.min(1, (p.pos ?? 0.5) + (e.deltaY < 0 ? -1 : 1) * (e.shiftKey ? 0.004 : 0.02)))); G.commitSoft(); } return; }
+      if (k) { const p = G.doc.get(k.dataset.id); if (p) turnBy(p, (e.deltaY < 0 ? 1 : -1) * (e.shiftKey ? 1 : 5.4), true); return; }
       R.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12);
     }, { passive: false });
     svg.addEventListener("pointerleave", () => { if (!st) { BB.HUD.tooltip(null); R.highlight(null); } });
@@ -129,7 +129,12 @@
       else if (ctl === "press") {                      // held down while the mouse is; Shift-click, or a latching button, stays down
         if (e.shiftKey || part.latch) G.set(id, "pressed", !part.pressed, true); else { G.set(id, "pressed", true); st = { kind: "press", id }; }
       }
-      else if (ctl === "knob") st = { kind: "knob", id, x: e.clientX, y: e.clientY, pos0: part.pos ?? 0.5 };
+      else if (ctl === "knob") {                       // held: the inside shows, and moving round the knob turns it
+        const b = svg.querySelector(`[data-ctl="knob"][data-id="${id}"]`).getBoundingClientRect();      // drawn anew by the select
+        st = { kind: "knob", id, c: [b.left + b.width / 2, b.top + b.height / 2], a: null };
+        BB.HUD.tooltip(null);
+        if (G.can({ kind: "ctl", id, ctl: "pos" }).ok) showLens(id);
+      }
       else if (ctl === "cover") {                      // the light sensor: covered while held (Shift-click: stays covered)
         const room = part.room ?? 200;
         if (e.shiftKey) G.set(id, "lux", (part.lux ?? room) <= 5 ? room : 1, true);
@@ -285,9 +290,13 @@
         G.redraw();
         break;
       }
-      case "knob": {              // up or right turns it clockwise (towards the first leg's end); Shift turns it finely
-        const d = (e.clientX - st.x) - (e.clientY - st.y);
-        G.set(st.id, "pos", Math.max(0, Math.min(1, st.pos0 - d / (e.shiftKey ? 1200 : 300))));
+      case "knob": {              // the knob follows the pointer round its centre, as a hand turns a real one; Shift turns it finely
+        const dx = e.clientX - st.c[0], dy = e.clientY - st.c[1];
+        if (Math.hypot(dx, dy) < 10) { st.a = null; break; }      // too near the centre to tell the direction
+        const a = (Math.atan2(dx, -dy) * 180) / Math.PI, d = st.a === null ? 0 : ((a - st.a + 540) % 360) - 180;
+        st.a = a;
+        const part = G.doc.get(st.id);
+        if (part && d) turnBy(part, e.shiftKey ? d / 4 : d);
         break;
       }
     }
@@ -326,7 +335,7 @@
         break;
       }
       case "cover": { const p = G.doc.get(s.id); if (p) G.set(s.id, "lux", p.room ?? 200, true); break; }
-      case "knob": G.commitSoft(); break;
+      case "knob": hideLens(0); G.commitSoft(); break;
       case "probe": {
         const m = G.doc.get(s.id), now = m && m.legs[s.k];
         if (m && s.was && s.was !== now) G.sound.out(m, 1);                 // a probe tip leaves its hole
@@ -367,13 +376,40 @@
     G.add(part);
   }
 
+  // ---------- knobs ----------
+  // Turn a knob by `deg` degrees, clockwise when positive (its full turn is 270°). A click of the wheel or an arrow key
+  // (`once`) shows the inside for a moment and is a step of its own for the undo.
+  function turnBy(part, deg, once) {
+    const ok = G.can({ kind: "ctl", id: part.id, ctl: "pos" }).ok;        // if not, G.set says why
+    if (once && ok) showLens(part.id);
+    G.set(part.id, "pos", Math.max(0, Math.min(1, (part.pos ?? 0.5) + (R.knobSense(part) * deg) / 270)));
+    if (once && ok) { G.commitSoft(); hideLens(1200); }
+  }
+  // What each of a knob's legs is joined to, for the window that shows its inside: the rails, nothing ("open"), or other parts ("").
+  let lensTimer = 0;
+  function showLens(id) {
+    clearTimeout(lensTimer);
+    const part = G.doc.get(id);
+    if (!part) return;
+    const S = BB.Goals.query(G), mine = S.all.find((q) => q.id === id);
+    const legs = mine.nets.map((n, k) => {
+      if (S.same(n, "bb:+T") || S.same(n, "bb:+B")) return "+";
+      if (S.same(n, "bb:-T") || S.same(n, "bb:-B")) return "−";
+      const others = S.all.some((q) => q.type !== "meter" && q.nets.some((m, j) => (q.id !== id || j !== k) && S.same(m, n) && !(q.type === "wire" && q.nets.every((x) => S.same(x, n)))));
+      return others ? "" : "open";
+    });
+    R.knobLens({ id, legs });
+    document.body.classList.add("knob-inside");          // the part card and the tooltip keep out of its way
+  }
+  function hideLens(ms) { clearTimeout(lensTimer); lensTimer = setTimeout(() => { R.knobLens(null); document.body.classList.remove("knob-inside"); }, ms); }
+
   // ---------- hover ----------
   // What a control on a part does, for its tooltip.
   function CTL_TIP(c) {
     if (c.startsWith("mode:")) return `Click to turn the dial to ${{ off: "OFF", V: "V (volts)", mA: "mA (current)", ohm: "Ω (ohms)", cont: "the beep" }[c.slice(5)] || c.slice(5)}`;
     if (c.startsWith("socket:")) return `Click, or drag the red plug here, to put the red lead in the ${c.slice(7) === "VO" ? "VΩ" : "mA"} socket`;
     if (c.startsWith("pin:")) return `Click to switch ${c.slice(4)}: IN, LOW or HIGH`;
-    return { switch: "Click to switch the battery on or off", cells: "Click to put two cells in or take them out", knob: "Drag up or right to turn it up, down or left to turn it down. Shift: finely. The wheel works too.",
+    return { switch: "Click to switch the battery on or off", cells: "Click to put two cells in or take them out", knob: "Press and hold to see inside, then move round the knob to turn it. Shift: finely. The wheel works too.",
       press: "Press it. Shift-click keeps it down.", cover: "Press and hold to cover it. Shift-click keeps it covered.", program: "Click to change the program" }[c] || null;
   }
   let lastHover = 0;
@@ -555,9 +591,9 @@
     if (!part) return false;
     const go = e.key === "Enter" || e.key === " ";
     if (ctl === "knob") {
-      const d = { ArrowUp: -1, ArrowRight: -1, ArrowDown: 1, ArrowLeft: 1 }[e.key];
+      const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];      // up or right: clockwise
       if (!d) return false;
-      if (G.check({ kind: "ctl", id, ctl })) { G.set(id, "pos", Math.max(0, Math.min(1, (part.pos ?? 0.5) + d * (e.shiftKey ? 0.004 : 0.02)))); G.commitSoft(); }
+      turnBy(part, d * (e.shiftKey ? 1 : 5.4), true);
       return true;
     }
     if (!go) return false;

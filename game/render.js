@@ -71,7 +71,7 @@
     el("rect", { x: -1400, y: -1100, width: 4600, height: 2700, fill: "url(#bench)" }, world);
     el("rect", { x: -4000, y: -3000, width: 9000, height: 7000, fill: "url(#matgrid)" }, world);
     // layers, bottom to top; only the board and the parts take the pointer
-    for (const k of ["board", "region", "guide", "hi", "parts", "flow", "fx", "coach", "ui", "kb"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
+    for (const k of ["board", "region", "guide", "hi", "parts", "flow", "fx", "coach", "lens", "ui", "kb"]) L[k] = el("g", { id: `L-${k}`, "pointer-events": k === "board" || k === "parts" ? null : "none" }, world);
     drawBoard();
     apply();
   }
@@ -348,13 +348,17 @@
         const x0 = Math.min(...xs) - 15, x1 = Math.max(...xs) + 15, y0 = Math.min(...ys) - 18, y1 = Math.max(...ys) + 16;
         el("rect", { x: x0 + 2, y: y0 + 3, width: x1 - x0, height: y1 - y0, rx: 9, fill: "rgba(4, 10, 20, .32)" }, g);
         r.body = el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 9, fill: dead ? "#2b2f36" : "#2f6fd0", stroke: "#173a75", "stroke-width": 1.4 }, g);
-        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-        const knob = el("g", { class: "ctl", "data-ctl": "knob", "data-id": part.id }, g);
+        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, th = knobAngle(part, pts);
+        const knob = el("g", { class: "ctl knob", "data-ctl": "knob", "data-id": part.id }, g);
         el("circle", { cx, cy, r: 22, fill: "transparent" }, knob);
-        el("circle", { cx, cy, r: 14, fill: "#eef1f4", stroke: "#8f9aa5", "stroke-width": 1.4 }, knob);
+        // a ridged rim that turns with the knob, so it looks like something to grip and turn
+        const rim = [];
+        for (let k = 0; k < 36; k++) { const a = (k * 10 * Math.PI) / 180, rr = k % 2 ? 16.4 : 18.6; rim.push(`${k ? "L" : "M"}${(cx + Math.sin(a) * rr).toFixed(1)} ${(cy - Math.cos(a) * rr).toFixed(1)}`); }
+        el("path", { d: `${rim.join("")}Z`, fill: "#d6dce3", stroke: "#6f7b87", "stroke-width": 1.2, "stroke-linejoin": "round", transform: `rotate(${th.toFixed(1)} ${cx} ${cy})` }, knob);
+        el("circle", { cx, cy, r: 13.5, fill: "#eef1f4", stroke: "#a5afb9", "stroke-width": 1.2 }, knob);
         el("circle", { cx: cx - 4, cy: cy - 5, r: 4, fill: "#fff", opacity: 0.7 }, knob);
-        const ang = (135 - 270 * (part.pos ?? 0.5)) * Math.PI / 180;       // turning up (drag up or right) turns the pointer clockwise, towards the first leg, the one on +
-        r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(ang) * 10, y2: cy - Math.cos(ang) * 10, stroke: "#26303a", "stroke-width": 3, "stroke-linecap": "round" }, knob);
+        const a = (th * Math.PI) / 180;
+        r.pointer = el("line", { x1: cx, y1: cy, x2: cx + Math.sin(a) * 12, y2: cy - Math.cos(a) * 12, stroke: "#26303a", "stroke-width": 3.4, "stroke-linecap": "round" }, knob);
         break;
       }
       case "npn": {
@@ -576,7 +580,59 @@
     return part.legs.map((pt) => (pt ? (pt.startsWith("U.") ? BB.Uno.socketXY(pt) : xy(pt)) : null));
   }
 
+  // A knob's wiper, as an angle in degrees clockwise from straight up: −135° at the left leg's end of the track, +135° at
+  // the right leg's. Turning clockwise moves the wiper towards the right leg, as on a real pot seen from the front.
+  // part.pos is the wiper's place from the first leg (legs[0]), so it grows clockwise when that leg is on the left.
+  function knobSense(part, pts = partPoints(part)) { return pts[0] && pts[2] && pts[0][0] > pts[2][0] ? -1 : 1; }
+  function knobAngle(part, pts) { const p = part.pos ?? 0.5; return knobSense(part, pts) > 0 ? -135 + 270 * p : 135 - 270 * p; }
+  // While a knob is held (or just turned), a round window over it shows the inside: the track from end leg to end
+  // leg, the wiper splitting it into two pieces with their resistances, and what each leg is joined to.
+  // lens = { id, legs: ["+" | "−" | "open" | "", x3] } (from the game), or null.
+  let lens = null;
+  function knobLens(l) { lens = l; drawLens(); }
+  function drawLens() {
+    L.lens.replaceChildren();
+    const part = lens && lastDoc && lastDoc.get(lens.id), knob = part && svg.querySelector(`[data-ctl="knob"][data-id="${part.id}"]`);
+    if (!knob) return;
+    const pts = partPoints(part), xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) - 18 + Math.max(...ys) + 16) / 2, u = 1 / view.k;
+    const th = knobAngle(part, pts), sense = knobSense(part, pts), pos = part.pos ?? 0.5;
+    const Rl = 108 * u, Rt = 56 * u, at = (deg, rr) => [cx + Math.sin((deg * Math.PI) / 180) * rr, cy - Math.cos((deg * Math.PI) / 180) * rr];
+    const arc = (a0, a1) => { const [x0, y0] = at(a0, Rt), [x1, y1] = at(a1, Rt); return `M${x0} ${y0}A${Rt} ${Rt} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1} ${y1}`; };
+    const g = el("g", { class: "knob-lens" }, L.lens);
+    el("circle", { cx, cy, r: Rl, fill: "#0b1626", "fill-opacity": 0.95, stroke: "#8fd0ff", "stroke-width": 2 * u, filter: "url(#shadow)" }, g);
+    const font = (size, o = {}) => Object.assign({ "font-family": "Fredoka, sans-serif", "font-size": size * u, "font-weight": 600, "text-anchor": "middle" }, o);
+    el("rect", { x: cx - 52 * u, y: cy - Rl - 11 * u, width: 104 * u, height: 22 * u, rx: 11 * u, fill: "#173251", stroke: "#8fd0ff", "stroke-width": 1.5 * u }, g);
+    el("text", font(12, { x: cx, y: cy - Rl + 4.5 * u, fill: "#cfe6f8" }), g).textContent = "inside the knob";
+    // legs, left to right on screen: [left end, wiper, right end]; each piece of track runs from an end to the wiper
+    const order = sense > 0 ? [0, 1, 2] : [2, 1, 0], leg = order.map((k) => (lens.legs || [])[k] || "");
+    const tint = (t) => (t === "+" ? C.pos : t === "−" ? C.gnd : t === "open" ? "#4a5563" : "#d9a35b");
+    const kohm = (x) => `${x >= 9.95 ? "10" : x.toFixed(1)} kΩ`;
+    const pieces = [{ a0: -135, a1: th, end: leg[0], r: sense > 0 ? pos : 1 - pos }, { a0: th, a1: 135, end: leg[2], r: sense > 0 ? 1 - pos : pos }];
+    el("path", { d: arc(-135, 135), stroke: "#1d2b3c", "stroke-width": 13 * u, fill: "none", "stroke-linecap": "round" }, g);
+    for (const pc of pieces) {            // no current in a piece whose end is open, or when it leads only to an open end
+      const open = pc.end === "open" || (leg[1] === "open" && pieces.some((q) => q !== pc && q.end === "open"));
+      if (pc.a1 - pc.a0 > 0.5) el("path", { d: arc(pc.a0, pc.a1), stroke: tint(open ? "open" : pc.end), "stroke-width": 9 * u, fill: "none", "stroke-linecap": "butt" }, g);
+      const [lx, ly] = at(Math.max(-105, Math.min(105, (pc.a0 + pc.a1) / 2)), Rt + 24 * u);      // clear of the legs below
+      el("text", font(13, { x: lx, y: ly + 4.5 * u, fill: open ? "#7d8a99" : "#f4f7f9", "font-family": "IBM Plex Mono, monospace" }), g).textContent = kohm(10 * pc.r);
+    }
+    // the leg pads at the bottom, joined to the track's ends and (by the wiper's arm) to the middle
+    const padY = cy + 74 * u, ends = [at(-135, Rt), null, at(135, Rt)];
+    leg.forEach((t, k) => {
+      const x = k === 1 ? cx : ends[k][0];
+      el("line", { x1: x, y1: k === 1 ? cy : ends[k][1], x2: x, y2: padY, stroke: "#c7ccd1", "stroke-width": 3 * u }, g);
+      el("circle", { cx: x, cy: padY, r: 7 * u, fill: t === "+" || t === "−" ? tint(t) : "#c7ccd1", stroke: "#0b1626", "stroke-width": 1.5 * u }, g);
+      if (t) el("text", font(t === "open" ? 10 : 13, { x, y: padY + 3.5 * u + (t === "open" ? 14 * u : 0), fill: t === "open" ? "#9aa7b4" : "#fff" }), g).textContent = t;
+    });
+    const [wx, wy] = at(th, Rt);
+    el("line", { x1: cx, y1: cy, x2: wx, y2: wy, stroke: "#f2f4f6", "stroke-width": 4 * u, "stroke-linecap": "round" }, g);
+    el("circle", { cx, cy, r: 6 * u, fill: "#f2f4f6", stroke: "#6f7b87", "stroke-width": 1.2 * u }, g);
+    el("circle", { cx: wx, cy: wy, r: 6.5 * u, fill: "#ffd27a", stroke: "#3a2a08", "stroke-width": 1.5 * u }, g);
+  }
+
+  let lastDoc = null;
   function drawParts(doc, sim, selectedId) {
+    lastDoc = doc;
     L.parts.replaceChildren();
     L.fx.replaceChildren();
     refs.clear();
@@ -596,6 +652,7 @@
       } catch (err) { BB.reportError && BB.reportError(err, `drawing ${part.type} ${part.id}`); }
     }
     if (BB.Flow) BB.Flow.rebuild(doc, sim);
+    if (lens) drawLens();
   }
 
   function drawSelection(g, part, pts) {
@@ -698,5 +755,5 @@
     }
   }
 
-  BB.Render = { cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
+  BB.Render = { knobLens, knobSense, cursor, setMinPitch: (v) => { MIN_PITCH = v; }, init, drawParts, unoLive, region, marks, fitBox, regionBox, boardBox, meterSize, setCtlLock, setInsets, ghost, floatGhost, wireGhost, clearGhost, guide, highlight, holeAt, toWorld, toScreen, zoomAt, pan, fit, fitAll, refit, contentBox, view, refs, xy, xr, el, layers: L, C, BOARD, LEDC };
 })(window.BB = window.BB || {});

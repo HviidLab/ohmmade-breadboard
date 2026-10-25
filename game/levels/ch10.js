@@ -48,7 +48,7 @@
       layouts: [{}],
       make: (V) => {
         const P = V.predict(["Drop", "Rise", "Stay the same"], 0, [null, "the sensor sits on the + side. Its share grows in the dark, so less is left across the 10 kΩ.",
-          "change one resistor of a divider and the middle point moves."]), seen = {};
+          "change one resistor of a divider and the meeting point moves."]), seen = {};
         const mid = V.n("bb:L6");
         const vMid = (S) => (on(S, mid, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);
         const light = (S) => { const v = vMid(S); if (v !== null && !dark(S, "s1") && v > 4) seen.light = v; return v !== null && !dark(S, "s1") && v > 4; };
@@ -60,14 +60,14 @@
           ui: { strips: true },
           goalsFrom: 3,
           beats: [
-            { id: "what", say: "A divider, as in Chapter 6: the light sensor on the + side, 10 kΩ on the − side. Where they meet, marked here, is the middle point.", highlight: { nets: [mid] }, waitFor: NEXT },
-            { id: "p", say: "In the dark, the sensor's resistance rises. So the middle point's voltage will…",
+            { id: "what", say: "A divider, as in Chapter 6: the light sensor on the + side, 10 kΩ on the − side. Where they meet, marked here, is their meeting point.", highlight: { nets: [mid] }, waitFor: NEXT },
+            { id: "p", say: "In the dark, the sensor's resistance rises. So the meeting point's voltage will…",
               highlight: { nets: [mid] }, predict: P, waitFor: { predict: true } },
-            { id: "light", say: "Measure the middle point against the − rail, in room light.", hints: [RING(V.hs("d6", "-T12"))], waitFor: { when: light } },
+            { id: "light", say: "Measure the meeting point against the − rail, in room light.", hints: [RING(V.hs("d6", "-T12"))], waitFor: { when: light } },
             { id: "dark", say: () => `${shownV(seen.light ?? 5)} in the light. Now cover the sensor and watch.`, hints: [COVER], waitFor: { when: low } },
             Object.assign(FINISH(() => `${shownV(seen.light ?? 5)} in light, ${shownV(seen.dark ?? 0.7)} in the dark. Light becomes a voltage you can measure.`), { reply: "p" }),
           ],
-          goals: [{ text: "Measure the middle point in the dark", when: low }],
+          goals: [{ text: "Measure the meeting point in the dark", when: low }],
           challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (vMid(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
           solution: [{ next: 1 }, { choose: "right" }, { probe: V.hs("d6", "-T12") }, { wait: 0.5 }, { cover: "s1" }, { wait: 0.5 }, { cover: "s1", on: false }, { wait: 0.5 }, { next: 1 }],
         };
@@ -108,7 +108,7 @@
       make: (V) => {
         const P = V.predict(["Well under 0.7 V: the LED off", "Above 0.7 V: the LED on", "At half the battery's voltage"], 0, [null,
           "in light the sensor is far smaller than the 100 kΩ, so it pulls B close to 0 V: no base current.",
-          "only equal resistors put the middle at half. In light the sensor's share is small, so B sits low."]), seen = {};
+          "only equal resistors put the meeting point at half. In light the sensor's share is small, so B sits low."]), seen = {};
         const sensor = (S) => S.parts("ldr")[0];
         const covered = (S) => { const s = sensor(S); return !!s && (s.part.lux ?? 200) <= 5; };
         const leds = (S) => S.parts("led").filter((q) => q.ok);

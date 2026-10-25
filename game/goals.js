@@ -21,7 +21,7 @@
       fuseOK: m.rd.fuseOK, red: m.legs[0], com: m.legs[1],
     } : null;
     const S = {
-      t: sim.t, all, meter, near, same,
+      t: sim.t, all, meter, near, same, root: find,          // root: one name for a node, whichever wired strip it is named by
       // a 2-leg part connects these two nodes (either way round)
       joins: (q, a, b) => !!q && ((same(q.nets[0], a) && same(q.nets[1], b)) || (same(q.nets[0], b) && same(q.nets[1], a))),
       // the voltage at a hole, against the battery's −

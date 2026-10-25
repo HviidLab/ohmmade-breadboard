@@ -82,6 +82,7 @@
     stopSpeaking(); shownParts = []; shownReply = null;
     lv = level; marks = null; partFor = null; lastHotbar = ""; lastObjective = "";
     $("lv").hidden = false;
+    BB.Ladder.enter(level);
     $("mentor-text").textContent = "";
     $("mentor-act").replaceChildren();
     aside(null);
@@ -101,13 +102,14 @@
     stopSpeaking(); shownParts = []; shownReply = null;
     lv = null; marks = null;
     $("lv").hidden = true;
+    BB.Ladder.leave();
     R.marks(null); R.guide(null); spot(null);
     $("partcard").hidden = true;
   }
   const COMPACT = 1150;                     // px: below this the tray turns into an icon strip (game.css)
   // Room the overlays take, so the bench is fitted into the free middle.
   function insets() {
-    const st = $("stage").getBoundingClientRect();
+    const st = $("stage").getBoundingClientRect(), ld = placeLadder();
     fittedFor = $("mentor").offsetHeight;
     // Sparky stands at the lower left, so the bench keeps to the right of him; the bubble and the tray take the bottom.
     // The bottom keeps extra room for the bubble to grow when a hint is added.
@@ -115,7 +117,24 @@
     const compact = window.innerWidth <= COMPACT;                // a narrow screen: the tray is a strip down the right edge
     const bot = compact ? st.top + H - 18 - bub.offsetHeight : Math.min(st.top + H - 18 - bub.offsetHeight, hb.top);
     const short = window.innerHeight <= 620, ob = $("objective").getBoundingClientRect();        // a short screen: the bench keeps right of the objective card
-    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 16, 40), left: Math.max(12 + baseW() + 4, short ? ob.right - st.left + 10 : 0), right: compact ? hb.width + 26 : 12 });   // Sparky's home column
+    R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 16, 40), left: Math.max(12 + baseW() + 4, short ? ob.right - st.left + 10 : 0, ld ? ld.right - st.left + 10 : 0), right: compact ? hb.width + 26 : 12 });   // Sparky's home column
+  }
+
+  // The voltage staircase (ladder.js), when the level has one: under the objective card, above Sparky's head. Returns its box.
+  function placeLadder() {
+    const box = $("ladder");
+    if (!BB.Ladder.on) { box.hidden = true; return null; }
+    const st = $("stage").getBoundingClientRect(), ob = $("objective").getBoundingClientRect();
+    const top = ob.bottom - st.top + 12, sparkyTop = st.height - (baseW() * 160) / 120 - 10, room = sparkyTop - top;
+    box.hidden = room < 200;                // no room on a very short screen: the meter alone has to do
+    if (box.hidden) return null;
+    const w = Math.min(250, Math.max(210, baseW())), svg = box.querySelector("svg");
+    Object.assign(box.style, { top: `${top}px`, width: `${w}px` });
+    svg.style.height = "0px";
+    const rest = box.offsetHeight;               // the title, the note and the padding
+    svg.style.height = `${Math.min(270, room - rest - 6)}px`;
+    BB.Ladder.resized();
+    return box.getBoundingClientRect();
   }
 
   // ---------- Sparky speaks: the line types out, with a gibberish syllable every couple of letters ----------
@@ -266,7 +285,7 @@
       bub.classList.add("away");
       const bw = bub.offsetWidth, bh = bub.offsetHeight, w = baseW() * AWAY, h = (w * 160) / 120, gap = 14;
       const bench = grow(benchBox(st), 6), zone = union([box, bench]);
-      const avoid = [grow(box, 12), bench, ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl")].filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
+      const avoid = [grow(box, 12), bench, ...targetBoxes().slice(1).map((r) => grow(r, 6)), ...[$("objective"), $("hotbar"), document.querySelector(".topctl"), $("ladder").hidden ? null : $("ladder")].filter(Boolean).map((n) => grow(rel(n.getBoundingClientRect(), st), 6))];
       const [cx, cy] = aim;
       const m = 20;                       // his distance from the bench's edge
       const spots = [[cx - w / 2, zone.bottom + m], [cx - w / 2, zone.top - h - m], [zone.right + m, cy - h / 2], [zone.left - m - w, cy - h / 2],
@@ -439,7 +458,7 @@
   // How the player can use a part here, in a few words (for the part card and the tooltip).
   function howTo(part) {
     const can = (kind) => G.can({ kind, id: part.id, ctl: "use" }).ok;
-    if (part.type === "pot" && can("ctl")) return "Drag the knob up or down to turn it";
+    if (part.type === "pot" && can("ctl")) return "Press and hold the knob, then move round it to turn it";
     if (part.type === "ldr" && can("ctl")) return "Press and hold it to cover it (Shift-click keeps it covered)";
     if (part.type === "button" && can("ctl")) return part.latch ? "Click it to press it down, again to let it up" : "Press it (Shift-click keeps it down)";
     if (part.type === "battery" && can("ctl")) return "Click the switch to turn it on or off";
@@ -485,7 +504,7 @@
     if (n && meterSince && now - meterSince > 1000) { meterSince = 0; aside(n, 7000); }
   }
   // Ten times a second from the main loop.
-  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); meterWatch(); }
+  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); meterWatch(); BB.Ladder.tick(G); }
 
   // The playtest data as a small overlay (the backquote key); the pause menu and the map show it in full.
   function telemetry() {
