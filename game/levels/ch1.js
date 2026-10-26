@@ -479,8 +479,8 @@
     const bats = lv.start.parts.filter((p) => p.type === "battery"), [r0, r1] = lv.region.rows;
     bats.forEach((bat, k) => { bat.bx = Math.round((xr(r0) + xr(r1)) / 2 - 115); bat.by = k ? BBShared.Y["-B"] + 60 : -150; });   // a second pack below the board
     // from Chapter 2 on (where the meter is met), every level has the meter at hand, free to use: on V, or on mA where the
-    // level asks for a current (fam.meter = "mA")
-    if (fam.chapter >= 2 && !lv.start.parts.some((p) => p.type === "meter")) {
+    // level asks for a current (fam.meter = "mA"); a level with nothing to measure leaves it out (fam.meter = false)
+    if (fam.chapter >= 2 && fam.meter !== false && !lv.start.parts.some((p) => p.type === "meter")) {
       const mA = fam.meter === "mA", a = (lv.rules.allow = Object.assign({}, lv.rules.allow));
       for (const k of ["probe", "ctl"]) if (a[k] !== "*") a[k] = [...(a[k] || []), "meter"];
       lv.start.parts.push({ id: "meter", type: "meter", mode: mA ? "mA" : "V", socket: mA ? "mA" : "VO", legs: [null, null] });
