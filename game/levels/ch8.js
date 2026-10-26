@@ -84,7 +84,7 @@
             { id: "p2", say: "Switch the battery off, then on again. Will the LED flash again?", predict: P2, waitFor: { predict: true } },
             { id: "again", say: "Find out: switch off, then on again, and watch the LED.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT], waitFor: { when: again } },
             Object.assign(FINISH("It was still full, so nothing flowed in. A capacitor lets current through only while it fills or empties: a full one blocks the loop."),
-              { reply: "p2", note: "to empty a capacitor, join its legs through a resistor for a moment. From now on its menu also has Empty it, which does that for you." }),
+              { reply: "p2", note: "to empty a capacitor, join its legs through a resistor. From the next level on, you can also click a capacitor and press Empty it." }),
           ],
           goals: [{ text: "See the LED flash, then go dark", when: flashed }, { text: "Off and on again: see it stay dark", when: again }],
           // full, then emptied through the 100 Ω across its legs, then a fresh flash: lit, and dark again with the battery on
@@ -130,7 +130,7 @@
           ],
           goals: [{ text: "Measure the meeting point", when: probes }, { text: "Fill the capacitor past 5 V", when: full }],
           // filled once, emptied, then filled again through the 1 kΩ alone
-          challenge: { text: "Empty it, swap in the 1 kΩ, and fill it past 5 V again", when: (S, m) => {
+          challenge: { text: "Switch off, click the capacitor and press Empty it. Then swap in the 1 kΩ and fill it past 5 V again", when: (S, m) => {
               const v = vc(S, "c1"), rs = S.parts("resistor");
               m.s = m.s || 0;
               if (m.s === 0 && v > 5) m.s = 1;
@@ -175,17 +175,16 @@
           react: [{ hold: 0.6, when: (S, C) => {
             if (!C.beat || C.beat.id !== "race") return null;
             const r = track(S);
-            if (onOff(S) && r.t0 === undefined) return "Empty both cans first: switch off, click each one and choose Empty it. Then switch on.";
+            if (onOff(S) && r.t0 === undefined) return "Empty both cans first: switch off, click each can and press Empty it. Then switch on.";
             if (r.ta === undefined || r.tb === undefined || inStep(S)) return null;
-            return r.tb < r.ta ? "The small can won: its resistor lets the current in too easily. Switch off, empty both cans, and try a bigger resistor."
-              : "The small can lost: its resistor holds the current back too much. Switch off, empty both cans, and try a smaller resistor.";
+            return r.tb < r.ta ? "The small can won: its resistor lets the current in too easily. Switch off, click each can and press Empty it, then try a bigger resistor."
+              : "The small can lost: its resistor holds the current back too much. Switch off, click each can and press Empty it, then try a smaller resistor.";
           } }],
           beats: [
             { id: "p", say: "Left: 1 kΩ and 1000 µF. Right: a 100 µF, ten times smaller, with no resistor yet. Which resistor makes it fill as fast as the left?",
               highlight: { parts: ["rA", "cA", "cB"] }, predict: P, waitFor: { predict: true } },
-            { id: "race", say: "Find out: put your resistor from the + rail to the small can's strip. Then switch on and watch the two rings.",
-              hints: [{ say: "Each can fills through its own resistor. To race again: switch off, click each can, Empty it." },
-                { say: "The small can holds a tenth as much, so it needs a resistor that lets in a tenth as much current." },
+            { id: "race", say: "Put your resistor from the + rail to the small can's strip and switch on. To race again: switch off, click each can, press Empty it.",
+              hints: [{ say: "The small can holds a tenth as much, so it needs a resistor that lets in a tenth as much current." },
                 { show: [V.RES("h1", "+T12", "a12", 10000)] }],
               waitFor: { when: inStep } },
             { id: "name", reply: "p", say: "Multiply: kΩ × µF gives milliseconds. 1 kΩ × 1000 µF = 1000 ms = 1 s; 10 kΩ × 100 µF = 1 s too. Same R × C, same time.", waitFor: NEXT },
