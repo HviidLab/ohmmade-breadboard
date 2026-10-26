@@ -382,6 +382,8 @@
         const cap = el("g", { class: "ctl", "data-ctl": "press", "data-id": part.id }, g), rc = Math.min(x1 - x0, y1 - y0) * 0.3;
         r.cap = el("circle", { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, r: rc, fill: part.pressed ? "#c23a3a" : "#ff5a5a", stroke: "#7a1d1d", "stroke-width": 1.4 }, cap);
         el("circle", { cx: (x0 + x1) / 2 - rc * 0.3, cy: (y0 + y1) / 2 - rc * 0.35, r: rc * 0.3, fill: "#fff", opacity: part.pressed ? 0.15 : 0.45 }, cap);
+        if (part.tag) el("text", { x: (x0 + x1) / 2, y: y0 + 11, "text-anchor": "middle", fill: "#e9ecef", "font-family": "IBM Plex Mono, monospace", "font-size": 10, "font-weight": 700,
+          "pointer-events": "none" }, g).textContent = part.tag.toUpperCase();   // a named button: "FIRE"
         break;
       }
       case "battery": drawBattery(g, part, pts, r, dead); break;

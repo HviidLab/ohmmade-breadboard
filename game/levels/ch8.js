@@ -2,7 +2,7 @@
 // after the battery goes off); no charge crosses the gap, so current flows only while it fills or empties (in a row
 // with an LED: a flash, then dark); filling through a resistor is fast at first, then slower (the voltage staircase
 // shows why); R × C sets how long; an electrolytic capacitor has a right way round. Then you build 8-1's glow
-// yourself, and a challenge: keep an LED glowing after a button is let go.
+// yourself, and a challenge: a camera flash, charged by one button and fired by another.
 // Each capacitor shows a charge ring that fills with amber, and the "inside the capacitor" panel (capview.js) shows
 // its plates. Same rules as before: a question in every level, predict first, the goal and not the holes, hints only
 // on request. Data only, built with the kit from ch1.js.
@@ -286,55 +286,69 @@
       },
     },
     {
-      id: "8-7", title: "Fading light", teaches: [], uses: ["capStore", "capBlock", "capTime", "tau", "capPolarity", "buttonLoop", "buttonLegs", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0],
-      card: { name: "Capacitors and time", text: "A capacitor stores energy and lets it out again over time. R × C sets how long: bigger R or C, slower." },
+      id: "8-7", title: "Camera flash", teaches: [], uses: ["capStore", "capBlock", "capTime", "capPolarity", "buttonLoop", "buttonLegs", "resistor", "polarity", "loop", "strip", "rail", "gap"], shifts: [0], meter: false,
+      card: { name: "Capacitors and time", text: "A capacitor stores charge and lets it out later. Filling and emptying take time: R × C sets how long." },
       layouts: [{}],
       make: (V) => {
-        // after the button is let go, the LED keeps glowing (> 0.5 mA) for at least half a second: about R × C of its loop,
-        // 0.47 kΩ × 1000 µF = 470 ms (it stays lit about 1.3 s); with the 100 µF, 47 ms (lit about 0.1 s)
-        const glow = (S, m) => {
-          const b = S.parts("button")[0], q = S.parts("led").find((x) => x.ok);
-          if (!b || !q) return false;
-          if (b.part.pressed) { m.t0 = null; return false; }
-          if (lit(q, 0.0005)) { if (m.t0 === null || m.t0 === undefined) m.t0 = S.t; return S.t - m.t0 >= 0.5; }
-          m.t0 = undefined; return false;
+        const P = V.predict(["Nothing: too little is left in the can", "Another flash", "The LED stays on"], 0, [null,
+          "the flash used the can's store until too little was left to light the LED, as in 8-1.", "Fire alone does not reach the battery: only the can feeds the LED."]);
+        // a push button across the centre gap, legs in rows r and r + 2, with its name on it
+        const BUTTON = (id, r, tag) => ({ id, type: "button", tag, legs: V.hs(`e${r}`, `f${r}`, `e${r + 2}`, `f${r + 2}`), pairs: "across", pressed: false });
+        const down = (S, id) => { const q = part(S, id); return !!q && !!q.part.pressed; };
+        const led = (S) => S.parts("led").find((x) => x.ok);
+        const can = (S) => S.parts("cap").find((x) => x.ok && x.legs.every(Boolean));
+        const vcan = (S) => { const q = can(S); return q ? Math.abs(q.rd.Vc || 0) : 0; };
+        const charging = (S) => down(S, "bc") && !down(S, "bf");
+        const firing = (S) => down(S, "bf") && !down(S, "bc");
+        // holding Charge fills the can, and the LED stays dark
+        const charged = (S, m) => { if (charging(S) && vcan(S) > 5 && !lit(led(S), 0.0003)) m.ok = true; return !!m.ok; };
+        // holding Fire: the LED flashes, then goes dark while Fire is still held (the can, not the battery, fed it)
+        const flashed = (S, m) => {
+          if (!firing(S)) { m.lit = false; return !!m.ok; }
+          if (lit(led(S), 0.002)) m.lit = true;
+          else if (m.lit && !lit(led(S), 0.0003)) m.ok = true;
+          return !!m.ok;
         };
-        // a glow that ended too soon: how long it lasted, from letting go (lit) to dark
-        const G = {};
-        const short = (S) => {
-          const b = S.parts("button")[0], q = S.parts("led").find((x) => x.ok);
-          if (!b || !q) return null;
-          const on = lit(q, 0.0005);
-          if (b.part.pressed) { G.t0 = on ? S.t : undefined; G.dt = undefined; return null; }
-          if (G.t0 !== undefined && !on) { G.dt = S.t - G.t0; G.t0 = undefined; }
-          return G.dt !== undefined && G.dt < 0.5 ? G.dt : null;
+        // after the flash: Fire up, then down again without charging, and the LED dark (the can keeps about 2 V, too little to light it)
+        const again = (S, m) => {
+          if (down(S, "bc")) { m.up = false; return false; }
+          if (!down(S, "bf")) { m.up = true; return false; }
+          return !!m.up && !lit(led(S), 0.0003);
         };
         return {
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
-          start: start(V.BAT("+T3", "-T4"), { id: "b1", type: "button", legs: ["e6", "f6", "e8", "f8"], pairs: "across", pressed: false }, V.WIRE("w0", "+T6", "a6")),
-          rules: { tray: [{ type: "cap", value: 1e-4, n: 1 }, { type: "cap", value: 1e-3, n: 1 }, { type: "resistor", value: 100, n: 1 }, { type: "resistor", value: 470, n: 1 },
-            { type: "led", color: "red", n: 1 }, { type: "wire", n: 2 }], allow: allow({ ctl: ["b1"] }), banner: true },
+          start: start(V.BAT("+T3", "-T4"), V.RES("r0", "+T6", "a6", 100), BUTTON("bc", 6, "Charge"), V.WIRE("w1", "b8", "b10"), BUTTON("bf", 10, "Fire")),
+          rules: { tray: [{ type: "cap", value: 1e-3, n: 1 }, { type: "resistor", value: 470, n: 1 }, { type: "led", color: "red", n: 1 }, { type: "wire", n: 2 }],
+            allow: allow({ ctl: ["bc", "bf"] }), banner: true },
           ui: { strips: true, capView: true },
-          goalsFrom: 1,
-          react: [{ hold: 0.05, when: (S, C) => {
-            const dt = C.beat && C.beat.id === "build" ? short(S) : null;
-            return dt === null ? null : `It glowed only ${dt < 0.15 ? "a moment" : `about ${dt.toFixed(1)} s`}. Which resistor and capacitor does it empty through? Their R × C sets the glow.`;
+          goalsFrom: 2,
+          react: [{ hold: 0.6, when: (S, C) => {
+            if (!C.beat || C.beat.id !== "build") return null;
+            if (charging(S) && lit(led(S))) return "The LED lights while you charge: the battery reaches it. Put the LED's loop after Fire, so only the can feeds it.";
+            if (charging(S) && can(S) && vcan(S) < 0.5) return "Charge is down, but the can isn't filling. Its + leg goes in a strip Charge feeds, its striped leg on the − rail.";
+            if (firing(S) && vcan(S) > 4 && !lit(led(S), 0.0003)) return "Fire is down and the can is full, but no light: from Fire's far side, the can needs a loop through the 470 Ω and the LED.";
+            return null;
           } }],
           beats: [
-            { id: "brief", say: V.say("Make the LED keep glowing for half a second after you let go of the button. The button feeds strip 8 while you hold it.",
-              "When you let go of the button, the LED should glow on for at least half a second. The button feeds strip 8 while pressed."), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Build it, then hold the button for a couple of seconds and let go. Ask for a hint if you need one.",
-              hints: [{ say: "Your glow from 8-6, fed from strip 8 instead of the + rail: the 100 Ω into the capacitor, then the 470 Ω and the LED beside it." },
-                { say: "When you let go, it empties through the 470 Ω and the LED. Work out 0.47 kΩ × each capacitor's µF: that many milliseconds." },
-                { show: [V.RES("h1", "a8", "a10", 100), CAP(V, "h2", "c10", "-T12", 1e-3), V.RES("h4", "d10", "d14", 470), V.LED("h5", "c14", "-T16")] }],
-              waitFor: { when: glow, hold: 0.05 } },
-            FINISH("Let go, and it emptied through the 470 Ω: R × C = 0.47 kΩ × 1000 µF = 470 ms, then a dimmer glow. Chapter 8 done!"),
+            { id: "brief", say: V.say("A camera's flash: the battery first fills a capacitor, then the photo button lets it all out into the lamp. Here the lamp is the LED.",
+              "Build a camera flash: a battery fills a capacitor, and the photo button lets it all out into the lamp. Here the lamp is the red LED."), waitFor: { next: true, label: "Start" } },
+            { id: "board", say: "Charge joins the + rail, through the 100 Ω, to strips 8 and 10: the wire makes them one point. Fire joins strip 10 to strip 12.",
+              highlight: { parts: ["bc", "w1", "bf"] }, waitFor: NEXT },
+            { id: "build", say: "Build it. Hold Charge: the can fills, the LED stays dark. Then hold Fire: a flash that dies away. Ask for a hint if you need one.",
+              hints: [{ say: "Charge must reach the can, and Fire must lead from the can to the LED. Which strips do both buttons reach?" },
+                { say: "The can from strip 8 or 10 to the − rail, stripe on the rail. The LED's loop from strip 12: the 470 Ω, then the LED, to the − rail." },
+                { show: [CAP(V, "h1", "c10", "-T12", 1e-3), V.RES("h2", "a12", "a16", 470), V.LED("h3", "c16", "-T18")] }],
+              waitFor: { when: (S, m) => charged(S, m.c = m.c || {}) && flashed(S, m.f = m.f || {}) } },
+            { id: "p", say: "The flash died away. Without pressing Charge, what will a second press of Fire do?", predict: P, waitFor: { predict: true } },
+            { id: "again", say: "Find out: let go of Fire, then hold it down again, and watch the LED and the plates.", highlight: { part: "bf" }, waitFor: { when: again, hold: 0.5 } },
+            Object.assign(FINISH("Charge filled the can; Fire let its store out through the LED, until too little was left. Stored now, used later. Chapter 8 done!"), { reply: "p" }),
           ],
-          goals: [{ text: "The LED glows on for half a second after you let go", when: glow, hold: 0.05 }],      // a moment, then it fades: reaching half a second is the goal
+          goals: [{ text: "Hold Charge: the can fills, the LED stays dark", when: charged }, { text: "Hold Fire: a flash that dies away", when: flashed }],
           challenge: { text: "Use the capacitor the right way round the first time", final: (C) => !C.broken.has("cap") && (C.count.flip || 0) === 0 },
-          solution: [{ next: 1 }, { place: { type: "resistor", value: 100 }, at: ["a8", "a10"] }, { place: { type: "cap", value: 1e-3 }, at: ["c10", "-T12"] },
-            { place: { type: "resistor", value: 470 }, at: ["d10", "d14"] }, { place: { type: "led", color: "red" }, at: ["c14", "-T16"] },
-            { press: "b1", on: true }, { wait: 2 }, { press: "b1", on: false }, { wait: 1.6 }, { next: 1 }],
+          solution: [{ next: 1 }, { next: 1 }, { place: { type: "cap", value: 1e-3 }, at: ["c10", "-T12"] },
+            { place: { type: "resistor", value: 470 }, at: ["a12", "a16"] }, { place: { type: "led", color: "red" }, at: ["c16", "-T18"] },
+            { press: "bc", on: true }, { wait: 1 }, { press: "bc", on: false }, { press: "bf", on: true }, { wait: 3 }, { choose: "right" },
+            { press: "bf", on: false }, { wait: 0.3 }, { press: "bf", on: true }, { wait: 1 }, { next: 1 }],
         };
       },
     },

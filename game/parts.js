@@ -37,6 +37,7 @@
     if (part.type === "resistor") return part.tag ? `Resistor ${part.tag}` : `Resistor ${fmtR(part.value)}`;   // a tagged one hides its value
     if (part.type === "battery" && part.cells) return `Battery pack ${part.cells}×AA`;
     if (part.type === "cap" && part.value) return `Capacitor ${Math.round(part.value * 1e6)} µF`;
+    if (part.type === "button" && part.tag) return `${part.tag} button`;                                       // a named one: "Fire button"
     return TYPES[part.type].label;
   }
 
