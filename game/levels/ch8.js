@@ -273,14 +273,15 @@
               highlight: { ctl: "switch", id: "bat" }, predict: P, waitFor: { predict: true } },
             { id: "off", say: "Find out: slide the battery box's switch to OFF, and watch the LED and the ring.", highlight: { ctl: "switch", id: "bat" }, hints: [SWITCH_HINT],
               waitFor: { when: faded } },
-            Object.assign(FINISH("In 8-2 nothing joined the capacitor's legs, so it stayed full. Here the LED's branch does: that loop is its way out."), { reply: "p" }),
+            { id: "why", reply: "p", say: "It emptied round the small loop: the 470 Ω and the LED. The 100 Ω leads only to the battery, and that is off: a dead end.", waitFor: NEXT },
+            FINISH("So the 100 Ω only fills it. Into an empty can, a big rush of current flows at first (8-3); the 100 Ω keeps that rush small."),
           ],
           goals: [{ text: "The LED lit through both resistors", when: chain }, { text: "The capacitor full, beside the LED", when: full },
             { text: "The LED glows on with the battery off", when: faded }],
           challenge: { text: "Use no wires: legs can go straight into a rail", when: (S, m) => wires(S).length === 0 && faded(S, m) },
           solution: [{ place: { type: "resistor", value: 100 }, at: ["+T6", "a6"] }, { place: { type: "resistor", value: 470 }, at: ["d6", "d10"] },
             { place: { type: "led", color: "red" }, at: ["c10", "-T12"] }, { wait: 1 }, { place: { type: "cap", value: 1e-3 }, at: ["c6", "-T8"] }, { wait: 1.2 },
-            { choose: "right" }, { ctl: "bat" }, { wait: 3 }, { next: 1 }],
+            { choose: "right" }, { ctl: "bat" }, { wait: 3 }, { next: 1 }, { next: 1 }],
         };
       },
     },
@@ -289,13 +290,24 @@
       card: { name: "Capacitors and time", text: "A capacitor stores energy and lets it out again over time. R × C sets how long: bigger R or C, slower." },
       layouts: [{}],
       make: (V) => {
-        // after the button is let go, the LED keeps glowing (> 0.5 mA) for at least a second
+        // after the button is let go, the LED keeps glowing (> 0.5 mA) for at least half a second: about R × C of its loop,
+        // 0.47 kΩ × 1000 µF = 470 ms (it stays lit about 1.3 s); with the 100 µF, 47 ms (lit about 0.1 s)
         const glow = (S, m) => {
           const b = S.parts("button")[0], q = S.parts("led").find((x) => x.ok);
           if (!b || !q) return false;
           if (b.part.pressed) { m.t0 = null; return false; }
-          if (lit(q, 0.0005)) { if (m.t0 === null || m.t0 === undefined) m.t0 = S.t; return S.t - m.t0 >= 1.0; }
+          if (lit(q, 0.0005)) { if (m.t0 === null || m.t0 === undefined) m.t0 = S.t; return S.t - m.t0 >= 0.5; }
           m.t0 = undefined; return false;
+        };
+        // a glow that ended too soon: how long it lasted, from letting go (lit) to dark
+        const G = {};
+        const short = (S) => {
+          const b = S.parts("button")[0], q = S.parts("led").find((x) => x.ok);
+          if (!b || !q) return null;
+          const on = lit(q, 0.0005);
+          if (b.part.pressed) { G.t0 = on ? S.t : undefined; G.dt = undefined; return null; }
+          if (G.t0 !== undefined && !on) { G.dt = S.t - G.t0; G.t0 = undefined; }
+          return G.dt !== undefined && G.dt < 0.5 ? G.dt : null;
         };
         return {
           region: { rows: [1, 24], cols: "a-j", rails: "top" },
@@ -304,17 +316,21 @@
             { type: "led", color: "red", n: 1 }, { type: "wire", n: 2 }], allow: allow({ ctl: ["b1"] }), banner: true },
           ui: { strips: true, capView: true },
           goalsFrom: 1,
+          react: [{ hold: 0.05, when: (S, C) => {
+            const dt = C.beat && C.beat.id === "build" ? short(S) : null;
+            return dt === null ? null : `It glowed only ${dt < 0.15 ? "a moment" : `about ${dt.toFixed(1)} s`}. Which resistor and capacitor does it empty through? Their R × C sets the glow.`;
+          } }],
           beats: [
-            { id: "brief", say: V.say("Make the LED keep glowing for a second after you let go of the button. The button feeds strip 8 while you hold it.",
-              "When you let go of the button, the LED should glow on for at least a second. The button feeds strip 8 while pressed."), waitFor: { next: true, label: "Start" } },
+            { id: "brief", say: V.say("Make the LED keep glowing for half a second after you let go of the button. The button feeds strip 8 while you hold it.",
+              "When you let go of the button, the LED should glow on for at least half a second. The button feeds strip 8 while pressed."), waitFor: { next: true, label: "Start" } },
             { id: "build", say: "Build it, then hold the button for a couple of seconds and let go. Ask for a hint if you need one.",
               hints: [{ say: "Your glow from 8-6, fed from strip 8 instead of the + rail: the 100 Ω into the capacitor, then the 470 Ω and the LED beside it." },
-                { say: "The 100 µF empties ten times faster than the 1000 µF." },
+                { say: "When you let go, it empties through the 470 Ω and the LED. Work out 0.47 kΩ × each capacitor's µF: that many milliseconds." },
                 { show: [V.RES("h1", "a8", "a10", 100), CAP(V, "h2", "c10", "-T12", 1e-3), V.RES("h4", "d10", "d14", 470), V.LED("h5", "c14", "-T16")] }],
               waitFor: { when: glow, hold: 0.05 } },
-            FINISH("Your own fading light: the capacitor fills while you press, and lets its energy out slowly through the LED. Chapter 8 done!"),
+            FINISH("Let go, and it emptied through the 470 Ω: R × C = 0.47 kΩ × 1000 µF = 470 ms, then a dimmer glow. Chapter 8 done!"),
           ],
-          goals: [{ text: "The LED glows on for a second after you let go", when: glow, hold: 0.05 }],      // a moment, then it fades: reaching one second is the goal
+          goals: [{ text: "The LED glows on for half a second after you let go", when: glow, hold: 0.05 }],      // a moment, then it fades: reaching half a second is the goal
           challenge: { text: "Use the capacitor the right way round the first time", final: (C) => !C.broken.has("cap") && (C.count.flip || 0) === 0 },
           solution: [{ next: 1 }, { place: { type: "resistor", value: 100 }, at: ["a8", "a10"] }, { place: { type: "cap", value: 1e-3 }, at: ["c10", "-T12"] },
             { place: { type: "resistor", value: 470 }, at: ["d10", "d14"] }, { place: { type: "led", color: "red" }, at: ["c14", "-T16"] },
