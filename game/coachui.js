@@ -82,7 +82,7 @@
     stopSpeaking(); shownParts = []; shownReply = null;
     lv = level; marks = null; partFor = null; lastHotbar = ""; lastObjective = "";
     $("lv").hidden = false;
-    BB.Ladder.enter(level);
+    BB.Ladder.enter(level); BB.CapView.enter(level);
     $("mentor-text").textContent = "";
     $("mentor-act").replaceChildren();
     aside(null);
@@ -102,7 +102,7 @@
     stopSpeaking(); shownParts = []; shownReply = null;
     lv = null; marks = null;
     $("lv").hidden = true;
-    BB.Ladder.leave();
+    BB.Ladder.leave(); BB.CapView.leave();
     R.marks(null); R.guide(null); spot(null);
     $("partcard").hidden = true;
   }
@@ -120,10 +120,11 @@
     R.setInsets({ top: 62, bottom: Math.max(st.bottom - bot + 16, 40), left: Math.max(12 + baseW() + 4, short ? ob.right - st.left + 10 : 0, ld ? ld.right - st.left + 10 : 0), right: compact ? hb.width + 26 : 12 });   // Sparky's home column
   }
 
-  // The voltage staircase (ladder.js), when the level has one: under the objective card, above Sparky's head. Returns its box.
+  // The voltage staircase (ladder.js) or the inside of the capacitor (capview.js), when the level has one: under the
+  // objective card, above Sparky's head. Returns its box.
   function placeLadder() {
-    const box = $("ladder");
-    if (!BB.Ladder.on) { box.hidden = true; return null; }
+    const panel = BB.Ladder.on ? BB.Ladder : BB.CapView.on ? BB.CapView : null, box = panel === BB.CapView ? $("capview") : $("ladder");
+    if (!panel) { $("ladder").hidden = true; $("capview").hidden = true; return null; }
     const st = $("stage").getBoundingClientRect(), ob = $("objective").getBoundingClientRect();
     const top = ob.bottom - st.top + 12, sparkyTop = st.height - (baseW() * 160) / 120 - 10, room = sparkyTop - top;
     box.hidden = room < 200;                // no room on a very short screen: the meter alone has to do
@@ -133,7 +134,7 @@
     svg.style.height = "0px";
     const rest = box.offsetHeight;               // the title, the note and the padding
     svg.style.height = `${Math.min(270, room - rest - 6)}px`;
-    BB.Ladder.resized();
+    panel.resized();
     return box.getBoundingClientRect();
   }
 
@@ -438,6 +439,7 @@
     const acts = [];
     if (part.type === "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push(["New fuse", "fresh", () => G.replace(part.id)]);
     if ((part.type === "led" || part.type === "cap") && G.can({ kind: "flip", id: part.id }).ok) acts.push(["Flip", "flip", () => G.rotate(part.id)]);
+    if (part.type === "cap" && !dead && G.can({ kind: "empty", id: part.id }).ok) acts.push(["Empty it", "empty", () => G.empty(part.id)]);
     if (dead && part.type !== "meter" && G.can({ kind: "replace", id: part.id }).ok) acts.push([part.type === "uno" ? "Fresh board" : part.type === "battery" ? "Fresh batteries" : "Fresh one", "fresh", () => G.replace(part.id)]);
     if (dead) {                            // the exact reason, with its numbers
       const ev = [...G.sim.events].reverse().find((q) => q.partId === part.id && q.kind === "destroyed");
@@ -504,7 +506,7 @@
     if (n && meterSince && now - meterSince > 1000) { meterSince = 0; aside(n, 7000); }
   }
   // Ten times a second from the main loop.
-  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); meterWatch(); BB.Ladder.tick(G); }
+  function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); meterWatch(); BB.Ladder.tick(G); BB.CapView.tick(G); }
 
   // The playtest data as a small overlay (the backquote key); the pause menu and the map show it in full.
   function telemetry() {

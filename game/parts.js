@@ -156,6 +156,7 @@
         c.add(new D.Junction(rmid, pos, is, 2));
         return {
           save: () => { rt.vc = cap.vc; },
+          empty: () => { cap.vc = 0; },             // joined through a resistor until it is empty (the part card's Empty it)
           read: (S) => {
             const V = S.v[pos] - S.v[neg], Irev = rr.current(S.v);
             return { V, Vc: cap.vc, I: esr.current(S.v), Ileak: V / k.leak, Irev, Prev: Math.max(Irev, 0) * Math.max(-V, 0), reverse: V < -0.5 };

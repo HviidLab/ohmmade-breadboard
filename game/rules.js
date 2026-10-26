@@ -56,6 +56,7 @@
     ctl: "Leave that alone for now.",
     replace: "Not now.",
     probe: "Not now.",
+    empty: "Not this one: see what it does as it is.",
   };
 
   class LevelRules {
@@ -137,7 +138,7 @@
           // a part that burned out can always be replaced, so no level can get stuck on a broken part
           if (act.kind === "replace" && G && G.sim && ((G.sim.rt.get(act.id) || {}).destroyed || (BB.Uno && BB.Uno.damaged(G.sim.rt.get(act.id))))) return OK;
         // falls through
-        case "move": case "legs": case "remove": case "flip": case "probe":
+        case "move": case "legs": case "remove": case "flip": case "probe": case "empty":
           if (this.own(act.id) || listed(allow[act.kind], act.id)) return OK;
           return no(FIXED[act.kind]);
         default: return OK;

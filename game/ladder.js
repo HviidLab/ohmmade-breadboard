@@ -1,4 +1,5 @@
-// The voltage staircase (Chapter 6): a panel beside the bench that draws a row of resistors from + to − as steps down.
+// The voltage staircase (Chapter 6): a panel beside the bench that draws a row of resistors (and, in Chapter 8, a
+// capacitor) from + to − as steps down.
 // Height is voltage against the − rail: the + rail on top, the − rail at 0 V, and each strip between two parts on a
 // landing. A landing shows its height only once the player has measured it (red probe on it, black on the − rail),
 // so the staircase never answers a question before the meter does. When the parts change, the old staircase stays
@@ -7,6 +8,7 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const NS = "http://www.w3.org/2000/svg";
+  const uF = (c) => `${Math.round(c * 1e6)} µF`;
   const kohm = (r) => (r >= 1000 ? `${+(r / 1000).toFixed(r < 10000 ? 1 : 0)} kΩ` : `${Math.round(r)} Ω`);
 
   // The row of parts the staircase draws: { nodes: [{ root, pt, rail }], steps: [{ label, ids }], sig }, or null.
@@ -19,6 +21,8 @@
     const on = (q) => q.ok && q.legs.every(Boolean);
     for (const q of S.all) {
       if (q.type === "resistor" && on(q)) edges.push({ a: q.nets[0], b: q.nets[1], pa: q.legs[0], pb: q.legs[1], label: kohm(q.part.value), key: `${q.id}:${q.part.value}` });
+      // a capacitor is a step too: the voltage across it, which grows as it fills (Chapter 8)
+      if (q.type === "cap" && on(q)) edges.push({ a: q.nets[0], b: q.nets[1], pa: q.legs[0], pb: q.legs[1], label: uF(q.part.value), key: `${q.id}:cap` });
       if (q.type === "pot" && on(q)) {
         const a = q.part.pos ?? 0.5;
         edges.push({ a: q.nets[0], b: q.nets[1], pa: q.legs[0], pb: q.legs[1], label: kohm(10000 * a), key: `${q.id}:0`, pot: true });

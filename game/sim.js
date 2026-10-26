@@ -184,6 +184,13 @@
       for (const st of Object.values(rt.stress)) st.reset();
       this.compile();
     }
+    // Empty a capacitor, as joining its legs through a resistor for a while does.
+    empty(partId) {
+      const h = this.handles && this.handles.get(partId);
+      if (!h || !h.empty) return;
+      h.empty();
+      this.compile();
+    }
     // Would a fresh `partId` fail again within `sec` seconds, with the circuit as it is now? Tried on a copy.
     failsAgain(partId, sec = 3) {
       const sim = new Sim(new BB.Doc(JSON.stringify({ parts: this.doc.parts })));

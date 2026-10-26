@@ -242,6 +242,22 @@ body.mode-level .toast { bottom: auto; top: 14px; }
 .ld-q { fill: var(--panel-2); stroke: var(--volt); stroke-width: 1.5; }
 .ld-qt { fill: var(--volt); font-size: 14px; font-weight: 700; }
 .ld-empty { fill: var(--muted); font-size: 12px; }
+/* inside the capacitor (capview.js): same panel, same place */
+.cv-gap { fill: rgba(201, 214, 246, .10); stroke: rgba(201, 214, 246, .35); stroke-width: 1; stroke-dasharray: 2 3; }
+.cv-plate { fill: #c7ccd1; stroke: #6f7b87; stroke-width: 1; }
+.cv-wire { fill: none; stroke: #c7ccd1; stroke-width: 3; stroke-linejoin: round; }
+.cv-flow { fill: none; stroke: #ffb547; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0 14;
+  animation: cv-run 1.1s linear infinite; filter: drop-shadow(0 0 3px rgba(255, 181, 71, .8)); }
+.cv-flow.fast { animation-duration: .5s; }
+@keyframes cv-run { to { stroke-dashoffset: -14; } }
+@media (prefers-reduced-motion: reduce) { .cv-flow { animation: none; } }
+.cv-label { fill: #e9d9b8; font-size: 12px; font-weight: 600; }
+.cv-small { fill: var(--muted); font-size: 11px; }
+.cv-leg { font-size: 12px; font-weight: 600; }
+.cv-leg.pos { fill: var(--pos); text-anchor: start !important; } .cv-leg.neg { fill: var(--gnd); text-anchor: end !important; }
+.cv-q { stroke: #0b1626; stroke-width: 1.2; }
+.cv-q.pos { fill: var(--pos); } .cv-q.neg { fill: var(--gnd); }
+.cv-qt { fill: #fff; font-size: 12px; font-weight: 700; }
 .ob-goals, .ob-bonus { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 .ob-goals li { display: flex; gap: 8px; font-weight: 600; }
 .ob-goals li span { color: var(--muted); width: 1em; }

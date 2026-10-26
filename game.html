@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Breadboard Game · Ohmmade Breadboard</title>
 <link rel="stylesheet" href="fonts/fonts.css?v=d6131645">
-<link rel="stylesheet" href="game/game.css?v=414362ae">
+<link rel="stylesheet" href="game/game.css?v=24bd60ff">
 </head>
 <body>
 <div class="app" id="app">
@@ -52,6 +52,7 @@
     <div class="lv" id="lv" hidden>
       <section class="objective" id="objective" aria-live="polite"></section>
       <aside class="ladder" id="ladder" hidden aria-label="Voltage staircase: each strip's voltage against the − rail, drawn as a height"><p class="ld-title">Voltage staircase</p><svg aria-hidden="true"></svg><p class="ld-note"></p></aside>
+      <aside class="ladder capview" id="capview" hidden aria-label="Inside the capacitor: the charge on its two plates, and the current in its legs"><p class="ld-title">Inside the capacitor</p><svg aria-hidden="true"></svg><p class="ld-note"></p></aside>
       <div class="mentor-avatar" id="mentor-avatar" aria-hidden="true"></div>
       <div class="mentor" id="mentor">
         <div class="mentor-body"><p class="mentor-name">Sparky</p><p class="mentor-text" id="mentor-text" aria-hidden="true"></p><p class="sr-only" id="mentor-sr" aria-live="polite"></p><p class="sr-only" id="kb-sr" aria-live="polite"></p><p class="aside" id="mentor-aside" role="status" hidden></p><div class="mentor-act" id="mentor-act"></div></div>
@@ -107,13 +108,13 @@
 <script src="game/engine.js?v=9cb1ed39"></script>
 <script src="game/devices.js?v=683e5672"></script>
 <script src="game/damage.js?v=f6678a02"></script>
-<script src="game/parts.js?v=62ee91be"></script>
+<script src="game/parts.js?v=29b81050"></script>
 <script src="game/arduino.js?v=c88c6840"></script>
-<script src="game/sim.js?v=98c23da0"></script>
+<script src="game/sim.js?v=5b5951e6"></script>
 <script src="game/doc.js?v=0d91864a"></script>
 <script src="game/store.js?v=63fc4d4e"></script>
-<script src="game/concepts.js?v=e4b39453"></script>
-<script src="game/rules.js?v=1037c9a7"></script>
+<script src="game/concepts.js?v=17659268"></script>
+<script src="game/rules.js?v=1473554e"></script>
 <script src="game/art/manifest.js?v=4aa9e66e"></script>
 <script src="game/art.js?v=44ef9f61"></script>
 <script src="game/render.js?v=e3355a40"></script>
@@ -131,16 +132,17 @@
 <script src="game/levels/ch5.js?v=f6abceb5"></script>
 <script src="game/levels/ch6.js?v=c89f5008"></script>
 <script src="game/levels/ch7.js?v=61153577"></script>
-<script src="game/levels/ch8.js?v=6811d19d"></script>
+<script src="game/levels/ch8.js?v=164d402b"></script>
 <script src="game/levels/ch9.js?v=9c886258"></script>
 <script src="game/levels/ch10.js?v=e9e6b2bb"></script>
 <script src="game/levels/ch11.js?v=85c9f387"></script>
-<script src="game/ladder.js?v=550e31a7"></script>
-<script src="game/coachui.js?v=28fe29bf"></script>
-<script src="game/notebook-art.js?v=f2fc22f3"></script>
+<script src="game/ladder.js?v=8fe9c839"></script>
+<script src="game/capview.js?v=e3250f4f"></script>
+<script src="game/coachui.js?v=399197f5"></script>
+<script src="game/notebook-art.js?v=07479051"></script>
 <script src="game/levelmap.js?v=2d08cced"></script>
 <script src="game/title-art.js?v=68832f64"></script>
 <script src="game/title.js?v=331a54aa"></script>
-<script src="game/main.js?v=799a361d"></script>
+<script src="game/main.js?v=ad496c1b"></script>
 </body>
 </html>

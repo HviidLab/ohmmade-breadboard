@@ -257,6 +257,13 @@
         pl([[128, 40], [150, 40], [150, 59]]) + ledV(150, 66, true, true) + pl([[150, 73], [150, 104], [70, 104], [70, 64]]) + cap(70, 58) + tx(110, 24, "it empties", { s: 17, c: "#a3360f" }) +
         tx(110, 124, "through the LED: a short glow", { s: 16 });
     },
+    // in a row with the LED: battery, resistor, the capacitor's plates, the LED; the current dots stop at the plates
+    capBlock: () => {
+      const plates = ln(118, 27, 118, 53, PEN, 3.4) + ln(128, 27, 128, 53, PEN, 3.4) + tx(111, 24, "+", { s: 15, c: RED });
+      return current([[40, 67], [40, 40], [118, 40]], 14) + pl([[40, 67], [40, 40], [60, 40]]) + resH(60, 96, 40, 5) + pl([[96, 40], [118, 40]]) + plates +
+        pl([[128, 40], [170, 40], [170, 59]]) + ledV(170, 66, false) + pl([[170, 73], [170, 104], [40, 104], [40, 76]]) + battery(40, 72) +
+        tx(123, 76, "no way", { s: 16, c: "#a3360f" }) + tx(123, 92, "through", { s: 16, c: "#a3360f" }) + tx(110, 126, "a flash while it fills, then dark", { s: 16 });
+    },
     capTime: () => ln(30, 108, 200, 108, PEN, 2) + ln(30, 108, 30, 18, PEN, 2) + `<path d="M30 108 C60 40 100 32 196 28" fill="none" stroke="${DOT}" stroke-width="4"/>` +
       ln(30, 24, 200, 24, GREY, 1.4) + tx(14, 30, "6 V", { s: 15 }) + tx(196, 124, "time", { s: 15 }) + tx(80, 60, "fast", { s: 17, c: "#a3360f" }) + tx(160, 46, "slow", { s: 17, c: "#a3360f" }),
     tau: () => tx(110, 36, "R × C = time", { s: 24 }) + ln(40, 46, 180, 46, HL, 7) + tx(110, 78, "1 kΩ × 1000 µF = 1 s", { s: 19, c: "#a3360f" }) +

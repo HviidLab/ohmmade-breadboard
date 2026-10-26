@@ -275,6 +275,13 @@
       G.sim.replace(id); H.log(`${BB.Parts.name(G.doc.get(id))} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true);
       G.emit("replace", { id });
     },
+    // Empty a capacitor (Chapter 8 shows how: through a resistor across its legs; the part card does that in one go).
+    empty(id) {
+      if (!G.check({ kind: "empty", id })) return;
+      BB.trail(`empty ${id}`);
+      G.sim.empty(id); G.redraw(); G.refreshPanels(true);
+      G.emit("empty", { id });
+    },
     sound,
     undo() { BB.trail("undo"); if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); G.emit("undo", {}); } },
     redo() { BB.trail("redo"); if (G.doc.redo()) { G.commit(); G.emit("undo", {}); } },
@@ -488,6 +495,7 @@
         else if (st.pin) { const id = G.doc.parts.find((p) => p.type === "uno").id; for (let k = 0; k < 3 && ((G.doc.get(id).pins || {})[st.pin] || "INPUT") !== st.mode; k++) G.cyclePin(id, st.pin); }
         else if (st.press) { const id = own(st.press), b = G.doc.get(id); G.set(id, "pressed", st.on ?? !b.pressed, true); }
         else if (st.replace) G.replace(st.replace);
+        else if (st.empty) G.empty(own(st.empty));
         else if (st.leg) {                       // one leg of a part to a new hole, as dragging that leg's end does
           const id = own(st.leg), p = G.doc.get(id), legs = p.legs.slice(); legs[st.k] = st.to;
           const v = G.doc.validate(p.type, legs, id);
