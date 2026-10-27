@@ -1,17 +1,23 @@
 // Chapter 10: Sensors. The light sensor (LDR) is a resistor that reacts to light: low resistance in light, high in the
-// dark. In a divider it turns light into a voltage you can measure; feeding a transistor's base it makes a night light.
-// Then you build the night light yourself, and a challenge: build a sunrise light, the opposite of the night light (on in the light, off in the dark). To make
-// it dark, press and hold on the sensor (Shift-click keeps it covered).
-// Same rules as before: a question in every level, predict first, the goal and not the holes, hints only on request.
+// dark. Joined from a transistor's base to the − rail it makes a night light: in light it is an easy path that leads the
+// base current away, in the dark the current goes into the base. Then a small puzzle: make an always-on LED a night
+// light by choosing which rail the sensor goes to. To make it dark, press and hold on the sensor (Shift-click keeps it
+// covered).
+// Kept easy on purpose (playtest 2026-10-27: Chapters 9–11 were too hard): the light-meter divider level and the
+// sunrise light were cut, and the night light is explained with current paths, not divider voltages.
+// Same rules as before: a question in every level, predict first, hints only on request.
 // Data only, built with the kit from ch1.js and the meter helpers from ch2.js.
 (function (BB) {
   "use strict";
-  const K = BB.Levels.kit, { start, lit, part, wires, darkLed, FINISH } = K;
-  const { M, on, volts, ohms, fmtV, fmtR, shownV, shownmA, shownR, RING, METER, allow, REGION, NEXT } = K.meter;
+  const K = BB.Levels.kit, { start, lit, part, darkLed, FINISH } = K;
+  const { ohms, shownR, RING, METER, allow, REGION, NEXT } = K.meter;
 
   const LDR = (V, id, a, b) => ({ id, type: "ldr", legs: V.hs(a, b), lux: 200 });
   const dark = (S, id) => { const q = part(S, id); return !!q && (q.part.lux ?? 200) <= 5; };
   const COVER = { say: "Press and hold on the light sensor to cover it with your hand. Shift-click keeps it covered; Shift-click again uncovers it." };
+  // the LED's transistor switch with a 100 kΩ into B, and a wire carrying B's strip over to strip 18
+  const NIGHT = (V) => [V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "a8", 330), V.LED("led1", "c8", "c9"), V.WIRE("w1", "e9", "e12"),
+    { id: "q1", type: "npn", legs: V.hs("c12", "c13", "c14") }, V.WIRE("w2", "a14", "-T15"), V.RES("rb", "+T13", "a13", 100000), V.WIRE("w3", "b13", "b18")];
 
   const L = [
     {
@@ -44,56 +50,25 @@
       },
     },
     {
-      id: "10-2", title: "A light meter", teaches: ["ldrDivider"], uses: ["ldr", "divider", "volts", "resistor", "strip", "rail"], shifts: [0, 4, 8],
+      id: "10-2", title: "Night light", teaches: ["nightLight"], uses: ["ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4],
       layouts: [{}],
       make: (V) => {
-        const P = V.predict(["Drop", "Rise", "Stay the same"], 0, [null, "the sensor sits on the + side. Its share grows in the dark, so less is left across the 10 kΩ.",
-          "change one resistor of a divider and the meeting point moves."]), seen = {};
-        const mid = V.n("bb:L6");
-        const vMid = (S) => (on(S, mid, "bb:-T") && volts(S) !== null ? Math.abs(volts(S)) : null);
-        const light = (S) => { const v = vMid(S); if (v !== null && !dark(S, "s1") && v > 4) seen.light = v; return v !== null && !dark(S, "s1") && v > 4; };
-        const low = (S) => { const v = vMid(S); if (v !== null && dark(S, "s1") && v < 1.5) seen.dark = v; return v !== null && dark(S, "s1") && v < 1.5; };
+        const P = V.predict(["The LED lights up", "The LED goes out", "Nothing changes"], 0, [null, "it is off already. Covered, the sensor's resistance rises, and current flows into B instead.",
+          "covering the sensor raises its resistance, so current flows into B and the LED comes on."]);
+        const works = (S) => dark(S, "s1") && lit(part(S, "led1"));
         return {
           region: REGION(V),
-          start: start(V.BAT("+T3", "-T4"), LDR(V, "s1", "+T6", "a6"), V.RES("r1", "c6", "c10", 10000), V.WIRE("w1", "e10", "-T10"), METER("V")),
-          rules: { tray: [], allow: allow({ ctl: ["meter", "s1"], dial: ["V"], socket: ["VO"] }) },
-          ui: { strips: true },
-          goalsFrom: 3,
-          beats: [
-            { id: "what", say: "A divider, as in Chapter 6: the light sensor on the + side, 10 kΩ on the − side. Where they meet, marked here, is their meeting point.", highlight: { nets: [mid] }, waitFor: NEXT },
-            { id: "p", say: "In the dark, the sensor's resistance rises. So the meeting point's voltage will…",
-              highlight: { nets: [mid] }, predict: P, waitFor: { predict: true } },
-            { id: "light", say: "Measure the meeting point against the − rail, in room light.", hints: [RING(V.hs("d6", "-T12"))], waitFor: { when: light } },
-            { id: "dark", say: () => `${shownV(seen.light ?? 5)} in the light. Now cover the sensor and watch.`, hints: [COVER], waitFor: { when: low } },
-            Object.assign(FINISH(() => `${shownV(seen.light ?? 5)} in light, ${shownV(seen.dark ?? 0.7)} in the dark. Light becomes a voltage you can measure.`), { reply: "p" }),
-          ],
-          goals: [{ text: "Measure the meeting point in the dark", when: low }],
-          challenge: { text: "Light, dark, and light again", when: (S, m) => { const d = dark(S, "s1"); if (vMid(S) !== null) { if (!d && !m.l1) m.l1 = true; if (d && m.l1) m.d = true; if (!d && m.d) m.l2 = true; } return !!m.l2; } },
-          solution: [{ next: 1 }, { choose: "right" }, { probe: V.hs("d6", "-T12") }, { wait: 0.5 }, { cover: "s1" }, { wait: 0.5 }, { cover: "s1", on: false }, { wait: 0.5 }, { next: 1 }],
-        };
-      },
-    },
-    {
-      id: "10-3", title: "Night light", teaches: ["nightLight"], uses: ["ldrDivider", "ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0, 4],
-      layouts: [{}],
-      make: (V) => {
-        const P = V.predict(["The LED lights up", "The LED goes out", "Nothing changes"], 0, [null, "it is off already. In the dark the sensor's resistance rises, and B gets current.",
-          "covering the sensor raises its resistance, so B gets current and the LED comes on."]);
-        const ledOn = (S) => lit(part(S, "led1"));
-        const works = (S) => dark(S, "s1") && ledOn(S);
-        return {
-          region: REGION(V),
-          start: start(V.BAT("+T3", "-T4"), V.RES("r1", "+T8", "a8", 330), V.LED("led1", "c8", "c9"), V.WIRE("w1", "e9", "e12"), { id: "q1", type: "npn", legs: V.hs("c12", "c13", "c14") },
-            V.WIRE("w2", "a14", "-T15"), V.RES("rb", "+T13", "a13", 100000), V.WIRE("w3", "b13", "b18"), LDR(V, "s1", "a18", "-T18")),
+          start: start(...NIGHT(V), LDR(V, "s1", "a18", "-T18")),
           rules: { tray: [], allow: allow({ ctl: ["s1"] }) },
           ui: { strips: true },
           goalsFrom: 1,
           beats: [
-            { id: "p", say: "A transistor switch for the LED. A 100 kΩ feeds its base; the light sensor runs from the base to the − rail. Cover it: the LED…",
+            { id: "p", say: "The LED's transistor switch. A 100 kΩ feeds B, and the light sensor runs from B to the − rail. Cover the sensor, and the LED…",
               highlight: { part: "s1" }, predict: P, waitFor: { predict: true } },
-            { id: "cover", say: "Find out: cover the light sensor (press and hold it), and watch the LED.", hints: [COVER], waitFor: { when: works, hold: 0.4 } },
-            { id: "name", reply: "p", say: "The 100 kΩ and the sensor make a divider at B. In light B stays below 0.7 V: hardly any base current. Covered, B rises and current flows in.", waitFor: NEXT },
-            FINISH("About 0.04 mA gets into B, × about 200 ≈ 9 mA (that varies a lot by part): on, but not fully. The sensor decides, the transistor switches."),
+            { id: "cover", say: "Find out: cover the light sensor (press and hold it), and watch the LED.", highlight: { part: "s1" }, hints: [COVER], waitFor: { when: works, hold: 0.4 } },
+            { id: "name", reply: "p", say: "In light the sensor is an easy path: the 100 kΩ's tiny current flows through it, past B. Covered, it's a hard path: the current goes into B.",
+              highlight: { part: "s1" }, waitFor: NEXT },
+            FINISH("The sensor decides where B's tiny current goes: past B in the light, into B in the dark. The transistor does the switching."),
           ],
           goals: [{ text: "The LED on in the dark", pre: "Cover the sensor", when: works }],
           challenge: { text: "And off again in the light", when: (S, m) => { if (works(S)) m.on = true; return !!m.on && !dark(S, "s1") && !lit(part(S, "led1"), 0.0005); } },
@@ -102,156 +77,69 @@
       },
     },
     {
-      id: "10-4", title: "Your own night light", teaches: [], uses: ["nightLight", "ldrDivider", "ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
-      card: { name: "Your own night light", text: "The LED's loop through C and E, and a divider at B: 100 kΩ from the + rail, the sensor down to the − rail." },
+      id: "10-3", title: "Your own night light", teaches: [], uses: ["nightLight", "ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
+      card: { name: "Sensors", text: "A light sensor's resistance falls in light and rises in the dark. From a transistor's base to the − rail, it switches an LED on when it gets dark." },
       layouts: [{}],
+      // A small decision puzzle (playtest 2026-10-27: keep the capstones easy). 10-2's circuit without its sensor: the
+      // 100 kΩ feeds B, so the LED is on, light or dark. One sensor leg goes in strip 18 (joined to B); which rail for the
+      // other? Sim model: sensor 1.85 kΩ in room light, 75 kΩ covered; NPN β 200, Vbe ≈ 0.7 V.
+      //  - − rail: light, B at ≈ 0.1 V, no base current, LED off ✓; covered, ≈ 0.04 mA into B, LED ≈ 9 mA ✓ (10-2's numbers).
+      //  - + rail: the sensor beside the 100 kΩ, ≈ 2.9 mA into B in light (far under a base's rating), on in both ✗.
       make: (V) => {
-        const P = V.predict(["Well under 0.7 V: the LED off", "Above 0.7 V: the LED on", "At half the battery's voltage"], 0, [null,
-          "in light the sensor is far smaller than the 100 kΩ, so it pulls B close to 0 V: no base current.",
-          "only equal resistors put the meeting point at half. In light the sensor's share is small, so B sits low."]), seen = {};
+        const P = V.predict(["The − rail", "The + rail", "Either rail"], 0, [null,
+          "from the + rail the sensor only feeds B more current, so the LED stays on in the light.",
+          "only from B to the − rail is the sensor a way past B. From the + rail it feeds B even more."]);
         const sensor = (S) => S.parts("ldr")[0];
         const covered = (S) => { const s = sensor(S); return !!s && (s.part.lux ?? 200) <= 5; };
-        const leds = (S) => S.parts("led").filter((q) => q.ok);
-        const npn = (S) => S.parts("npn").find((q) => q.ok && q.legs.every(Boolean));
+        const ledI = (S) => Math.max(0, ...S.parts("led").filter((q) => q.ok).map((q) => Math.abs(q.rd.I || 0)));
+        const B = V.n("bb:L13");
         // both states on the same circuit: any change to the parts or the battery switch starts the test again
         const tested = (S, m) => {
           const sig = S.all.filter((q) => q.type !== "meter").map((q) => `${q.id}:${q.legs.join(",")}:${q.ok}:${q.part.on !== false}`).join("|");
           if (m.sig !== sig) { m.sig = sig; m.on = m.off = false; }
-          if (!sensor(S) || !leds(S).length || !S.batteryOn()) return false;
-          if (!covered(S) && leds(S).every((q) => q.rd.I < 0.0005)) m.off = true;
-          if (covered(S) && leds(S).some((q) => q.rd.I >= 0.003)) m.on = true;
+          if (!sensor(S) || !S.batteryOn()) return false;
+          if (!covered(S) && ledI(S) < 0.0005) m.off = true;
+          if (covered(S) && ledI(S) >= 0.003) m.on = true;
           return !!m.on && !!m.off;
         };
         const building = (C) => !!C.beat && C.beat.id === "build";
+        const SPOTS = V.hs("a18", "+T18", "-T18");
         return {
-          region: { rows: [1, 24], cols: "a-j", rails: "top" },
-          start: start(V.BAT("+T3", "-T4")),
-          rules: { tray: [{ type: "npn", n: 1 }, { type: "ldr", n: 1 }, { type: "resistor", value: 100000, n: 1 }, { type: "resistor", value: 330, n: 1 },
-            { type: "led", color: "red", n: 1 }, { type: "wire", n: 4 }], banner: true },
+          region: REGION(V),
+          start: start(...NIGHT(V)),
+          rules: { tray: [{ type: "ldr", n: 1 }], banner: true },
           ui: { strips: true },
-          goalsFrom: 1,
+          goalsFrom: 2,
           beats: [
-            { id: "brief", say: V.say("Your turn: build 10-3's night light on an empty board. The LED must light when the sensor is covered, and not in the light.",
-              "Now you build the night light yourself: the LED on when the sensor is covered, off in the light."), waitFor: { next: true, label: "Start" } },
-            { id: "p", say: "At B goes a divider: 100 kΩ from the + rail, the sensor down to the − rail. In room light the sensor is far smaller, so B sits…",
-              predict: P, waitFor: { predict: true } },
-            { id: "build", reply: "p", say: "Well under 0.7 V: off. Build it: the LED's loop in at C, E to the − rail, and that divider at B. Test it in light and covered.",
-              hints: [{ say: "The LED's loop as in 9-3: + rail, 330 Ω, the LED, into C; E to the − rail. Then the 100 kΩ from the + rail into B's strip." },
-                { say: "The sensor goes from B's strip to the − rail. A wire can carry B's strip over to a free strip, where there is room." },
-                { show: [V.RES("h1", "+T6", "a6", 330), V.LED("h2", "c6", "c7"), { id: "h3", type: "npn", legs: ["d7", "d8", "d9"] }, V.WIRE("h4", "a9", "-T9"),
-                  V.RES("h5", "+T8", "a8", 100000), V.WIRE("h6", "b8", "b13"), { id: "h7", type: "ldr", legs: ["a13", "-T13"] }] }],
-              waitFor: { when: tested } },
-            FINISH("Your own night light: the divider turns light into B's voltage, and the transistor switches. Next: the other way round."),
+            { id: "brief", say: V.say("Your turn: a night light. This LED is on all the time, light or dark: the 100 kΩ always feeds B a tiny current.",
+              "Make this LED a night light. Right now it is on all the time: the 100 kΩ feeds B, light or dark."), highlight: { part: "rb" }, waitFor: NEXT },
+            { id: "p", say: `The sensor goes from strip ${V.r(18)} (joined to B by the wire) to a rail. Which rail makes the LED go off in the light?`,
+              highlight: { holes: SPOTS }, predict: P, waitFor: { predict: true } },
+            { id: "build", reply: "p", say: `Find out: put the sensor from strip ${V.r(18)} to a rail. Then test it: in room light, then covered (press and hold it).`,
+              highlight: { holes: SPOTS }, hints: [{ show: [{ id: "h", type: "ldr", legs: V.hs("a18", "-T18") }] }, COVER], waitFor: { when: tested } },
+            FINISH("Your own night light: in light the sensor leads B's current away, in the dark it goes into B. Chapter 10 done!"),
           ],
           goals: [{ text: "Off in the light, on when covered", when: tested }],
           react: [{ hold: 1, when: (S, C) => {
-            const q = npn(S);
-            if (!building(C) || !q || covered(S) || !leds(S).some((l) => l.rd.I >= 0.0005)) return null;
-            return "The LED is on in the light. In light the sensor must hold B low: the sensor from B to the − rail, the 100 kΩ from the + rail to B.";
-          } }, { hold: 1.5, when: (S, C) => {
-            const q = npn(S);
-            if (!building(C) || !q || !covered(S) || leds(S).some((l) => l.rd.I >= 0.003)) return null;
-            if (!S.same(q.nets[2], "bb:-T")) return "Nothing joins E to the − rail, so neither loop is closed. Both currents leave the transistor by E.";
-            if (Math.abs(q.rd.Ib || 0) < 1e-5) return "Covered, and still no current flows into B. Is the 100 kΩ joined from the + rail to B's strip?";
-            return darkLed(S);
-          } }],
-          challenge: { text: "Use at most two wires", final: () => !seen.more, when: (S) => { if (wires(S).length > 2) seen.more = true; return false; } },
-          solution: [{ next: 1 }, { choose: "right" }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "red" }, at: ["c6", "c7"] },
-            { place: { type: "npn" }, at: ["d7", "d8", "d9"] }, { wire: ["a9", "-T9"] }, { place: { type: "resistor", value: 100000 }, at: ["+T8", "a8"] },
-            { wire: ["b8", "b13"] }, { place: { type: "ldr", lux: 200 }, at: ["a13", "-T13"] }, { wait: 0.8 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],
-        };
-      },
-    },
-    {
-      id: "10-5", title: "Sunrise light", teaches: [], uses: ["nightLight", "ldrDivider", "divider", "ldr", "npnSwitch", "baseR", "loop", "resistor", "polarity", "strip", "rail"], shifts: [0],
-      card: { name: "Sensors", text: "A light sensor's resistance falls in light and rises in the dark. In a divider it turns light into a voltage, and that voltage can work a transistor." },
-      layouts: [{}],
-      // The opposite of 10-3: the LED on in the light, off when the sensor is covered. The idea: the sensor goes on the
-      // + side of the divider at B, the fixed resistor on the − side, and that resistor must be small enough to hold B
-      // under 0.7 V in the dark. Sim model: light sensor 1.85 kΩ in room light, 75 kΩ covered; NPN β 200, Vbe ≈ 0.7 V;
-      // yellow LED + 330 Ω. Worked numbers (checked in the simulator, LED current light / covered):
-      //   sensor + side, 4.7 kΩ to −  : B ≈ (6 − 0.7)/1.85k − 0.7/4.7k ≈ 2.7 mA → 11.8 mA; covered B at 6 × 4.7/79.7 ≈ 0.35 V → 0 mA ✓
-      //   sensor + side, 100 kΩ to −  : covered B ≈ 0.72 V, 0.063 mA in → 11.5 mA, still on ✗ (the distractor)
-      //   sensor + side, nothing to − : covered 5.3 V / 75k ≈ 0.07 mA into B → 11.5 mA, still on ✗
-      //   sensor + side, 330 Ω to −, 4.7 kΩ in the LED's loop: light 0.8 mA, too dim (goal wants ≥ 3 mA) ✗
-      //   10-3's night light (100 kΩ from +, sensor to −): light 0 mA, covered 8.7 mA: the wrong way round ✗
-      //   4.7 kΩ from +, sensor to −  : on in both (0.72 mA / 1.1 mA into B) ✗
-      // (a 10 kΩ to − would leave B at 0.66 V covered and the LED at 1.1 mA: half on; it is not in the tray.)
-      // Base current in light ≈ 2.7 mA, far under the 50 mA base rating: the sensor itself limits it.
-      make: (V) => {
-        const seen = {};
-        const sensor = (S) => S.parts("ldr")[0];
-        const covered = (S) => { const s = sensor(S); return !!s && (s.part.lux ?? 200) <= 5; };
-        const leds = (S) => S.parts("led").filter((q) => q.ok);
-        const rail = (S, k) => { const b = S.battery(); return b && b.nets[k]; };        // k 0: the + rail, 1: the − rail
-        // Both states must be seen on the same circuit: any change to the parts or the battery switch starts the test again.
-        const tested = (S, m) => {
-          const sig = S.all.filter((q) => q.type !== "meter").map((q) => `${q.id}:${q.legs.join(",")}:${q.ok}:${q.part.on !== false}`).join("|");
-          if (m.sig !== sig) { m.sig = sig; m.on = m.off = false; }
-          if (!sensor(S) || !leds(S).length || !S.batteryOn()) return false;
-          if (!covered(S) && leds(S).some((q) => q.rd.I >= 0.003)) m.on = true;
-          if (covered(S) && leds(S).every((q) => q.rd.I < 0.0005)) m.off = true;
-          return !!m.on && !!m.off;
-        };
-        const building = (C) => !!C.beat && C.beat.id === "build";
-        const ledI = (S) => Math.max(0, ...leds(S).map((q) => Math.abs(q.rd.I || 0)));
-        // 10-3's night light: a big resistor (47 kΩ or more) from the + rail to B, the sensor from B to the − rail
-        const night = (S) => { const s = sensor(S), q = S.parts("npn").find((t) => t.ok);
-          return !!s && !!q && S.joins(s, q.nets[1], rail(S, 1)) && S.parts("resistor").some((r) => r.part.value >= 47000 && S.joins(r, rail(S, 0), q.nets[1])); };
-        return {
-          region: { rows: [1, 24], cols: "a-j", rails: "top" },
-          start: start(V.BAT("+T3", "-T4")),
-          rules: { tray: [{ type: "npn", n: 1 }, { type: "ldr", n: 1 }, { type: "resistor", value: 4700, n: 1 }, { type: "resistor", value: 100000, n: 1 },
-            { type: "resistor", value: 330, n: 1 }, { type: "led", color: "yellow", n: 1 }, { type: "wire", n: 4 }], banner: true },
-          ui: { strips: true },
-          goalsFrom: 1,
-          beats: [
-            { id: "brief", say: V.say("A sunrise signal: the yellow LED is its lamp. It must come on when light falls on the sensor. Covering the sensor is night: LED off.",
-              "Your own sunrise signal, with the yellow LED as its lamp: on when light falls on the sensor, off when it is covered (that is night)."), waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Build it, then test it: in the light, and covered (press and hold the sensor). Ask for a hint if you need one.",
-              hints: [{ say: "The LED's loop is as in your night light (10-4). There the sensor sat on the − side of B, so the dark switched it on. Swap the sides." },
-                { say: "The sensor from the + rail to B, a resistor from B to the − rail. Covered, that resistor must hold B well under 0.7 V: which one does?" },
-                { show: [V.RES("h1", "+T6", "a6", 330), V.LED("h2", "c6", "c7", "yellow"), { id: "h4", type: "npn", legs: ["d7", "d8", "d9"] }, V.WIRE("h5", "a9", "-T9"),
-                  { id: "h6", type: "ldr", legs: ["+T8", "a8"] }, V.WIRE("h7", "b8", "b13"), V.RES("h8", "a13", "-T13", 4700)] }],
-              waitFor: { when: tested } },
-            Object.assign(FINISH("More light, less resistance: the sensor on the + side lets current into B. Covered, the resistor below holds B under 0.7 V. Chapter 10 done!"),
-              { note: "real light sensors differ a lot. Measure yours in light and in the dark, then pick the fixed resistor to suit." }),
-          ],
-          goals: [{ text: "On in the light, off when covered", when: tested }],
-          react: [
-            // 10-3's wiring (the 100 kΩ from + to B, the sensor from B to −) behaving as a night light: off in the light, on covered
-            { hold: 1, when: (S, C) => {
-              if (!building(C) || !night(S) || (covered(S) ? ledI(S) < 0.0005 : ledI(S) >= 0.0005)) return null;
-              return "That's your night light from 10-4: on in the dark. Here it's the other way round.";
-            } },
-            // covered, yet the LED still glows (a resistor too big or missing below B, or a small one above): say how much current still gets into B
-            { hold: 1, when: (S, C) => {
-              const q = S.parts("npn").find((t) => t.ok);
-              if (!building(C) || !q || night(S) || !covered(S) || ledI(S) < 0.0005 || !(Math.abs(q.rd.Ib || 0) > 0)) return null;
-              return `Covered, ${shownmA(q.rd.Ib)} still flows into B (${shownV(q.rd.Vbe)} from B to E): with a current gain of about 200, that lights the LED. Keep B well under 0.7 V.`;
-            } },
-            // in the light, but too little current for the LED
-            { hold: 1, when: (S, C) => {
-              const I = ledI(S);
-              if (!building(C) || !sensor(S) || covered(S) || I < 0.0005 || I >= 0.003) return null;
-              return `In the light only ${shownmA(I)} flows through the LED: too dim. Follow its loop: what holds the current back?`;
-            } },
-          ],
-          challenge: { text: "Use at most two wires", final: () => !seen.more, when: (S) => { if (S.parts("wire").length > 2) seen.more = true; return false; } },
-          solution: [{ next: 1 }, { place: { type: "resistor", value: 330 }, at: ["+T6", "a6"] }, { place: { type: "led", color: "yellow" }, at: ["c6", "c7"] },
-            { place: { type: "npn" }, at: ["d7", "d8", "d9"] }, { wire: ["a9", "-T9"] }, { place: { type: "ldr", lux: 200 }, at: ["+T8", "a8"] },
-            { wire: ["b8", "b13"] }, { place: { type: "resistor", value: 4700 }, at: ["a13", "-T13"] }, { wait: 0.8 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],
+            const s = sensor(S);
+            if (!building(C) || !s || covered(S) || ledI(S) < 0.0005) return null;
+            if (!s.nets.some((n) => S.same(n, B))) return `The LED is still on in the light. One sensor leg goes in strip ${V.r(18)} (marked): the wire joins it to B.`;
+            if (s.nets.some((n) => S.same(n, "bb:+T"))) return "The LED is on in the light: from the + rail the sensor only adds more current into B. Try the other rail.";
+            return null;
+          } }, { hold: 1.5, when: (S, C) => (building(C) && covered(S) && ledI(S) < 0.003 ? darkLed(S) : null) }],
+          challenge: { text: "Finish without a hint", final: (C) => C.hintsUsed === 0 },
+          solution: [{ next: 1 }, { choose: "right" }, { place: { type: "ldr", lux: 200 }, at: V.hs("a18", "-T18") }, { wait: 0.8 }, { cover: "ldr" }, { wait: 0.8 }, { next: 1 }],
         };
       },
     },
   ];
 
   K.chapter(10, "Sensors", L, {
-    "lede": "Circuits can feel the world. A light sensor turns brightness into resistance, and from there into a voltage you can use.",
+    "lede": "Circuits can feel the world. A light sensor turns brightness into resistance, and with a transistor it can switch a light.",
     "cover": "ldr",
     "questions": [
       "What happens to a light sensor's resistance in the dark?",
-      "How do you turn light into a voltage you can measure?",
+      "How can a light sensor steer a transistor?",
       "How does a night light know when to switch on?"
     ],
     "words": [
@@ -267,7 +155,7 @@
       },
       {
         "w": "Night light",
-        "d": "A transistor switch fed from a light-sensor divider: on when it gets dark.",
+        "d": "A transistor switch with a light sensor from its base to the − rail: on when it gets dark.",
         "sym": "led"
       }
     ]

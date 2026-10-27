@@ -301,10 +301,6 @@
       return ldr(60, 60, true) + tx(60, 104, "light: 2 kΩ", { s: 17 }) + ldr(160, 60, false) + `<path d="M140 26 q20 -14 40 0 l4 24 h-48z" fill="#5c6b7c" opacity=".55"/>` +
         tx(160, 104, "covered: 75 kΩ", { s: 17, c: "#a3360f" });
     },
-    ldrDivider: () => ln(30, 16, 196, 16, RED, 2.4) + ln(30, 114, 196, 114, BLUE, 2.4) + tx(184, 11, "6 V", { s: 13, c: RED }) + ln(90, 16, 90, 26) + circ(90, 40, 13, "#fffdf6") + resV(90, 30, 50, 4) + [[60, 24], [66, 19]].map(([x1, y1]) => ln(x1, y1, x1 + 10, y1 + 8, "#e0a21c", 1.8) + arrow(x1 + 11, y1 + 9, 39, "#e0a21c")).join("") +
-      ln(90, 53, 90, 72) + resV(90, 72, 104, 6) + ln(90, 104, 90, 114) + circ(90, 62, 3.5, PEN) + meter(166, 56, "V") +
-      probeTo(93, 63, 166, 56, "red", -5) + probeTo(178, 112, 166, 56, "black", -4) +
-      tx(128, 84, "light: 5 V", { s: 14 }) + tx(128, 102, "dark: 0.7 V", { s: 14, c: "#a3360f" }) + tx(50, 44, "sensor", { s: 14 }) + tx(52, 92, "10 kΩ", { s: 14 }),
     nightLight: () => {
       const x = 156, y = 84;
       const npn = circ(x, y, 15, "#fffdf6") + ln(x - 7, y - 9, x - 7, y + 9, PEN, 3) + pl([[x - 7, y - 3], [x, y - 10], [x, y - 15]]) + pl([[x - 7, y + 3], [x, y + 10], [x, y + 15]]) +
@@ -338,12 +334,6 @@
       tx(34, 20, "5 V", { s: 13, a: "end" }) + tx(34, 60, "3 V", { s: 13, a: "end" }) + tx(34, 92, "1.5 V", { s: 13, a: "end" }) + tx(34, 124, "0 V", { s: 13, a: "end" }) +
       tx(96, 40, "HIGH", { s: 17, c: RED }) + tx(96, 77, "?", { s: 19, c: GREY }) + tx(96, 110, "LOW", { s: 17, c: BLUE }) +
       tx(168, 52, "a pin set to IN", { s: 15 }) + tx(168, 70, "reads the voltage;", { s: 15 }) + tx(168, 88, "it puts none out", { s: 15 }),
-    // a button from 5 V into D2, and the pull-down from D2 to GND
-    pullDown: () => ln(18, 14, 110, 14, RED, 2.2) + tx(124, 19, "5 V", { s: 14, c: RED }) + ln(60, 14, 60, 28) + circ(60, 28, 2.6, PEN, PEN) + ln(70, 24, 70, 50, PEN, 2.6) + ln(70, 37, 80, 37) +
-      circ(60, 46, 2.6, PEN, PEN) + tx(86, 41, "button", { s: 14, a: "start" }) + ln(60, 46, 60, 66) + circ(60, 66, 3.5, PEN, PEN) + ln(60, 66, 140, 66) +
-      `<rect x="140" y="50" width="66" height="32" rx="6" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` + tx(173, 72, "D2: IN", { s: 15 }) +
-      ln(60, 66, 60, 76) + resV(60, 76, 106) + ln(60, 106, 60, 120) + ln(18, 120, 110, 120, BLUE, 2.2) + tx(124, 124, "GND", { s: 14, c: BLUE }) +
-      tx(30, 96, "10 kΩ", { s: 14 }) + tx(173, 102, "holds it LOW", { s: 14, c: "#a3360f" }) + tx(173, 117, "till pressed", { s: 14, c: "#a3360f" }),
     // the board's program joins what it reads to what it sets
     program: () => `<rect x="58" y="22" width="104" height="86" rx="8" fill="#fffdf6" stroke="${PEN}" stroke-width="2.2"/>` +
       `<rect x="68" y="30" width="84" height="26" rx="5" fill="rgba(120, 200, 160, .25)" stroke="${PEN}" stroke-width="1.6"/>` + tx(110, 49, "D13 = D2", { s: 15 }) +

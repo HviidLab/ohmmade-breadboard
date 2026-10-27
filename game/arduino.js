@@ -51,12 +51,14 @@
     copy: (r) => r.read,
     opposite: (r) => (r.read === "HIGH" ? "LOW" : "HIGH"),
     below: (r, prog, sim, part) => ((sim.read(part.id).analog || {})[prog.from] < prog.n ? "HIGH" : "LOW"),
+    above: (r, prog, sim, part) => ((sim.read(part.id).analog || {})[prog.from] > prog.n ? "HIGH" : "LOW"),
   };
   function programText(prog) {
     if (!prog) return "";
     if (prog.rule === "copy") return `${prog.out} copies ${prog.from}`;
     if (prog.rule === "opposite") return `${prog.out} is the opposite of ${prog.from}`;
     if (prog.rule === "below") return `${prog.out} on while ${prog.from} < ${prog.n}`;
+    if (prog.rule === "above") return `${prog.out} on while ${prog.from} > ${prog.n}`;
     return "";
   }
   // The same rule as one line of the code a real controller board runs (C, as most boards are programmed).
@@ -66,6 +68,7 @@
     if (prog.rule === "copy") return `digitalWrite(${pin(prog.out)}, digitalRead(${pin(prog.from)}));`;
     if (prog.rule === "opposite") return `digitalWrite(${pin(prog.out)}, !digitalRead(${pin(prog.from)}));`;
     if (prog.rule === "below") return `digitalWrite(${pin(prog.out)}, analogRead(${pin(prog.from)}) < ${prog.n});`;
+    if (prog.rule === "above") return `digitalWrite(${pin(prog.out)}, analogRead(${pin(prog.from)}) > ${prog.n});`;
     return "";
   }
   // Run every board's program once. Returns true when it changed a pin (the caller rebuilds the circuit).
