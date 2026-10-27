@@ -153,6 +153,9 @@
         const P = V.predict(["About 11 mA, like the LED", "About 2 mA", "Almost none"], 0, [null,
           "in one loop every part carries the same current, so the LED's 11 mA flows through the button too.",
           "pressed, the button is almost a wire in the loop: the LED's whole 11 mA flows through it."]);
+        const P2 = V.predict(["B's current, through the 10 kΩ", "The LED's current, from C to E", "Neither"], 0, [null,
+          "the LED's current, from C to E, is the big one: about 11 mA. That is the one to keep out of the button.",
+          "B's current is only (6 − 0.7) V ÷ 10 kΩ ≈ 0.5 mA, well under the button's 2 mA."]);
         const WORD = ["", "", "twice", "three times", "four times", "five times", "six times", "seven times", "eight times", "nine times", "ten times"];
         // the current through a button: through its contacts (pressed) or along a joined pair, whichever is biggest
         const btnI = (b) => {
@@ -161,6 +164,8 @@
         };
         const btnMax = (S) => Math.max(0, ...S.parts("button").map(btnI));
         const ledI = (S) => Math.max(0, ...S.parts("led").filter((q) => q.ok).map((q) => q.rd.I || 0));
+        // the LED's current through the transistor, C to E (0 with no working transistor)
+        const ic = (S) => Math.max(0, ...S.parts("npn").filter((q) => q.ok).map((q) => Math.abs(q.rd.Ic || 0)));
         // the circuit as built, with the battery switch (not the button's state): a change means testing the new circuit again
         const built = (S) => S.all.filter((q) => q.type !== "meter").map((q) => `${q.id}:${q.legs.join(",")}:${q.part.on !== false}`).join("|");
         const tested = (S, m) => {
@@ -184,9 +189,9 @@
             { id: "brief", say: V.say("The keys of a thin keypad are tiny buttons. This one is made for at most 2 mA. More, and its contacts wear out. The LED needs about 11 mA.",
               "This tiny button is like a key on a thin keypad: made for at most 2 mA. More, and its contacts wear out. The LED needs about 11 mA."), waitFor: NEXT },
             { id: "p", say: "If the button sat in the LED's own loop, how much current would flow through it when pressed?", predict: P, waitFor: { predict: true } },
-            { id: "recall", reply: "p", say: "Too much for this button. But in 9-3, B's tiny current through the 10 kΩ switched the LED's big one.",
-              waitFor: { next: true, label: "Start" } },
-            { id: "build", say: "Make the button light the LED: off with it up, on with it down. Click the button to hold it down; click again to let it up.",
+            { id: "p2", reply: "p", say: "Far too much for this button. In 9-3's transistor switch, which current was small enough for it?", predict: P2,
+              waitFor: { predict: true } },
+            { id: "build", reply: "p2", say: "So the button goes in B's loop, not the LED's. Build it: LED dark with the button up, lit with it down. It stays down when clicked.",
               hints: [{ say: "The LED's loop: + rail, 330 Ω, the LED, then the transistor in at C, out at E, and on to the − rail." },
                 { say: "The button's loop: + rail, the 10 kΩ, the button, then into B. Its tiny current leaves by E too.",
                   highlight: { holes: V.hs("c14", "c15", "c16") } },
@@ -209,10 +214,16 @@
             const ib = btnMax(S); if (ib <= LIMIT) return null;
             const n = Math.round(ib / LIMIT);
             if (ledI(S) < 0.003) return `${shownmA(ib)} flows through the button, but it is made for at most 2 mA.`;
-            return `The LED lights, but ${shownmA(ib)} flows through the button: ${n >= 2 ? `${WORD[n] || `${n} times`} what it is made for` : "more than it is made for"}.`;
+            const over = `The LED lights, but ${shownmA(ib)} flows through the button: ${n >= 2 ? `${WORD[n] || `${n} times`} what it is made for` : "more than it is made for"}.`;
+            return ic(S) < 0.002 ? `${over} The transistor must carry that current, from C to E.` : over;
+          } }, { hold: 1, when: (S, C) => {
+            // lit with the button up: the button is not what switches the LED
+            if (!C.beat || C.beat.id !== "build" || S.parts("button").some((b) => b.part.pressed) || ledI(S) < 0.003 || S.destroyed()) return null;
+            if (ic(S) < 0.002) return "The LED lights, but its current skips the transistor, so the button can't switch it. The LED's loop goes in at C and out at E.";
+            return "The LED lights with the button up, so current reaches B without passing the button. B's current must flow through the button.";
           } }],
           challenge: { text: "Use only one wire", when: (S, m) => S.parts("wire").length <= 1 && tested(S, m) },
-          solution: [{ next: 1 }, { choose: "right" }, { next: 1 }, { place: { type: "resistor", value: 330 }, at: V.hs("+T12", "a12") },
+          solution: [{ next: 1 }, { choose: "right" }, { choose: "right" }, { place: { type: "resistor", value: 330 }, at: V.hs("+T12", "a12") },
             { place: { type: "led", color: "green" }, at: V.hs("b12", "b14") }, { place: { type: "npn" }, at: V.hs("c14", "c15", "c16") }, { wire: V.hs("a16", "-T16") },
             { place: { type: "button", pairs: "across", pressed: false, latch: true }, at: V.hs("e15", "f15", "e17", "f17") },
             { place: { type: "resistor", value: 10000 }, at: V.hs("+T20", "a17") }, { wait: 0.5 }, { press: "button" }, { wait: 0.8 }, { press: "button" }, { wait: 0.3 }, { next: 1 }],
