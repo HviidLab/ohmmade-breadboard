@@ -1,5 +1,5 @@
 // Boot, game state, editing actions, the animation loop, routing and test hooks.
-// Modes: "level" (the teaching levels: full-screen bench, rules, coach) and "sandbox" (the free bench).
+// Modes: "level" (the teaching levels: full-screen bench, rules, coach), and "none" before the first level opens.
 (function (BB) {
   "use strict";
   const R = BB.Render, H = BB.HUD, St = BB.Store;
@@ -15,41 +15,20 @@
     move: (p, n = legsIn(p)) => { sound.out(p, n); setTimeout(() => sound.in(p, n), 110); },
   };
 
-  function starter() {
-    return { parts: [
-      { id: "battery1", type: "battery", legs: ["+T3", "-T4"], on: true, bx: -40, by: -175 },
-      { id: "meter1", type: "meter", mode: "V", socket: "VO", legs: [null, null], bx: -275, by: 150, loose: [[-140, 95], [-90, 95]] },
-    ], nextId: 2 };
-  }
-
-  // The saved sandbox bench, or the starter bench if there is none or it cannot be read.
-  function savedBench() {
-    const s = St.get().sandbox;
-    if (!s) return starter();
-    try {
-      const d = JSON.parse(s);
-      if (Array.isArray(d.parts) && d.parts.every((p) => p && typeof p.type === "string" && BB.Parts.TYPES[p.type] && Array.isArray(p.legs))) return d;
-    } catch (e) { /* fall through */ }
-    return starter();
-  }
-
   const G = BB.Game = {
-    doc: null, sim: null, sel: null, speed: 1, paused: false, seen: 0, mode: "sandbox", trace: [], run: null,
+    doc: null, sim: null, sel: null, paused: false, seen: 0, mode: "none", run: null,
     level: null, rules: null, coach: null,
 
     redraw() { try { BB.Input.beforeRedraw(); R.drawParts(G.doc, G.sim, G.sel); BB.CoachUI.redrawn(); BB.Input.afterRedraw(); } catch (err) { BB.reportError(err, "drawing"); } },
     recompile() { G.sim.compile(); G.redraw(); },
-    refreshPanels(force) { try { H.partList(G); H.inspector(G, force); BB.CoachUI.refresh(); } catch (err) { BB.reportError(err, "panels"); } },
-    save() { if (G.mode !== "sandbox") return; St.update((s) => { s.sandbox = G.doc.serialize(); }); },
-    hasSavedSandbox() { return !!St.get().sandbox; },
+    refreshPanels() { try { BB.CoachUI.refresh(); } catch (err) { BB.reportError(err, "panels"); } },
     load(docData) {
       if (BB.Input.reset) BB.Input.reset();
       G.doc = new BB.Doc(docData);
       G.sim = new BB.Sim(G.doc);
-      G.seen = 0; G.trace = []; G.sel = null;
+      G.seen = 0; G.sel = null;
       BB.Effects.reset();                       // what is already lit on a fresh bench makes no jingle
-      document.getElementById("log").replaceChildren();
-      G.redraw(); G.refreshPanels(true);
+      G.redraw(); G.refreshPanels();
     },
 
     // ---------- rules (levels only) ----------
@@ -83,35 +62,11 @@
     },
 
     // ---------- modes ----------
-    // The attempt going on now, for the playtest data: the steps so far and the one the player is on.
-    attempt() {
-      const C = G.coach;
-      if (G.mode !== "level" || !C || C.finished) return null;
-      const beats = C.tele.concat(C.beat ? [{ id: C.beat.id || String(C.i), t: +C.beatT.toFixed(1), hints: C.hint }] : []);
-      return { id: G.level.id, beat: C.beat ? C.beat.id || String(C.i) : "finish", t: +C.t.toFixed(1), beats };
-    },
-    // After the playtest data was reset: the level being played counts as a new attempt from now on.
-    restartAttempt() {
-      if (G.mode !== "level" || !G.coach) return;
-      G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0;
-      St.update((s) => { s.telemetry[G.level.id] = { attempts: 1, seed: G.level.seed }; });
-    },
-    // After Start over: the level behind the title screen leaves no playtest data behind.
-    forgetAttempt() {
-      if (G.coach) { G.coach.tele = []; G.coach.t = 0; G.coach.beatT = 0; }
-    },
-    // An attempt left without finishing (Restart, the map, another level, closing the page) is kept: that is where a player got stuck.
-    keepUnfinished() {
-      const a = G.attempt();
-      if (a && a.t >= 5) St.update((s) => { const t = s.telemetry[a.id] = s.telemetry[a.id] || { attempts: 1 }; t.unfinished = a; });
-    },
     leaveLevel() {
       if (G.mode !== "level") return;
-      G.keepUnfinished();
       G.level = null; G.rules = null; G.coach = null; G.run = null;
       R.region(null); R.guide(null); R.setInsets(null); R.setCtlLock(null);
       BB.CoachUI.leave();
-      document.body.classList.remove("mode-level");
     },
     // A level family (from the map, title, Next or Play again) gets a new variant; a level already built
     // (Restart, or a link with a seed) is played again as it is.
@@ -120,10 +75,8 @@
       if (seed === undefined) seed = which.instance ? BB.Levels.nextSeed(fam, (St.get().variants || {})[fam.id]) : which.seed;
       const lv = fam.instance(seed);
       St.update((s) => { s.variants = s.variants || {}; s.variants[fam.id] = seed; });
-      if (G.mode === "sandbox") G.save();
       G.leaveLevel();
-      G.mode = "level"; G.level = lv; G.paused = false; G.setSpeed(1);
-      document.body.classList.add("mode-level");
+      G.mode = "level"; G.level = lv; G.paused = false;
       G.rules = new BB.Rules.LevelRules(lv);
       R.setCtlLock((part, ctl) => ["meter", "uno"].includes(part.type) && ctl !== "program" && !G.can({ kind: "ctl", id: part.id, ctl }).ok);   // dimmed until taught
       G.coach = null;
@@ -137,7 +90,6 @@
         const now = lv.goals.every((g) => { try { return g.when(S, {}); } catch (e) { return false; } });
         return now || G.run.complete ? null : `First: ${lv.goals[0].text.toLowerCase()}.`;
       };
-      St.update((s) => { const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 0 }; t.attempts++; t.seed = seed; });
       R.region(lv.region);
       BB.CoachUI.enter(lv);
       H.toast(null); H.banner("");
@@ -155,38 +107,24 @@
         const clean = res.clean || !!old.clean, challenge = res.challenge || !!old.challenge;     // each star, once earned, stays
         s.levels[lv.id] = { done: true, stars: Math.max(old.stars || 0, 1 + clean + challenge), clean, challenge };
         for (const c of lv.teaches) if (!s.notebook.includes(c)) s.notebook.push(c);
-        const t = s.telemetry[lv.id] = s.telemetry[lv.id] || { attempts: 1 };
-        t.last = { t: +G.coach.t.toFixed(1), hints: G.coach.tele.reduce((n, b) => n + b.hints, 0), beats: G.coach.tele };
-        delete t.unfinished;
       });
       BB.trail(`level ${lv.id} complete, ${res.stars} stars`);
       BB.CoachUI.mood("happy", 2000);
       BB.CoachUI.refresh();
       setTimeout(() => { if (G.level === lv) BB.LevelMap.complete(lv, res); }, 500);
     },
-    enterSandbox(opts = {}) {
-      G.leaveLevel();
-      G.paused = false;
-      if (G.mode !== "sandbox") {
-        G.mode = "sandbox"; G.run = null;
-        G.load(savedBench());
-        requestAnimationFrame(() => R.fit());
-      }
-      try { history.replaceState(null, "", "#sandbox"); } catch (e) { /* ignore */ }
-      if (!opts.quiet && !G.hasSavedSandbox()) H.toast("Drag a resistor and a red LED onto the board, and connect them to the battery rails. Then try it without the resistor.", 12000);
-    },
 
     // ---------- editing ----------
-    commit() { G.recompile(); G.guard(); G.refreshPanels(true); G.save(); },
-    commitSoft() { G.guard(); G.refreshPanels(true); G.save(); },
-    // Where probe tip k rests when it is off the board: under the meter in a level, above it on the free bench.
+    commit() { G.recompile(); G.guard(); G.refreshPanels(); },
+    commitSoft() { G.guard(); G.refreshPanels(); },
+    // Where probe tip k rests when it is off the board: under the meter.
     probeRest(m, k) {
       const bx = m.bx ?? 0, by = m.by ?? 0, h = R.meterSize()[1];
-      return G.mode === "level" ? [bx + 95 + 70 * k, by + h + 40] : [bx + 135 + 50 * k, by - 55];
+      return [bx + 95 + 70 * k, by + h + 40];
     },
     edit(fn) { G.doc.snapshot(); fn(); G.commit(); },
 
-    select(id) { G.sel = id; G.redraw(); G.refreshPanels(true); },
+    select(id) { G.sel = id; G.redraw(); G.refreshPanels(); },
     add(part) {
       if (G.rules) {
         const act = part.type === "wire" ? { kind: "wire" } : Object.assign({ kind: "place" }, part);
@@ -217,7 +155,7 @@
       if (snapshot) G.doc.snapshot();
       part[key] = value;
       G.recompile();
-      if (snapshot) G.commitSoft(); else H.inspector(G);
+      if (snapshot) G.commitSoft();
       G.emit("set", { id, key, value });
     },
     rotate(id) {
@@ -268,33 +206,24 @@
       if (part && part.type === "meter") {      // to change a fuse you take the probes off, so a new fuse does not blow at once
         part.legs = [null, null];
         part.loose = [G.probeRest(part, 0), G.probeRest(part, 1)];
-        if (G.mode === "level") BB.CoachUI.aside("New fuse in. The probes are off the board now.", 5000);
-        else H.toast("New fuse in. The probes are off the board now: put them back where you want to measure.", 6000);
+        BB.CoachUI.aside("New fuse in. The probes are off the board now.", 5000);
       }
       if (part && part.type !== "meter") sound.move(part);
-      G.sim.replace(id); H.log(`${BB.Parts.name(G.doc.get(id))} replaced.`, "good", G.sim.t); G.redraw(); G.refreshPanels(true);
+      G.sim.replace(id); G.redraw(); G.refreshPanels();
       G.emit("replace", { id });
     },
     // Empty a capacitor (Chapter 8 shows how: through a resistor across its legs; the part card does that in one go).
     empty(id) {
       if (!G.check({ kind: "empty", id })) return;
       BB.trail(`empty ${id}`);
-      G.sim.empty(id); G.redraw(); G.refreshPanels(true);
+      G.sim.empty(id); G.redraw(); G.refreshPanels();
       G.emit("empty", { id });
     },
     sound,
     undo() { BB.trail("undo"); if (G.doc.undo()) { if (G.sel && !G.doc.get(G.sel)) G.sel = null; G.commit(); G.emit("undo", {}); } },
     redo() { BB.trail("redo"); if (G.doc.redo()) { G.commit(); G.emit("undo", {}); } },
-    clear() { G.edit(() => { G.doc.parts = G.doc.parts.filter((p) => p.type === "battery" || p.type === "meter"); }); },
-    // The sandbox's speed buttons always show the speed the bench runs at.
-    setSpeed(v) {
-      G.speed = v;
-      for (const x of $("speed").querySelectorAll("button")) x.setAttribute("aria-pressed", String(+x.dataset.v === v));
-    },
     setSound(on) {
       BB.Effects.setMuted(!on);
-      const b = $("sound");
-      b.setAttribute("aria-pressed", String(on)); b.textContent = on ? "Sound on" : "Sound off";
       St.update((s) => { s.settings.sound = on; });
     },
   };
@@ -310,7 +239,7 @@
   // The last few things the player did, for bug reports.
   const trail = [];
   BB.trail = (text) => {
-    const where = G.mode === "level" && G.level ? `level ${G.level.id}` : "sandbox";
+    const where = G.mode === "level" && G.level ? `level ${G.level.id}` : "title";
     trail.push(`${(G.sim ? G.sim.t : 0).toFixed(1)} s ${where}: ${text}`);
     if (trail.length > 12) trail.shift();
   };
@@ -337,53 +266,31 @@
     let m;
     if ((m = /^#level-(\d+-\d+)(?:\/(\d+))?$/.exec(h)) && BB.Levels.get(m[1])) return G.enterLevel(BB.Levels.get(m[1]), m[2] === undefined ? undefined : +m[2]);
     if (h === "#map") return BB.LevelMap.showMap();
-    if (h === "#sandbox") return G.enterSandbox();
     BB.Title.show();
     if (/^#level-/i.test(h)) H.toast("There is no such level. Pick one on the level map.", 5000);
   }
   // A link changed by hand (or the Back button) goes where it says. The game's own replaceState does not fire this.
   function rerouted() {
-    const h = location.hash, now = G.mode === "level" && G.level ? `#level-${G.level.id}/${G.level.seed}` : G.mode === "sandbox" && !BB.LevelMap.isOpen() && !BB.Title.isOpen() ? "#sandbox" : null;
+    const h = location.hash, now = G.mode === "level" && G.level ? `#level-${G.level.id}/${G.level.seed}` : null;
     if (h === now) return;
     BB.LevelMap.hideAll(); G.paused = false; BB.Title.hide();
     route();
   }
 
   function boot() {
-    // A page reload restarts the level on the screen: note it in the playtest data (a playtester once saw a level
-    // start over, and we could not tell why).
-    const nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0], lm = /^#level-(\d+-\d+)/.exec(location.hash);
-    if (nav && nav.type === "reload" && lm) St.update((s) => { const t = s.telemetry[lm[1]] = s.telemetry[lm[1]] || { attempts: 0 }; t.reloads = (t.reloads || 0) + 1; });
     R.init($("canvas"));
     BB.Effects.init();
-    G.doc = new BB.Doc(savedBench());
+    G.doc = new BB.Doc({ parts: [], nextId: 1 });          // an empty bench behind the title screen, until a level opens
     G.sim = new BB.Sim(G.doc);
     BB.Input.init(G);
     BB.CoachUI.init(G);
     BB.LevelMap.init(G);
-    G.redraw(); G.refreshPanels(true);
+    G.redraw(); G.refreshPanels();
     requestAnimationFrame(() => { if (G.mode !== "level") R.fit(); });
     window.addEventListener("resize", () => (G.mode === "level" ? G.fitLevel() : R.refit()));
-    window.addEventListener("pagehide", () => G.keepUnfinished());
     window.addEventListener("hashchange", () => { try { rerouted(); } catch (err) { BB.reportError(err, "link"); } });
-    // Another tab changed the saved sandbox bench: show that one, so neither tab overwrites the other.
-    window.addEventListener("storage", (e) => {
-      if (e.key !== St.KEY || G.mode !== "sandbox") return;
-      const theirs = St.get().sandbox;
-      if (theirs && theirs !== G.doc.serialize()) { G.load(savedBench()); H.toast("The bench was changed in another tab. This tab shows it now.", 6000); }
-    });
     if (St.get().settings.sound === false) G.setSound(false);
     for (const [k, v] of Object.entries(St.get().settings.vol || {})) BB.Effects.setVolume(k, v);
-
-    $("undo").addEventListener("click", G.undo);
-    $("redo").addEventListener("click", G.redo);
-    $("fit").addEventListener("click", () => R.fitAll());
-    $("clear").addEventListener("click", G.clear);
-    $("sound").addEventListener("click", (e) => G.setSound(e.currentTarget.getAttribute("aria-pressed") !== "true"));
-    $("speed").addEventListener("click", (e) => {
-      const b = e.target.closest("button"); if (!b) return;
-      G.setSpeed(+b.dataset.v);
-    });
     BB.Title.init(G);
     route();
 
@@ -396,8 +303,7 @@
       const dtReal = Math.min((now - last) / 1000, 0.1);
       last = now;
       if (G.paused) { BB.Effects.hush(); return; }       // a screen is open over the bench: no buzz or hiss behind it
-      const dt = dtReal * G.speed;
-      const t0 = performance.now();
+      const dt = dtReal, t0 = performance.now();
       G.sim.advance(dt);
       G.simMs = performance.now() - t0;
       // new failure events
@@ -410,12 +316,8 @@
           const say = G.coach.simEvent(ev, part);
           if (say) BB.CoachUI.aside(say, 7000, "bad");
           if (ev.kind === "destroyed") BB.CoachUI.mood("worried", 2600);
-        } else {
-          if (part && part.type === "meter" && ev.kind === "destroyed") H.toast("The meter's fuse blew. Click the meter, then Replace fuse in the Inspector. Move the red lead back to VΩ unless you are measuring current in series.", 9000);
-          H.log(ev.text, "bad", ev.t);
-          H.toast(ev.text);
         }
-        G.redraw(); G.refreshPanels(true);
+        G.redraw(); G.refreshPanels();
       }
       if (G.mode === "level" && G.run && G.coach && !BB.Input.probing) {      // a probe tip in hand is not a measurement yet
         G.run.goalsOn = G.coach.goalsOn;
@@ -424,36 +326,14 @@
         if (G.run.complete && G.coach.done && !G.coach.finished) G.finishLevel();
       }
       BB.Effects.frame(G.doc, G.sim, dtReal);
-      BB.Flow.frame(G.doc, G.sim, dtReal * Math.min(G.speed, 1));
+      BB.Flow.frame(G.doc, G.sim, dtReal);
       hudT += dtReal;
       if (hudT > 0.1) {
         hudT = 0;
-        H.meter(G); H.inspector(G); H.uno(G); BB.CoachUI.tick();
-        const m = G.doc.parts.find((q) => q.type === "meter");
-        if (m) {
-          const rd = G.sim.read(m.id), scale = rd.mode === "mA" ? 1000 : 1;
-          const unit = { V: "V", mA: "mA", ohm: "Ω", cont: "Ω" }[rd.mode] || "";
-          if (G.trace.unit !== unit) { G.trace.length = 0; G.trace.unit = unit; }
-          G.trace.push({ t: G.sim.t, v: rd.display || rd.value === undefined ? NaN : rd.value * scale });
-          if (G.trace.length > 2000) G.trace.splice(0, G.trace.length - 2000);
-          H.trace(G.trace, G.sim.t);
-        }
-        $("clock").textContent = `${G.sim.t.toFixed(1)} s`;
+        BB.CoachUI.tick();
         const bat = G.doc.parts.find((p) => p.type === "battery" && G.sim.read(p.id) && G.sim.read(p.id).short);
-        const showBanner = G.mode !== "level" || (G.level && G.level.rules && G.level.rules.banner);
-        H.banner(bat && showBanner ? (G.mode === "level" ? "SHORT CIRCUIT" : `SHORT CIRCUIT: ${H.fmtA(G.sim.read(bat.id).I)} from the battery. Remove the wire or add a resistor.`) : "");
-        lostCheck();
+        H.banner(bat && G.level && G.level.rules && G.level.rules.banner ? "SHORT CIRCUIT" : "");
       }
-    }
-    // If the battery and meter are both out of view (after panning), say how to get them back.
-    let lostShown = false;
-    function lostCheck() {
-      if (G.mode === "level") return;
-      const stage = $("stage").getBoundingClientRect();
-      const offs = G.doc.parts.filter((p) => p.type === "battery" || p.type === "meter").map((p) => document.querySelector(`[data-body="${p.id}"]`));
-      const gone = offs.length && offs.every((el) => { if (!el) return true; const r = el.getBoundingClientRect(); return r.right < stage.left || r.left > stage.right || r.bottom < stage.top || r.top > stage.bottom; });
-      if (gone && !lostShown) { lostShown = true; H.toast("The battery and the meter are out of view. Press F or click Fit to bring everything back.", 6000); }
-      if (!gone) lostShown = false;
     }
     requestAnimationFrame(loop);
 

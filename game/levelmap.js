@@ -16,11 +16,8 @@
   function init(game) { G = game; }
 
   const progress = () => BB.Store.get().levels || {};
-  // The playtest switch (Playtest data → Open all levels): every level is playable; progress is not changed.
-  const openAll = () => !!BB.Store.get().settings.openAll;
-  // A level is open when it is the first one or the one before it is done (or the playtest switch is on).
-  function unlocked(lv, prog = progress(), all_ = openAll()) {
-    if (all_) return true;
+  // A level is open when it is the first one or the one before it is done.
+  function unlocked(lv, prog = progress()) {
     const all = BB.Levels.all(), k = all.indexOf(lv);
     return k <= 0 || !!(prog[all[k - 1].id] || {}).done;
   }
@@ -98,13 +95,13 @@
     host.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { const t = host.querySelector(`#${b.dataset.go}`); if (t) t.scrollIntoView({ block: "start", behavior: smooth() }); }));
   }
 
-  // The map. A bar stays on top while it scrolls: the way back, the Notebook, the playtest data and a jump to each
+  // The map. A bar stays on top while it scrolls: the way back, the Notebook and a jump to each
   // chapter. Each chapter shows its progress, Sparky's line from its opener and a button into the opener.
   // It opens at `chapter`, or else at the chapter being played.
   function showMap(chapter) {
     if (typeof chapter !== "number") chapter = undefined;           // a button's click event, when it is the handler
     BB.Title.hide();
-    const prog = progress(), s = summary(prog), next = nextLevel(prog), all_ = openAll();
+    const prog = progress(), s = summary(prog), next = nextLevel(prog);
     const done = (l) => !!(prog[l.id] || {}).done;
     const ch = BB.Levels.chapters.map((c) => {
       const n = c.levels.filter(done).length, got = c.levels.reduce((k, l) => k + ((prog[l.id] || {}).stars || 0), 0);
@@ -112,7 +109,7 @@
         <p class="lm-cprog">${n} of ${c.levels.length} levels · ${got} of ${3 * c.levels.length} ★</p>
         ${c.intro ? `<p class="lm-lede">“${esc(c.intro.lede)}”</p><button type="button" class="btn lm-about" data-ch="${c.n}">Chapter intro: questions and new words</button>` : ""}</div>
       <ol class="lm-path">${c.levels.map((lv) => {
-        const p = prog[lv.id] || {}, open_ = unlocked(lv, prog, all_), cur = next === lv;
+        const p = prog[lv.id] || {}, open_ = unlocked(lv, prog), cur = next === lv;
         return `<li><button type="button" class="lm-node${p.done ? " done" : ""}${cur ? " current" : ""}" data-id="${lv.id}" ${open_ ? "" : "disabled"}>
           <span class="lm-n">${lv.id}</span><span class="lm-t">${esc(lv.title)}</span><span class="lm-s" aria-label="${p.stars || 0} of 3 stars">${open_ ? stars(p.stars || 0) : "locked"}</span></button></li>`;
       }).join("")}</ol></section>`;
@@ -120,8 +117,8 @@
     const later = COMING.filter(([n]) => !BB.Levels.chapters.some((c) => c.n === n));
     const host = show("levelmap", `<div class="scr-inner">
       <div class="lm-bar"><div class="lm-bar-row"><button type="button" class="btn" id="lm-title">← Title screen</button>
-        <div class="lm-bar-t"><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★${all_ ? ' · <span class="lm-all">All levels open (playtest switch)</span>' : ""}</p></div>
-        ${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}${nbButton("lm-notebook")}<button type="button" class="btn" id="lm-playtest">Playtest data</button></div>
+        <div class="lm-bar-t"><h1>Level map</h1><p class="scr-sub">${s.done} of ${s.total} levels · ${s.stars} of ${3 * s.total} ★</p></div>
+        ${s.done === s.total ? '<button type="button" class="btn primary" id="lm-finale">The finale</button>' : ""}${nbButton("lm-notebook")}</div>
         ${chips("lm-ch", (c) => (c.levels.every(done) ? " done" : "") + (next && next.chapter === c.n ? " current" : ""))}</div>
       ${ch}
       ${later.length ? `<section class="lm-coming"><h2>Coming next</h2><ul>${later.map(([n, t]) => `<li><span>Chapter ${n}</span>${esc(t)}</li>`).join("")}</ul></section>` : ""}</div>`, ".lm-node.current, .lm-node:not([disabled])");
@@ -130,7 +127,6 @@
     wireChips(host);
     on(host, "#lm-notebook", () => notebook("map"));
     on(host, "#lm-finale", finale);
-    on(host, "#lm-playtest", () => playtest("map"));
     on(host, "#lm-title", () => { hideAll(); BB.Title.show(); });
     const at = host.querySelector(`#lm-ch${chapter || (next ? next.chapter : 1)}`);
     if (at && (chapter || (next && next.chapter > 1))) at.scrollIntoView({ block: "start" });
@@ -193,13 +189,11 @@
         (legs C, B, E; 2N2222s come as E, B, C or C, B, E: check the datasheet), 100 µF and 1000 µF capacitors rated 16 V or more, jumper wires, a multimeter,
         small side cutters and safety glasses.</p>
         <p>The controller board showed you its code. Real boards, such as Arduino, run code like those lines; start with the blink and the button programs.</p>
-        <p>Keep the Safe bench card in your Notebook close. And the sandbox is always open for new ideas.</p></div>
-      <div class="scr-row"><button type="button" class="btn primary" id="fn-sandbox">Open the sandbox</button><button type="button" class="btn" id="fn-nb">Notebook</button>
-        <button type="button" class="btn" id="fn-map">Level map</button></div></div>`, "#fn-sandbox");
+        <p>Keep the Safe bench card in your Notebook close.</p></div>
+      <div class="scr-row"><button type="button" class="btn primary" id="fn-map">Level map</button><button type="button" class="btn" id="fn-nb">Notebook</button></div></div>`, "#fn-map");
     const input = host.querySelector("#fn-in");
     input.addEventListener("input", () => { host.querySelector("#cert-name").textContent = input.value || "…"; BB.Store.update((st) => { st.settings.certName = input.value; }); });
     on(host, "#fn-print", () => window.print());
-    on(host, "#fn-sandbox", () => { close(); BB.Title.hide(); G.enterSandbox(); });
     on(host, "#fn-nb", () => notebook("finale"));
     on(host, "#fn-map", showMap);
     BB.Effects.chime && BB.Effects.chime(3);
@@ -216,14 +210,12 @@
       <button type="button" class="btn" id="pz-notebook">Notebook</button>
       <button type="button" class="btn" id="pz-sound">Sound and volume${sound ? "" : " (off)"}</button>
       <button type="button" class="btn" id="pz-keys">Keys</button>
-      <button type="button" class="btn" id="pz-playtest">Playtest data</button>
       <button type="button" class="btn" id="pz-title">Title screen</button></div></div>`, "#pz-resume");
     on(host, "#pz-resume", close);
     on(host, "#pz-restart", () => play(G.level));
     on(host, "#pz-map", showMap);
     on(host, "#pz-notebook", () => notebook("pause"));
     on(host, "#pz-sound", () => soundPanel("pause"));
-    on(host, "#pz-playtest", () => playtest("pause"));
     on(host, "#pz-keys", keys);
     on(host, "#pz-title", () => { hideAll(); BB.Title.show(); });
   }
@@ -347,77 +339,16 @@
     const f = z.querySelector("#nb-close"); if (f) f.focus({ preventScroll: true });
   }
 
-  // ---------- playtest data ----------
-  // Per level played: attempts, the last finished attempt, and the last attempt left unfinished (or the one going on now).
-  // It stays on this computer; the player copies it to share it.
-  function playtestRows() {
-    const tl = BB.Store.get().telemetry || {}, now = G.attempt();
-    return BB.Levels.all().map((l) => {
-      const t = tl[l.id] || {};
-      const live = !!now && now.id === l.id;
-      return { id: l.id, title: l.title, attempts: t.attempts || 0, reloads: t.reloads || 0, last: t.last || null, open: live ? now : t.unfinished || null, live };
-    }).filter((r) => r.attempts);
-  }
-  const slowest = (beats) => (beats && beats.length ? beats.reduce((a, b) => (b.t > a.t ? b : a)) : null);
-  const steps = (beats) => beats.map((b) => `${b.id} ${b.t} s${b.hints ? ` (${b.hints} hint${b.hints > 1 ? "s" : ""})` : ""}`).join(", ");
-  function playtestTable() {
-    const rows = playtestRows();
-    if (!rows.length) return '<p class="scr-sub">No levels played yet.</p>';
-    return `<table class="pt-table"><tr><th>Level</th><th>Attempts</th><th>Time</th><th>Hints</th><th>Slowest step</th><th>Left unfinished at</th></tr>${rows.map((r) => {
-      const s = slowest(r.last && r.last.beats);
-      return `<tr><td>${r.id}</td><td>${r.attempts}${r.reloads ? ` (page reloaded ${r.reloads}×)` : ""}</td><td>${r.last ? `${r.last.t} s` : "—"}</td><td>${r.last ? r.last.hints : "—"}</td>
-        <td>${s ? `${esc(s.id)} (${s.t} s)` : "—"}</td><td>${r.open ? `${r.live ? "playing now: " : ""}${esc(r.open.beat)} (after ${r.open.t} s)` : "—"}</td></tr>`;
-    }).join("")}</table>`;
-  }
-  function playtestText() {
-    const lines = [`Ohmmade Breadboard playtest data, ${new Date().toISOString().slice(0, 10)}`];
-    for (const r of playtestRows()) {
-      lines.push(`${r.id} ${r.title}: ${r.attempts} attempt${r.attempts > 1 ? "s" : ""}${r.reloads ? `, page reloaded ${r.reloads} time${r.reloads > 1 ? "s" : ""}` : ""}`);
-      if (r.last) lines.push(`  finished: ${r.last.t} s, ${r.last.hints} hint${r.last.hints === 1 ? "" : "s"}. Steps: ${steps(r.last.beats)}`);
-      if (r.open) lines.push(`  ${r.live ? "playing now: at" : "not finished: stopped at"} "${r.open.beat}" after ${r.open.t} s. Steps: ${steps(r.open.beats)}`);
-    }
-    if (lines.length === 1) lines.push("No levels played yet.");
-    return lines.join("\n");
-  }
-  function playtest(from) {
-    const host = show("notebook", `<div class="scr-inner"><div class="scr-head"><p class="scr-brand">Ohmmade Breadboard</p><h1>Playtest data</h1>
-      <p class="scr-sub">How long each step took and how many hints you used. It stays on this computer: nothing is sent anywhere. To share it, copy it.</p></div>
-      ${playtestTable()}
-      <textarea class="pt-text" readonly rows="8" aria-label="Playtest data as text">${esc(playtestText())}</textarea>
-      <label class="pt-switch"><input type="checkbox" id="pt-open"${openAll() ? " checked" : ""}> Open all levels, to try any level without finishing the ones before it. Your progress is not changed.</label>
-      <div class="scr-row"><button type="button" class="btn primary" id="pt-copy">Copy</button><button type="button" class="btn" id="pt-back">Back</button>
-      <button type="button" class="btn" id="pt-reset">Reset</button><span class="pt-ok" id="pt-ok" role="status"></span></div></div>`, "#pt-copy");
-    on(host, "#pt-copy", async () => {
-      const ta = host.querySelector(".pt-text"), say = (t) => { host.querySelector("#pt-ok").textContent = t; };
-      try { await navigator.clipboard.writeText(ta.value); say("Copied. Paste it into your message."); }
-      catch (e) { ta.focus(); ta.select(); say(document.execCommand && document.execCommand("copy") ? "Copied. Paste it into your message." : "Select the text above and copy it."); }
-    });
-    on(host, "#pt-back", () => (from === "pause" ? pause() : from === "title" ? (hideAll(), BB.Title.show()) : showMap()));
-    host.querySelector("#pt-open").addEventListener("change", (e) => {
-      BB.Store.update((s) => { if (e.target.checked) s.settings.openAll = true; else delete s.settings.openAll; });
-      host.querySelector("#pt-ok").textContent = e.target.checked ? "All levels are open." : "Levels open one by one again.";
-    });
-    // Reset asks once more before it erases (only the playtest data: progress, stars and the Notebook stay).
-    on(host, "#pt-reset", (e) => {
-      const b = e.currentTarget;
-      if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Click again to erase it"; b.classList.add("danger"); return; }
-      BB.Store.update((s) => { s.telemetry = {}; });
-      G.restartAttempt();                        // a level being played starts counting again from now
-      playtest(from);
-      host.querySelector("#pt-ok").textContent = "Playtest data erased. Your progress and stars are kept.";
-    });
-  }
-
-  // Esc closes the open screen: the pause menu, a large Notebook card, the Notebook or the playtest data (back to where
+  // Esc closes the open screen: the pause menu, a large Notebook card or the Notebook (back to where
   // they came from), the level map (to the title screen).
   window.addEventListener("keydown", (e) => {
     if (e.key !== "Escape" || !open) return;
     const host = $(open), zoomed = host.querySelector(".nb-zoom:not([hidden])");
-    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back, #snd-back") : host.querySelector("#nb-back, #pt-back, #op-map, #lm-title");
+    const back = zoomed ? zoomed.querySelector("#nb-close") : open === "pause" ? host.querySelector("#ky-back, #snd-back") : host.querySelector("#nb-back, #op-map, #lm-title");
     if (open !== "pause" && !back) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (back) back.click(); else close();
   }, true);
 
-  BB.LevelMap = { play, opener, finale, init, showMap, newCards, soundPanel, complete, pause, notebook, playtest, playtestTable, playtestText, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
+  BB.LevelMap = { play, opener, finale, init, showMap, newCards, soundPanel, complete, pause, notebook, close, hideAll, nextLevel, summary, unlocked, isOpen: () => !!open };
 })(window.BB = window.BB || {});

@@ -5,44 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Breadboard Game · Ohmmade Breadboard</title>
 <link rel="stylesheet" href="fonts/fonts.css?v=d6131645">
-<link rel="stylesheet" href="game/game.css?v=24bd60ff">
+<link rel="stylesheet" href="game/game.css?v=d7a9be92">
 </head>
 <body>
 <div class="app" id="app">
-  <header class="bar">
-    <a class="brand" href="index.html">Ohmmade Breadboard</a>
-    <button type="button" class="title" id="to-title" title="Start screen">Breadboard game</button>
-    <div class="tools" role="toolbar" aria-label="Simulation">
-      <button type="button" id="undo" title="Undo (Ctrl+Z)">Undo</button>
-      <button type="button" id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button>
-      <span class="sep"></span>
-      <div class="seg" id="speed" role="group" aria-label="Simulation speed">
-        <button type="button" data-v="0" aria-pressed="false" title="Pause">❚❚</button>
-        <button type="button" data-v="1" aria-pressed="true">1×</button>
-        <button type="button" data-v="5" aria-pressed="false">5×</button>
-      </div>
-      <span class="clock mono" id="clock">0.0 s</span>
-      <span class="sep"></span>
-      <button type="button" id="fit" title="Fit the board (F)">Fit</button>
-      <button type="button" id="sound" aria-pressed="true" title="Sound">Sound on</button>
-      <button type="button" id="clear" title="Remove all parts">Clear</button>
-    </div>
-  </header>
-
-  <aside class="drawer" aria-label="Parts drawer">
-    <h2>Parts</h2>
-    <p class="hint">Drag a part onto the board.</p>
-    <ul id="drawer"></ul>
-    <h2>Tips</h2>
-    <ul class="tips">
-      <li>Drag from a free hole to draw a jumper wire.</li>
-      <li>Drag a leg end to move one leg.</li>
-      <li><kbd>R</kbd> rotate · <kbd>Del</kbd> delete · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo</li>
-      <li>Wheel to zoom, drag the mat to pan. Drag something to the edge and the bench scrolls.</li>
-      <li><kbd>F</kbd> or Fit shows the whole bench.</li>
-    </ul>
-  </aside>
-
   <main class="stage" id="stage">
     <h1 class="sr-only">Ohmmade Breadboard</h1>
     <svg id="canvas" role="application" tabindex="0" aria-label="Breadboard. With the keyboard: arrow keys move the cursor from hole to hole, Enter picks up or puts down, Escape cancels. The Keys card in the menu lists all keys."></svg>
@@ -72,28 +38,6 @@
     <div class="errbar" id="errbar" hidden role="alert"><strong>Something went wrong.</strong> The game keeps running. Please copy this text and send it to me:<code></code><button type="button" class="btn" onclick="this.parentNode.hidden=true">Close</button></div>
   </main>
 
-  <aside class="hud" aria-label="Instruments">
-    <section class="panel" id="meter-panel">
-      <h2>Multimeter</h2>
-      <div class="lcd"><div class="lcd-q"><span id="lcd-mode">—</span><span id="lcd-where"></span></div><div class="lcd-v" id="lcd-v">—</div></div>
-      <svg id="trace" viewBox="0 0 280 70" preserveAspectRatio="none" role="img" aria-label="Meter reading over the last 60 seconds"></svg>
-      <p class="note" id="lcd-note"></p>
-    </section>
-    <section class="panel" id="inspector">
-      <h2>Inspector</h2>
-      <div id="insp-body"><p class="note">Click a part to see its voltage, current and temperature.</p></div>
-    </section>
-    <section class="panel" id="uno-panel" hidden></section>
-    <section class="panel">
-      <h2>On the board</h2>
-      <ul id="partlist" class="partlist"></ul>
-    </section>
-    <section class="panel">
-      <h2>Log</h2>
-      <ol id="log" class="log" aria-live="polite"></ol>
-    </section>
-  </aside>
-
   <div class="title-screen" id="title-screen" hidden></div>
   <div class="screen" id="levelmap" hidden></div>
   <div class="screen modal" id="complete" hidden></div>
@@ -112,19 +56,19 @@
 <script src="game/arduino.js?v=bce6c8dc"></script>
 <script src="game/sim.js?v=5b5951e6"></script>
 <script src="game/doc.js?v=0d91864a"></script>
-<script src="game/store.js?v=165a73db"></script>
+<script src="game/store.js?v=4ce8148f"></script>
 <script src="game/concepts.js?v=0c979fe3"></script>
-<script src="game/rules.js?v=1473554e"></script>
+<script src="game/rules.js?v=83aa5da4"></script>
 <script src="game/art/manifest.js?v=4aa9e66e"></script>
 <script src="game/art.js?v=44ef9f61"></script>
 <script src="game/render.js?v=42c8c2bd"></script>
 <script src="game/flow.js?v=f4fcbcf1"></script>
 <script src="game/sounds.js?v=29224b14" data-music="game/music.js?v=732f9609" async></script>
-<script src="game/effects.js?v=3b9869f8"></script>
-<script src="game/hud.js?v=574cb47d"></script>
-<script src="game/input.js?v=ef6591e2"></script>
+<script src="game/effects.js?v=468ba0a4"></script>
+<script src="game/hud.js?v=8049b77d"></script>
+<script src="game/input.js?v=2689df84"></script>
 <script src="game/goals.js?v=d900b197"></script>
-<script src="game/coach.js?v=ea1b96b5"></script>
+<script src="game/coach.js?v=ef2f98fc"></script>
 <script src="game/levels/ch1.js?v=4ac6268a"></script>
 <script src="game/levels/ch2.js?v=bf062ceb"></script>
 <script src="game/levels/ch3.js?v=d3ffc3f9"></script>
@@ -138,11 +82,11 @@
 <script src="game/levels/ch11.js?v=449c2bdd"></script>
 <script src="game/ladder.js?v=8fe9c839"></script>
 <script src="game/capview.js?v=e3250f4f"></script>
-<script src="game/coachui.js?v=399197f5"></script>
+<script src="game/coachui.js?v=fa5c8774"></script>
 <script src="game/notebook-art.js?v=8f28c8de"></script>
-<script src="game/levelmap.js?v=2d08cced"></script>
+<script src="game/levelmap.js?v=4b4f191e"></script>
 <script src="game/title-art.js?v=68832f64"></script>
-<script src="game/title.js?v=331a54aa"></script>
-<script src="game/main.js?v=ad496c1b"></script>
+<script src="game/title.js?v=2254926f"></script>
+<script src="game/main.js?v=e14c607b"></script>
 </body>
 </html>

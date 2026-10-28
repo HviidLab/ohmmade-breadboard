@@ -35,7 +35,6 @@
     floater = document.createElement("div");
     floater.className = "drag-float"; floater.hidden = true;
     document.body.appendChild(floater);
-    BB.HUD.buildDrawer(startNew);
     svg.addEventListener("focus", () => { if (svg.matches(":focus-visible")) kbMode = true; if (!cur) cur = startHole(); show(); });
     svg.addEventListener("pointerdown", () => { if (kbMode) { kbMode = false; kb = null; R.cursor(null); } }, true);
     svg.addEventListener("blur", () => { if (!kb) { R.cursor(null); R.highlight(null); R.clearGhost(); } });
@@ -45,7 +44,6 @@
   function inStage(cx, cy) {
     const r = svg.getBoundingClientRect();
     if (!(cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom)) return false;
-    if (G.mode !== "level") return true;
     const top = document.elementFromPoint(cx, cy);         // the level's cards and bars sit on top of the bench
     return !top || !!top.closest("#canvas") || !!top.closest(".drag-float");
   }
@@ -57,7 +55,7 @@
     hb.classList.toggle("drop-ready", state === "ready" || state === "over");
     hb.classList.toggle("drop-over", state === "over");
   }
-  // The drawer picture, following the pointer (over the drawer, or for parts that have no board ghost).
+  // The tray picture, following the pointer (over the tray, or for parts that have no board ghost).
   function float(type, cx, cy, color) {
     if (!type) { floater.hidden = true; floater.dataset.type = ""; return; }
     const col = color || (st && st.d && st.d.color) || BB.HUD.defaults.ledColor;
@@ -73,7 +71,7 @@
     return legs.map((l) => { const [x, y] = R.xy(l); return [wx + x - x0, wy + y - y0]; });
   }
   // Dragging near the stage edge scrolls the bench, so far rows are in reach.
-  // It starts only after the pointer has been well inside the stage, so a part dragged in from the drawer does not scroll.
+  // It starts only after the pointer has been well inside the stage, so a part dragged in from the tray does not scroll.
   function edgeTick() {
     edgeRaf = 0;
     if (!st || !lastPtr || !["new", "wire", "move", "leg", "probe", "body"].includes(st.kind)) return;
@@ -159,7 +157,7 @@
     if ((n = at("[data-part]"))) {
       const id = n.dataset.part, part = G.doc.get(id);
       G.select(id);
-      const canMove = G.can({ kind: "move", id }).ok, canRemove = G.mode === "level" && G.can({ kind: "remove", id }).ok;
+      const canMove = G.can({ kind: "move", id }).ok, canRemove = G.can({ kind: "remove", id }).ok;
       if (!canMove && !canRemove) { st = { kind: "fixed", id, x: e.clientX, y: e.clientY }; capture(e); return; }
       // grab the leg nearest to the pointer
       let grab = 0, bd = Infinity;
@@ -180,23 +178,23 @@
     startPan(e);
   }
   function startPan(e) { st = { kind: "pan", x: e.clientX, y: e.clientY }; svg.classList.add("panning"); capture(e); }
-  function capture(e) { try { svg.setPointerCapture(e.pointerId); } catch (err) { /* drawer drags are not captured */ } }
+  function capture(e) { try { svg.setPointerCapture(e.pointerId); } catch (err) { /* tray drags are not captured */ } }
 
-  // Where a part dropped from the drawer or tray puts its legs. In levels, a resistor dropped on a top rail
+  // Where a part dropped from the tray puts its legs. A resistor dropped on a top rail
   // stands from the rail into the board below it (rail → hole a), the way a beginner's circuit starts.
   // The same for a light sensor; the leg in the board goes into the first free hole of that column (a, then b, …).
   function dropLegs(type, hole) {
-    if (G.mode === "level" && (type === "resistor" || type === "ldr") && /^[+-]T\d+$/.test(hole)) {
+    if ((type === "resistor" || type === "ldr") && /^[+-]T\d+$/.test(hole)) {
       const row = BBShared.parse(hole).row, occ = G.doc.occupancy();
       return [hole, `${"abcde".split("").find((c) => !occ.has(`${c}${row}`)) || "a"}${row}`];
     }
     return Gr.footprint(type, hole);
   }
 
-  // In levels a two-leg part with both legs in one rail does nothing (both ends join the same thing): say so instead.
+  // A two-leg part with both legs in one rail does nothing (both ends join the same thing): say so instead.
   const RAIL_BOTH = "Both legs would be in the same rail, so the part would do nothing. Put one leg in a strip.";
   function bothInRail(type, legs) {
-    if (G.mode !== "level" || type === "wire" || !legs || legs.length !== 2 || !legs.every((l) => l && /^[+-][TB]\d+$/.test(l))) return false;
+    if (type === "wire" || !legs || legs.length !== 2 || !legs.every((l) => l && /^[+-][TB]\d+$/.test(l))) return false;
     return BBShared.net(legs[0]) === BBShared.net(legs[1]);
   }
 
@@ -268,7 +266,7 @@
         st.dragged = true;
         const part = G.doc.get(st.id), [wx, wy] = R.toWorld(e.clientX, e.clientY);
         let hole = holeUnder(e.clientX, e.clientY);
-        const ring = G.mode === "level" && BB.CoachUI.probeTargets()[st.k];       // near the ring Sparky marked: snap into it
+        const ring = BB.CoachUI.probeTargets()[st.k];       // near the ring Sparky marked: snap into it
         if (ring) { const [rx, ry] = R.xy(ring); if (Math.hypot(wx - rx, wy - ry) < 1.6 * BBShared.P) hole = ring; }
         if (hole && !G.can({ kind: "hole", hole }).ok) hole = null;      // a closed part of the board: the tip stays loose
         part.legs[st.k] = hole;
@@ -314,7 +312,7 @@
         if (s.to && G.doc.validate("wire", [s.from, s.to]).ok) G.add({ type: "wire", legs: [s.from, s.to], color: R.C.wires[wireColor++ % R.C.wires.length] });
         break;
       case "move":
-        if (s.moved && G.mode === "level" && overHotbar(e.clientX, e.clientY)) { G.remove(s.id); break; }
+        if (s.moved && overHotbar(e.clientX, e.clientY)) { G.remove(s.id); break; }
         if (s.moved && s.ok && s.legs && bothInRail(G.doc.get(s.id).type, s.legs)) G.refuse(RAIL_BOTH);
         else if (s.moved && s.ok && s.legs) { BB.trail(`move ${s.id} to ${s.legs.join(" ")}`); G.sound.move(G.doc.get(s.id)); G.edit(() => { G.doc.get(s.id).legs = s.legs; }); G.emit("move", { id: s.id }); }
         else if (s.moved && s.removeOnly) G.refuse("Drop it on the parts tray to take it out.");
@@ -366,7 +364,7 @@
     }
     if (!s.legs || !s.ok) {
       const r = svg.getBoundingClientRect();
-      if (s.x >= r.left && s.x <= r.right && s.y >= r.top && s.y <= r.bottom && !(G.mode === "level" && overHotbar(s.x, s.y))) G.refuse((s.legs && G.doc.validate(d.type, s.legs).why) || "Drop it onto the breadboard holes.");
+      if (s.x >= r.left && s.x <= r.right && s.y >= r.top && s.y <= r.bottom && !overHotbar(s.x, s.y)) G.refuse((s.legs && G.doc.validate(d.type, s.legs).why) || "Drop it onto the breadboard holes.");
       return;
     }
     if (bothInRail(d.type, s.legs)) { G.refuse(RAIL_BOTH); return; }
@@ -420,24 +418,12 @@
     lastHover = now;
     const partEl = e.target.closest && e.target.closest("[data-part]");
     const hole = holeUnder(e.clientX, e.clientY);
-    if (G.mode === "level") {          // no voltages yet: the part's name and how to use it, and the strip under the pointer once strips are taught
-      R.highlight(hole && G.level.ui && G.level.ui.strips ? hole : null);
-      const ctl = e.target.closest && e.target.closest("[data-ctl]"), part = partEl && G.doc.get(partEl.dataset.part);
-      const tip = ctl && CTL_TIP(ctl.dataset.ctl) || (!hole && part ? `${BB.Parts.name(part)}\n${BB.CoachUI.howTo(part)}` : null);
-      BB.HUD.tooltip(tip, e.clientX, e.clientY);
-      return;
-    }
-    if (hole) {
-      R.highlight(hole);
-      const v = G.sim.voltageAt(hole);
-      const n = hole.startsWith("U.") ? `board socket ${BB.Uno.label(hole.slice(2))}` : BBShared.netName(BBShared.net(hole));
-      const occ = G.doc.occupancy().get(hole);
-      const what = occ ? `\n${BB.Parts.name(G.doc.get(occ.id))} leg` : "";
-      BB.HUD.tooltip(`${hole}: ${n}\n${v === null ? "not connected" : `${v.toFixed(2)} V from the − rail`}${what}`, e.clientX, e.clientY);
-    } else if (partEl) {
-      R.highlight(null);
-      BB.HUD.tooltip(BB.HUD.partTip(G, partEl.dataset.part), e.clientX, e.clientY);
-    } else { R.highlight(null); BB.HUD.tooltip(null); }
+    if (G.mode !== "level") return;
+    // no voltages: the part's name and how to use it, and the strip under the pointer once strips are taught
+    R.highlight(hole && G.level.ui && G.level.ui.strips ? hole : null);
+    const ctl = e.target.closest && e.target.closest("[data-ctl]"), part = partEl && G.doc.get(partEl.dataset.part);
+    const tip = ctl && CTL_TIP(ctl.dataset.ctl) || (!hole && part ? `${BB.Parts.name(part)}\n${BB.CoachUI.howTo(part)}` : null);
+    BB.HUD.tooltip(tip, e.clientX, e.clientY);
   }
 
   // ---------- keyboard ----------
@@ -471,7 +457,7 @@
   function startHole() {
     const t = BB.CoachUI.probeTargets && BB.CoachUI.probeTargets()[0];
     if (t && open_(t)) return t;
-    const r = G.mode === "level" ? G.level.region.rows : [10, 20];
+    const r = G.level ? G.level.region.rows : [10, 20];
     return `c${Math.round((r[0] + r[1]) / 2)}`;
   }
   const nearestTo = (x, list, at) => list.reduce((b, h) => (Math.abs(at(h) - x) < Math.abs(at(b) - x) ? h : b), list[0]);
@@ -510,7 +496,7 @@
   // A new measurement starts with both probes off the board: the first probe moved in a step takes the other one off too,
   // so a tip left in from an earlier step cannot pair with the moved one into a reading the player never meant.
   function freshProbes(id, k) {
-    const m = G.doc.get(id), c = G.mode === "level" && G.coach;
+    const m = G.doc.get(id), c = G.coach;
     if (!m || !c || c.probeStep === c.i) return false;
     c.probeStep = c.i;
     if (!m.legs[1 - k]) return false;
@@ -622,6 +608,6 @@
     if (kbMode && (document.activeElement === svg || kb)) show();
   }
 
-  function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level, the sandbox)
+  function reset() { kb = null; cur = null; R.cursor(null); }       // a new bench (a level)
   BB.Input = { reset, init, startNew, beforeRedraw, afterRedraw, dropLegs, get carrying() { return !!kb; }, get holding() { return !!st; }, get probing() { return !!st && st.kind === "probe" && !!st.dragged; } };
 })(window.BB = window.BB || {});

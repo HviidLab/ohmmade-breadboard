@@ -383,7 +383,7 @@
   const LED_KEY = { red: 523.25, yellow: 587.33, green: 659.25, blue: 783.99, white: 880 };    // each colour its own key
   const ledOn = new Map();
   let loopOn = false, primed = false, hum = null, hiss = null, hushed = false;
-  // A new bench (a level loaded, the sandbox opened): note what is already on, without a sound.
+  // A new bench (a level loaded): note what is already on, without a sound.
   function reset() { ledOn.clear(); loopOn = false; primed = false; }
 
   // A bell-like note: a sine with a slightly out-of-tune overtone, quick attack, ringing decay.

@@ -72,9 +72,6 @@
       else if (e.key === "Enter" && !G.paused && typing && free) { e.preventDefault(); stopSpeaking(); }
       else if (e.key === "Enter" && !G.paused && $("mentor-next") && free) { e.preventDefault(); $("mentor-next").click(); }
     });
-    // Hidden tuning overlay (the backquote key): per level, attempts, time and hints of the last finished attempt.
-    // Kept on this computer only; nothing is sent anywhere.
-    window.addEventListener("keydown", (e) => { if ((e.key === "`" || e.code === "Backquote") && !e.target.matches("input, select, textarea")) telemetry(); });
   }
 
   // ---------- entering and leaving a level ----------
@@ -508,16 +505,6 @@
   // Ten times a second from the main loop.
   function tick() { if (!lv) return; refreshObjective(); placePartCard(); follow(); meterWatch(); BB.Ladder.tick(G); BB.CapView.tick(G); }
 
-  // The playtest data as a small overlay (the backquote key); the pause menu and the map show it in full.
-  function telemetry() {
-    let box = $("telemetry");
-    if (box) { box.remove(); return; }
-    box = document.createElement("div");
-    box.id = "telemetry";
-    box.className = "telemetry";
-    box.innerHTML = `<h2>Playtest data (this computer only)</h2>${BB.LevelMap.playtestTable()}<p>Press \` to close. To copy it: Menu → Playtest data.</p>`;
-    document.body.appendChild(box);
-  }
 
 
   BB.CoachUI = { SPARK, refreshNotebook, howTo, relayout, probeTargets, get sparkHome() { return atHome; }, setVoice, get voiceOn() { return voiceOn; }, get speaking() { return !!typing; }, stopSpeaking, mood, init, enter, leave, insets, hooks, refresh, redrawn, tick, aside, interject: aside, say };

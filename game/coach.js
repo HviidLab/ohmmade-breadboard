@@ -1,7 +1,7 @@
 // Coach: runs a level's beats. Each beat is one short mentor line, an optional highlight, and something to wait for:
 // a Continue click, a prediction, an action by the player (an event), or a state of the circuit (`when`).
-// Also the hint ladder (only when the player presses Hint: never on a timer, so there is time to think), the stars,
-// plain-language messages for failures, and local telemetry. No DOM:
+// Also the hint ladder (only when the player presses Hint: never on a timer, so there is time to think), the stars and
+// plain-language messages for failures. No DOM:
 // the screen side (coachui.js) passes in `hooks`, and the tests pass in a stub.
 //
 // beat = { id, say: "text" | (coach) => "text", highlight, allow: {...rules},
@@ -48,8 +48,7 @@
       this.pred = {};                      // beat id -> chosen answer
       this.count = {};                     // event type -> how many times
       this.broken = new Set();             // types of parts that failed during this attempt
-      this.t = 0; this.idle = 0; this.hint = 0; this.held = 0; this.beatT = 0;
-      this.tele = [];                      // [{id, t, hints}] per beat
+      this.t = 0; this.idle = 0; this.hint = 0; this.held = 0;
       this.finished = false;
     }
     get beat() { return this.lv.beats[this.i] || null; }
@@ -87,8 +86,7 @@
 
     start() { this.enter(0); }
     enter(i) {
-      if (this.beat) this.tele.push({ id: this.beat.id || String(this.i), t: +this.beatT.toFixed(1), hints: this.hint });
-      this.i = i; this.mem = {}; this.idle = 0; this.hint = 0; this.held = 0; this.beatT = 0; this.hintSay = null;
+      this.i = i; this.mem = {}; this.idle = 0; this.hint = 0; this.held = 0; this.hintSay = null;
       this.h.ghost(null);
       if (this.done) { this.h.highlight(null); this.h.beat(null); return; }
       const b = this.beat;
@@ -132,7 +130,7 @@
         if (st.t >= (r.hold ?? 1.5) && st.said !== text) { st.said = text; this.h.aside(text); }
       });
       if (this.done) return;
-      this.beatT += dt; this.idle += dt;
+      this.idle += dt;
       const w = this.beat.waitFor;
       if (w.when) {
         let ok = false;

@@ -1,17 +1,16 @@
 // Saved progress (localStorage "bbgame.v2"). No DOM.
 // {levels: {"1-1": {done, stars, clean, challenge}}, notebook: [concept ids], nbSeen: [concept ids already seen in the Notebook],
-//  introSeen: [chapter numbers], variants, settings: {sound, voice, certName, openAll}, sandbox, telemetry, ids}
+//  introSeen: [chapter numbers], variants, settings: {sound, voice, vol, certName}, ids}
 // ids: the level numbering the save uses (2: since the "build it yourself" levels of Chapters 6–11, 2026-10-18;
 // 3: since the easier Chapters 9–11, 2026-10-27).
-// The first time, the sandbox from the old "bbgame.v1" save is carried over.
 // Start over keeps the old save in "bbgame.v2.backup" until the next start over, so it can be brought back.
 (function (BB) {
   "use strict";
-  const KEY = "bbgame.v2", OLD = "bbgame.v1", BACKUP = "bbgame.v2.backup";
+  const KEY = "bbgame.v2", BACKUP = "bbgame.v2.backup";
   let mem = null, failed = false;      // mem: the save in memory; failed: the last write to storage did not work
   let memBackup;                       // the backup, when storage can't hold it (undefined: look in storage)
 
-  const fresh = () => ({ v: 2, ids: 3, levels: {}, notebook: [], settings: {}, sandbox: null, telemetry: {} });
+  const fresh = () => ({ v: 2, ids: 3, levels: {}, notebook: [], settings: {} });
   // A "build it yourself" level came in before each puzzle of Chapters 6–11, so those puzzles moved up one number.
   // Chapters 9–11 made easier (2026-10-27): four levels cut (null), the rest of 10 and 11 moved down; two ideas left the Notebook.
   const STEPS = [
@@ -22,7 +21,7 @@
   function renumber(s, from) {
     for (const st of STEPS) {
       if (from >= st.to) continue;
-      for (const k of ["levels", "telemetry", "variants"]) {
+      for (const k of ["levels", "variants"]) {
         if (!obj(s[k])) continue;
         const out = {};
         for (const [id, v] of Object.entries(s[k])) { const to = id in st.moved ? st.moved[id] : id; if (to) out[to] = v; }
@@ -32,23 +31,18 @@
     }
     s.ids = STEPS[STEPS.length - 1].to;
   }
-  function fromV1(old) {
-    const s = fresh();
-    if (old && typeof old.sandbox === "string") s.sandbox = old.sandbox;
-    return s;
-  }
   // One bad field must not stop the game: every field is checked and a broken one starts over.
   const obj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   function clean(raw) {
     if (!obj(raw)) return fresh();
     const s = Object.assign(fresh(), raw);
     delete s.classic;                                   // progress in the removed Classic lab
-    for (const k of ["levels", "settings", "telemetry"]) if (!obj(s[k])) s[k] = {};
+    delete s.sandbox; delete s.telemetry;               // the removed sandbox bench and playtest data (2026-10-28)
+    for (const k of ["levels", "settings"]) if (!obj(s[k])) s[k] = {};
+    delete s.settings.openAll;                          // the removed playtest switch
     for (const k of ["notebook", "nbSeen", "introSeen"]) if (s[k] !== undefined && !Array.isArray(s[k])) s[k] = [];
     if (s.variants !== undefined && !obj(s.variants)) delete s.variants;
     for (const [id, l] of Object.entries(s.levels)) { if (!obj(l)) delete s.levels[id]; else delete l.bonus; }    // bonus: the old bonus objectives, now replaced
-    for (const [id, t] of Object.entries(s.telemetry)) if (!obj(t)) delete s.telemetry[id];
-    if (s.sandbox != null) { try { if (!obj(JSON.parse(s.sandbox))) s.sandbox = null; } catch (e) { s.sandbox = null; } }
     if (!(raw.ids >= 3)) renumber(s, raw.ids >= 2 ? raw.ids : 1);
     return s;
   }
@@ -57,8 +51,7 @@
     if (failed && mem) return copy(mem);                // storage is full or blocked: this session's progress lives here
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return clean(JSON.parse(raw));
-      return fromV1(JSON.parse(localStorage.getItem(OLD) || "null"));
+      return raw ? clean(JSON.parse(raw)) : fresh();
     } catch (e) { return mem ? copy(mem) : (mem = fresh()); }
   }
   function put(s) {
@@ -71,15 +64,14 @@
   }
   function update(fn) { const s = get(); fn(s); put(s); return s; }
 
-  // Start over: the levels, stars, Notebook, chapter openers, certificate name and playtest data go. Sound, voice,
-  // the playtest switch and the sandbox bench stay. The old save becomes the backup.
+  // Start over: the levels, stars, Notebook, chapter openers and certificate name go. Sound and voice stay.
+  // The old save becomes the backup.
   function startOver() {
     const old = get();
     memBackup = copy(old);
     try { localStorage.setItem(BACKUP, JSON.stringify(old)); memBackup = undefined; } catch (e) { /* kept in memory */ }
     const s = fresh();
     s.settings = Object.assign({}, old.settings); delete s.settings.certName;
-    s.sandbox = old.sandbox;
     put(s);
     return s;
   }
@@ -87,13 +79,12 @@
     if (memBackup !== undefined) return memBackup && copy(memBackup);
     try { const raw = localStorage.getItem(BACKUP); return raw ? clean(JSON.parse(raw)) : null; } catch (e) { return null; }
   }
-  // Undo a start over: the old progress comes back; today's settings and sandbox bench stay as they are now.
+  // Undo a start over: the old progress comes back; today's settings stay as they are now.
   function restore() {
     const b = backup(), now = get();
     if (!b) return false;
     b.settings = Object.assign({}, now.settings, { certName: b.settings.certName });
     if (b.settings.certName === undefined) delete b.settings.certName;
-    b.sandbox = now.sandbox;
     put(b);
     memBackup = null;
     try { localStorage.removeItem(BACKUP); } catch (e) { /* ignore */ }
